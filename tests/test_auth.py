@@ -14,7 +14,10 @@ def test_enlace_resource_shape():
     assert cfg["issuer"] == "https://apps.thorwhalen.com"  # trailing slash trimmed
     assert cfg["jwks_uri"] == "https://apps.thorwhalen.com/auth/oauth/jwks"
     assert cfg["authorization_servers"] == ["https://apps.thorwhalen.com"]
-    assert cfg["audience"] == "https://apps.thorwhalen.com/trufflepig-mcp"
+    # base_url is the connector base; the validated audience is the MCP endpoint
+    # (base + /mcp), matching what FastMCP advertises and the token's aud.
+    assert cfg["base_url"] == "https://apps.thorwhalen.com/trufflepig-mcp"
+    assert cfg["audience"] == "https://apps.thorwhalen.com/trufflepig-mcp/mcp"
     assert cfg["required_scopes"] == ["mcp:read"]
 
 

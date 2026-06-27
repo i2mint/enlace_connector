@@ -45,24 +45,34 @@ def enlace_resource(
     issuer: str,
     audience: str,
     scopes: Iterable[str] = DFLT_SCOPES,
+    mcp_path: str = "/mcp",
 ) -> dict[str, Any]:
     """Resource-server config validating tokens from the platform's ``enlace_auth`` AS.
 
     Args:
         issuer: the platform origin acting as the OAuth issuer, e.g.
             ``"https://apps.thorwhalen.com"`` (no trailing slash needed).
-        audience: this connector's public URL — the token ``aud`` it must carry
-            (e.g. ``"https://apps.thorwhalen.com/trufflepig-mcp"``).
+        audience: this connector's **base** URL (e.g.
+            ``"https://apps.thorwhalen.com/api/trufflepig_mcp"``).
         scopes: scopes the connector requires (default :data:`DFLT_SCOPES`).
+        mcp_path: the MCP transport sub-path (FastMCP default ``/mcp``).
+
+    The OAuth *resource* a connector validates is its MCP **endpoint**
+    (``base + mcp_path``) — that is what FastMCP advertises in the RFC 9728
+    protected-resource metadata, and therefore what the issued token's ``aud``
+    carries. So ``base_url`` (used to build that metadata) is the base, while the
+    validated ``audience`` is ``base + mcp_path``. Setting them equal causes an
+    "audience mismatch" 401 at token-validation time.
     """
     issuer = issuer.rstrip("/")
+    base = audience.rstrip("/")
     return {
         "type": "jwt",
         "issuer": issuer,
         "jwks_uri": f"{issuer}{ENLACE_OAUTH_PATH}/jwks",
         "authorization_servers": [issuer],
-        "audience": audience,
-        "base_url": audience,
+        "audience": f"{base}{mcp_path}",
+        "base_url": base,
         "required_scopes": list(scopes),
     }
 
