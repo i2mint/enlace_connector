@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "enlace_connector"
+version = "0.0.1"
+description = "Deploy Python functions as authenticated MCP connectors on an enlace platform"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["enlace", "mcp", "connector", "claude", "py2mcp", "oauth"]
+authors = [{ name = "Thor Whalen" }]
+dependencies = [
+    "py2mcp>=0.1.1",
+]
+
+[project.license]
+text = "Apache-2.0"
+
+[project.urls]
+Homepage = "https://github.com/i2mint/enlace_connector"
+
+[project.optional-dependencies]
+serve = ["uvicorn"]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "D100"]
+ignore = ["D203"]
+
+[tool.wads.ci]
+installer = "uv"
