@@ -51,11 +51,42 @@ authorization server issued. Who that AS is is just config:
 The resource-server validation is identical regardless — picking an AS doesn't change
 the connector, only where the token comes from.
 
+## Deploy the whole bundle
+
+`generate_deploy_bundle(spec, dest)` writes everything a `mode="process"` connector
+needs — the app dir (`app.toml` + `server.py`), a **systemd unit** (runs it in its
+own venv), a **provisioning script** (build that venv + install `extras`/`git_installs`
++ create `data` dirs + `post_install`), the **`resource_allowlist`** fragment (from
+`allowed_users`), and a **runbook**:
+
+```python
+spec = ConnectorSpec(
+    name="acme", tools=["acme.mcp:search"], route="/api/acme_mcp", port=8031,
+    extras=["ir", "sentence-transformers"], git_installs=["git+ssh://git@github.com/acme/acme"],
+    data=[("~/.local/share/ir/corpora/acme", "{base}/xdg-data/ir/corpora/acme")],
+    env={"XDG_DATA_HOME": "{base}/xdg-data", "HF_HOME": "{base}/hf-cache"},
+    allowed_users=["a@acme.com", "b@acme.com"],
+)
+generate_deploy_bundle(spec, "apps/acme_mcp")   # → app dir + deploy/{unit,provision,allowlist,runbook}
+```
+
+Platform specifics (paths, origin) are parameters with tw_platform defaults; the
+package stays connector-type-agnostic (it knows nothing of `ir`).
+
+## Cost / LLM note
+
+A connector over `ir`'s core search is **offline and free** — no LLM, no tokens.
+An *agentic* connector (query reformulation, LLM-selection, synopsis) needs an LLM;
+that LLM is an injected callable and can ride the **client's Claude subscription** via
+MCP sampling (where the client supports it) instead of a metered key — see `ir`'s
+`ir_10` note and issue #1 here.
+
 ## Status
 
-Early. The `enlace_auth` OAuth-server side (`auth="enlace"`) and the `tw_platform`
-deploy wiring are tracked as follow-on work; the connector factory + scaffolding here
-are stable and tested.
+The connector factory, auth, **scaffolding, and full deploy-bundle generation** are
+stable and tested; `auth="enlace"` is live in production. Building the connector app
+directly (to attach a server icon, custom tools, etc.) is also supported — see the
+`server_py=` override on `generate_deploy_bundle`.
 ```bash
 pip install -e ".[dev]" && pytest -q
 ```
