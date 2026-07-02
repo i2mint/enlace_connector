@@ -39,6 +39,14 @@ from .auth import (
     resolve_auth,
 )
 from .connector import ConnectorSpec, make_connector_app, make_stdio_server
+from .deploy import (
+    generate_deploy_bundle,
+    render_allowlist_toml,
+    render_provision_script,
+    render_runbook,
+    render_systemd_unit,
+    resource_url,
+)
 from .scaffold import render_app_toml, render_server_py, scaffold_app
 
 __version__ = "0.0.1"
@@ -53,6 +61,12 @@ __all__ = [
     "ENLACE_OAUTH_PATH",
     "DFLT_SCOPES",
     "scaffold_app",
+    "generate_deploy_bundle",
+    "render_systemd_unit",
+    "render_provision_script",
+    "render_allowlist_toml",
+    "render_runbook",
+    "resource_url",
     "render_app_toml",
     "render_server_py",
 ]

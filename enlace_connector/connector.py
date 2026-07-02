@@ -36,8 +36,23 @@ class ConnectorSpec:
             Defaults to ``"enlace"`` — the platform's own OAuth server.
         title: human-facing MCP server name (defaults to *name*).
         route: enlace mount route (defaults to ``"/{name}-mcp"``).
-        extras: pip requirements the connector's runtime venv needs (e.g. the
-            package owning the tools). Used by the deploy/scaffold layer.
+        extras: PyPI requirements the connector's own runtime venv needs (e.g. the
+            package owning the tools + its embedder deps).
+        git_installs: non-PyPI deps as pip specs (e.g.
+            ``"git+ssh://git@github.com/org/pkg"``) for private/unreleased packages.
+        port: the fixed local port the connector process binds; enlace reverse-
+            proxies the route to ``127.0.0.1:{port}``. Must be free on the box.
+        data: ``(local_path, remote_path)`` pairs to co-locate on the server —
+            large artifacts (corpus stores, model caches) shipped *separately* from
+            code (rsynced), the deploy runbook lists the copy step.
+        env: environment variables the connector's systemd unit sets (e.g.
+            ``XDG_DATA_HOME`` / ``HF_HOME`` pointing at the ``data`` dirs).
+        allowed_users: emails permitted to authorize this connector — becomes the
+            platform's ``[auth.oauth_server.resource_allowlist]`` entry. Empty =
+            open to any authenticated platform user.
+        post_install: shell commands run *inside the connector venv* after deps
+            install (e.g. pre-warming an embedding model so the first query
+            doesn't block). ``{venv}`` / ``{base}`` placeholders are substituted.
         stateless_http: run the MCP transport statelessly (recommended behind a
             multi-worker server / load balancer). Defaults to True.
     """
@@ -48,6 +63,12 @@ class ConnectorSpec:
     title: str | None = None
     route: str | None = None
     extras: list[str] = field(default_factory=list)
+    git_installs: list[str] = field(default_factory=list)
+    port: int = 8030
+    data: list[tuple[str, str]] = field(default_factory=list)
+    env: dict[str, str] = field(default_factory=dict)
+    allowed_users: list[str] = field(default_factory=list)
+    post_install: list[str] = field(default_factory=list)
     stateless_http: bool = True
 
     @property
