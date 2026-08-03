@@ -35,6 +35,17 @@ def test_render_server_py_embeds_spec_and_builds_app():
     compile(src, "server.py", "exec")
 
 
+def test_render_server_py_carries_stateless_http():
+    """Every serve-time spec field must survive into the generated server.py.
+
+    ``stateless_http`` used to be dropped, so a spec that deliberately asked for
+    a stateful transport silently got the (default) stateless one in production.
+    """
+    stateful = ConnectorSpec(name="tp", tools=["m:f"], stateless_http=False)
+    assert "stateless_http=False" in render_server_py(stateful)
+    assert "stateless_http=True" in render_server_py(SPEC)  # default preserved
+
+
 def test_scaffold_app_writes_both_files(tmp_path):
     out = scaffold_app(SPEC, tmp_path / "trufflepig_mcp", port=8030)
     assert out["app_toml"].exists() and out["server_py"].exists()

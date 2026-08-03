@@ -45,7 +45,14 @@ def render_app_toml(
 
 
 def render_server_py(spec: ConnectorSpec) -> str:
-    """Render the ``server.py`` that exposes ``app`` for enlace's process runner."""
+    """Render the ``server.py`` that exposes ``app`` for enlace's process runner.
+
+    The embedded ``SPEC`` carries every field :func:`~enlace_connector.connector.
+    make_connector_app` reads at serve time — tools, auth, name/title, route and
+    ``stateless_http``. Deploy-time-only fields (``extras``, ``git_installs``,
+    ``data``, ``env``, ``post_install``, ``allowed_users``) are deliberately
+    omitted: they are consumed by the provisioning bundle, not by the process.
+    """
     return (
         f'"""Auto-generated enlace connector app for {spec.name!r}.\n\n'
         "Built from a ConnectorSpec by enlace_connector. The platform origin (the\n"
@@ -59,6 +66,7 @@ def render_server_py(spec: ConnectorSpec) -> str:
         f"    auth={spec.auth!r},\n"
         f"    title={spec.title!r},\n"
         f"    route={spec.route!r},\n"
+        f"    stateless_http={spec.stateless_http!r},\n"
         ")\n\n"
         f"_issuer = os.environ.get('CONNECTOR_ISSUER', {DFLT_PLATFORM_ORIGIN!r})\n"
         "app = make_connector_app(SPEC, issuer=_issuer)\n"
