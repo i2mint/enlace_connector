@@ -1,5 +1,9 @@
 """Tests for the deploy-bundle generators."""
 
+import os
+
+import pytest
+
 from enlace_connector import (
     ConnectorSpec,
     generate_deploy_bundle,
@@ -83,10 +87,23 @@ def test_generate_deploy_bundle_writes_all_artifacts(tmp_path):
         "deploy/RUNBOOK.md",
     ):
         assert (tmp_path / "acme" / rel).exists(), rel
-    # provision script is executable
-    assert out["deploy/provision-acme.sh"].stat().st_mode & 0o111
+        assert out[rel] == tmp_path / "acme" / rel, rel  # returned map is accurate
     # server_py override is honored
     out2 = generate_deploy_bundle(
         SPEC, tmp_path / "acme2", server_py="# custom\napp = 1\n"
     )
     assert out2["server.py"].read_text() == "# custom\napp = 1\n"
+
+
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason=(
+        "NTFS has no POSIX execute bit — Path.chmod on Windows only toggles the "
+        "read-only flag, so the mode assertion is meaningless there. The provision "
+        "script is a bash script that runs on the Linux server regardless of where "
+        "the bundle was generated."
+    ),
+)
+def test_provision_script_is_executable(tmp_path):
+    out = generate_deploy_bundle(SPEC, tmp_path / "acme")
+    assert out["deploy/provision-acme.sh"].stat().st_mode & 0o111
