@@ -8,32 +8,96 @@ version = "0.0.1"
 description = "Deploy Python functions as authenticated MCP connectors on an enlace platform"
 readme = "README.md"
 requires-python = ">=3.10"
+license = "Apache-2.0"
 keywords = ["enlace", "mcp", "connector", "claude", "py2mcp", "oauth"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
 authors = [{ name = "Thor Whalen" }]
 dependencies = [
     "py2mcp>=0.1.1",
 ]
 
-[project.license]
-text = "Apache-2.0"
-
 [project.urls]
 Homepage = "https://github.com/i2mint/enlace_connector"
+Repository = "https://github.com/i2mint/enlace_connector"
+Documentation = "https://i2mint.github.io/enlace_connector"
 
 [project.optional-dependencies]
 serve = ["uvicorn"]
 dev = ["pytest"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+# ============================================================================
+# LINTING / FORMATTING
+# ============================================================================
 
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = [
+    "**/*.ipynb",
+    ".git",
+    ".venv",
+    "build",
+    "dist",
+    "tests",
+    "examples",
+    "scrap",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "D100"]
-ignore = ["D203"]
+# E501 (line too long) is the formatter's business; D203 conflicts with D211.
+ignore = ["D203", "E501", "B905"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["D"]
+"**/examples/*" = ["D"]
+"**/scrap/*" = ["D"]
+
+# ============================================================================
+# TESTING
+# ============================================================================
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+# The package dir is listed on purpose: wads CI runs `pytest --doctest-modules`
+# with no path argument, so collection is driven entirely by testpaths. With
+# only ["tests"], the package's own doctests would never run anywhere.
+testpaths = ["enlace_connector", "tests"]
+# Mirrors what wads' run-tests-uv action forces in CI, so local == CI.
+doctest_optionflags = ["ELLIPSIS", "IGNORE_EXCEPTION_DETAIL"]
+
+# ============================================================================
+# CI (read by the reusable workflow i2mint/wads/.github/workflows/uv-ci.yml)
+# ============================================================================
 
 [tool.wads.ci]
+project_name = "enlace_connector"
 installer = "uv"
+
+[tool.wads.ci.install]
+# CI installs `.[dev]` (pytest). `serve` holds the uvicorn that the *deployed*
+# connector's own venv needs — not something CI has any use for.
+extras = "dev"
+
+[tool.wads.ci.testing]
+python_versions = ["3.10", "3.12"]
+coverage_enabled = true
+
+[tool.wads.ci.publish]
+# enlace_connector has never been published to PyPI under this name. First
+# publication is a deliberate act, not a side effect of a merge — flip this to
+# true when the maintainer decides to release it.
+enabled = false
