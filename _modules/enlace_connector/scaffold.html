@@ -1,0 +1,216 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enlace_connector.scaffold &mdash; enlace_connector 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            enlace_connector
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector.html">enlace_connector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/auth.html">enlace_connector.auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/connector.html">enlace_connector.connector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/scaffold.html">enlace_connector.scaffold</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">enlace_connector</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">enlace_connector.scaffold</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for enlace_connector.scaffold</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Generate the enlace app directory that serves a connector.</span>
+
+<span class="sd">A connector with heavy dependencies (ML models, large libraries) should not be</span>
+<span class="sd">mounted in-process with the rest of the platform — it runs as an enlace</span>
+<span class="sd">``mode=&quot;process&quot;`` app: enlace spawns it as a supervised subprocess in its **own</span>
+<span class="sd">venv** and reverse-proxies the route to it. This module renders that app dir — an</span>
+<span class="sd">``app.toml`` (access=public, mode=process, route) and a ``server.py`` that builds</span>
+<span class="sd">the connector app from its :class:`~enlace_connector.connector.ConnectorSpec`.</span>
+
+<span class="sd">The connector authenticates clients itself (bearer JWTs), so at the enlace layer it</span>
+<span class="sd">is ``access=&quot;public&quot;`` — enlace does not gate it with session cookies.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;render_app_toml&quot;</span><span class="p">,</span> <span class="s2">&quot;render_server_py&quot;</span><span class="p">,</span> <span class="s2">&quot;scaffold_app&quot;</span><span class="p">]</span>
+
+<span class="c1">#: Default platform origin used as the OAuth issuer when none is set in the env.</span>
+<span class="n">DFLT_PLATFORM_ORIGIN</span> <span class="o">=</span> <span class="s2">&quot;https://apps.thorwhalen.com&quot;</span>
+
+
+<div class="viewcode-block" id="render_app_toml">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/scaffold.html#enlace_connector.render_app_toml">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_app_toml</span><span class="p">(</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">command</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the enlace ``app.toml`` for *spec* as a ``mode=&quot;process&quot;`` app.&quot;&quot;&quot;</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">command</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">&quot;# Auto-generated by enlace_connector — a Claude.ai MCP connector served as a</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;# mode=process enlace app (its own venv carries the heavy tool deps). The</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;# connector validates bearer tokens itself, so enlace treats it as public.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s1">&#39;display_name = &quot;</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="si">}</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;access = &quot;public&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;mode = &quot;process&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;command = &quot;</span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="sa">f</span><span class="s2">&quot;port = </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s1">&#39;route = &quot;</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="render_server_py">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/scaffold.html#enlace_connector.render_server_py">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_server_py</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the ``server.py`` that exposes ``app`` for enlace&#39;s process runner.</span>
+
+<span class="sd">    The embedded ``SPEC`` carries every field :func:`~enlace_connector.connector.</span>
+<span class="sd">    make_connector_app` reads at serve time — tools, auth, name/title, route and</span>
+<span class="sd">    ``stateless_http``. Deploy-time-only fields (``extras``, ``git_installs``,</span>
+<span class="sd">    ``data``, ``env``, ``post_install``, ``allowed_users``) are deliberately</span>
+<span class="sd">    omitted: they are consumed by the provisioning bundle, not by the process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;&quot;&quot;&quot;Auto-generated enlace connector app for </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s1">.</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+        <span class="s2">&quot;Built from a ConnectorSpec by enlace_connector. The platform origin (the</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;OAuth issuer) is read from $CONNECTOR_ISSUER; this connector&#39;s public URL</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s1">&#39;(the token audience) is derived from it and the route.</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+        <span class="s2">&quot;import os</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;from enlace_connector import ConnectorSpec, make_connector_app</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;SPEC = ConnectorSpec(</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    name=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    tools=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">tools</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    auth=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">auth</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    title=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">title</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    route=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">route</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    stateless_http=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">stateless_http</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;)</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;_issuer = os.environ.get(&#39;CONNECTOR_ISSUER&#39;, </span><span class="si">{</span><span class="n">DFLT_PLATFORM_ORIGIN</span><span class="si">!r}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;app = make_connector_app(SPEC, issuer=_issuer)</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="scaffold_app">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/scaffold.html#enlace_connector.scaffold_app">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">scaffold_app</span><span class="p">(</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span>
+    <span class="n">dest_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">command</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write ``app.toml`` and ``server.py`` for *spec* into *dest_dir*.</span>
+
+<span class="sd">    *dest_dir* is the enlace app directory (e.g. ``tw_platform/apps/&lt;name&gt;``).</span>
+<span class="sd">    Returns the paths written. Creates *dest_dir* if needed; overwrites the two</span>
+<span class="sd">    generated files (they are derived artifacts).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dest</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest_dir</span><span class="p">)</span>
+    <span class="n">dest</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">app_toml</span> <span class="o">=</span> <span class="n">dest</span> <span class="o">/</span> <span class="s2">&quot;app.toml&quot;</span>
+    <span class="n">server_py</span> <span class="o">=</span> <span class="n">dest</span> <span class="o">/</span> <span class="s2">&quot;server.py&quot;</span>
+    <span class="n">app_toml</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+        <span class="n">render_app_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span>
+    <span class="p">)</span>
+    <span class="n">server_py</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">render_server_py</span><span class="p">(</span><span class="n">spec</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;app_toml&quot;</span><span class="p">:</span> <span class="n">app_toml</span><span class="p">,</span> <span class="s2">&quot;server_py&quot;</span><span class="p">:</span> <span class="n">server_py</span><span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
