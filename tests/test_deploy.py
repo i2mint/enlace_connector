@@ -8,6 +8,7 @@ from enlace_connector import (
     ConnectorSpec,
     generate_deploy_bundle,
     render_allowlist_toml,
+    render_oauth_server_toml,
     render_provision_script,
     render_runbook,
     render_systemd_unit,
@@ -76,6 +77,42 @@ def test_runbook_lists_data_ship_and_allowlist_step():
     assert "allowlist.toml" in r
 
 
+def test_oauth_server_toml_configures_session_longevity():
+    t = render_oauth_server_toml(SPEC)
+    assert "[auth.oauth_server]" in t
+    assert "refresh_token_ttl_seconds = 2592000" in t  # 30 days, not 0
+    # the fragment must be usable as-is, and land before the allowlist subtable
+    assert t.index("[auth.oauth_server]") < t.index("refresh_token_ttl_seconds")
+    assert "BEFORE any" in t and "resource_allowlist" in t
+    # and it must say what happens without it
+    assert "first access-token expiry" in t
+    # TTL is a parameter, not a magic number baked into the template
+    assert "refresh_token_ttl_seconds = 3600" in render_oauth_server_toml(
+        SPEC, refresh_token_ttl_seconds=3600
+    )
+
+
+def test_oauth_server_toml_is_emitted_even_for_an_open_connector():
+    # session longevity is platform-wide: it matters whether or not users are listed
+    open_spec = ConnectorSpec(name="x", tools=["m:f"])
+    assert render_allowlist_toml(open_spec) == ""
+    assert "refresh_token_ttl_seconds" in render_oauth_server_toml(open_spec)
+
+
+def test_runbook_states_the_silent_stranding_failure_and_the_check():
+    r = render_runbook(SPEC)
+    # the check that would have caught the incident, verbatim enough to paste
+    assert ".well-known/oauth-authorization-server" in r
+    assert "grant_types_supported" in r
+    assert "python -m enlace_connector.preflight https://apps.thorwhalen.com" in r
+    # and the plain-words warning: healthy-looking, needs a human, first expiry
+    assert "refresh_token" in r
+    assert "no way to renew" in r
+    assert "systemd unit is active with zero restarts" in r
+    assert "interactive browser" in r
+    assert "oauth-server.toml" in r  # the fragment that fixes it
+
+
 def test_generate_deploy_bundle_writes_all_artifacts(tmp_path):
     out = generate_deploy_bundle(SPEC, tmp_path / "acme")
     for rel in (
@@ -84,6 +121,7 @@ def test_generate_deploy_bundle_writes_all_artifacts(tmp_path):
         "deploy/acme-mcp.service",
         "deploy/provision-acme.sh",
         "deploy/allowlist.toml",
+        "deploy/oauth-server.toml",
         "deploy/RUNBOOK.md",
     ):
         assert (tmp_path / "acme" / rel).exists(), rel
@@ -107,3 +145,16 @@ def test_generate_deploy_bundle_writes_all_artifacts(tmp_path):
 def test_provision_script_is_executable(tmp_path):
     out = generate_deploy_bundle(SPEC, tmp_path / "acme")
     assert out["deploy/provision-acme.sh"].stat().st_mode & 0o111
+
+
+def test_bundle_ttl_is_settable_and_open_connectors_still_get_the_fragment(tmp_path):
+    out = generate_deploy_bundle(
+        ConnectorSpec(name="x", tools=["m:f"]),
+        tmp_path / "x",
+        refresh_token_ttl_seconds=604800,
+    )
+    assert "deploy/allowlist.toml" not in out  # open connector: no allowlist
+    assert (
+        "refresh_token_ttl_seconds = 604800"
+        in out["deploy/oauth-server.toml"].read_text()
+    )
