@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/auth.html">enlace_connector.auth</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/connector.html">enlace_connector.connector</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/preflight.html">enlace_connector.preflight</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/scaffold.html">enlace_connector.scaffold</a></li>
 </ul>
 
@@ -78,7 +79,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for enlace_connector.connector</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).</span>
+<span></span><span class="sd">"""Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).</span>
 
 <span class="sd">A :class:`ConnectorSpec` is the single declaration of a connector: the Python tool</span>
 <span class="sd">functions to expose, the auth strategy, the public route, and the pip extras its</span>
@@ -90,10 +91,10 @@
 <span class="sd">- :func:`make_connector_app` — the Streamable-HTTP ASGI app an enlace platform mounts</span>
 <span class="sd">  (or a standalone ASGI server runs) — with auth resolved from the spec.</span>
 
-<span class="sd">Tools are given as ``&quot;module:function&quot;`` reference strings (py2mcp&#39;s form), so the</span>
+<span class="sd">Tools are given as ``"module:function"`` reference strings (py2mcp's form), so the</span>
 <span class="sd">spec is import-light and serializable — the heavy tool modules load only in the</span>
 <span class="sd">process that actually serves them.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -102,46 +103,46 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_auth</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ConnectorSpec&quot;</span><span class="p">,</span> <span class="s2">&quot;make_stdio_server&quot;</span><span class="p">,</span> <span class="s2">&quot;make_connector_app&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ConnectorSpec"</span><span class="p">,</span> <span class="s2">"make_stdio_server"</span><span class="p">,</span> <span class="s2">"make_connector_app"</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="ConnectorSpec">
 <a class="viewcode-back" href="../../module_docs/enlace_connector/connector.html#enlace_connector.ConnectorSpec">[docs]</a>
 <span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ConnectorSpec</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A declarative connector definition (see the module docstring).</span>
+<span class="w">    </span><span class="sd">"""A declarative connector definition (see the module docstring).</span>
 
 <span class="sd">    Attributes:</span>
 <span class="sd">        name: short identifier — the enlace app name and default route stem.</span>
-<span class="sd">        tools: ``&quot;module:function&quot;`` refs exposed as MCP tools.</span>
-<span class="sd">        auth: ``&quot;enlace&quot;`` / ``&quot;none&quot;`` / an auth dict (e.g. from ``idp_resource``).</span>
-<span class="sd">            Defaults to ``&quot;enlace&quot;`` — the platform&#39;s own OAuth server.</span>
+<span class="sd">        tools: ``"module:function"`` refs exposed as MCP tools.</span>
+<span class="sd">        auth: ``"enlace"`` / ``"none"`` / an auth dict (e.g. from ``idp_resource``).</span>
+<span class="sd">            Defaults to ``"enlace"`` — the platform's own OAuth server.</span>
 <span class="sd">        title: human-facing MCP server name (defaults to *name*).</span>
-<span class="sd">        route: enlace mount route (defaults to ``&quot;/{name}-mcp&quot;``).</span>
-<span class="sd">        extras: PyPI requirements the connector&#39;s own runtime venv needs (e.g. the</span>
+<span class="sd">        route: enlace mount route (defaults to ``"/{name}-mcp"``).</span>
+<span class="sd">        extras: PyPI requirements the connector's own runtime venv needs (e.g. the</span>
 <span class="sd">            package owning the tools + its embedder deps).</span>
 <span class="sd">        git_installs: non-PyPI deps as pip specs (e.g.</span>
-<span class="sd">            ``&quot;git+ssh://git@github.com/org/pkg&quot;``) for private/unreleased packages.</span>
+<span class="sd">            ``"git+ssh://git@github.com/org/pkg"``) for private/unreleased packages.</span>
 <span class="sd">        port: the fixed local port the connector process binds; enlace reverse-</span>
 <span class="sd">            proxies the route to ``127.0.0.1:{port}``. Must be free on the box.</span>
 <span class="sd">        data: ``(local_path, remote_path)`` pairs to co-locate on the server —</span>
 <span class="sd">            large artifacts (corpus stores, model caches) shipped *separately* from</span>
 <span class="sd">            code (rsynced), the deploy runbook lists the copy step.</span>
-<span class="sd">        env: environment variables the connector&#39;s systemd unit sets (e.g.</span>
+<span class="sd">        env: environment variables the connector's systemd unit sets (e.g.</span>
 <span class="sd">            ``XDG_DATA_HOME`` / ``HF_HOME`` pointing at the ``data`` dirs).</span>
 <span class="sd">        allowed_users: emails permitted to authorize this connector — becomes the</span>
-<span class="sd">            platform&#39;s ``[auth.oauth_server.resource_allowlist]`` entry. Empty =</span>
+<span class="sd">            platform's ``[auth.oauth_server.resource_allowlist]`` entry. Empty =</span>
 <span class="sd">            open to any authenticated platform user.</span>
 <span class="sd">        post_install: shell commands run *inside the connector venv* after deps</span>
 <span class="sd">            install (e.g. pre-warming an embedding model so the first query</span>
-<span class="sd">            doesn&#39;t block). ``{venv}`` / ``{base}`` placeholders are substituted.</span>
+<span class="sd">            doesn't block). ``{venv}`` / ``{base}`` placeholders are substituted.</span>
 <span class="sd">        stateless_http: run the MCP transport statelessly (recommended behind a</span>
 <span class="sd">            multi-worker server / load balancer). Defaults to True.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">tools</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-    <span class="n">auth</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">&quot;enlace&quot;</span>
+    <span class="n">auth</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">"enlace"</span>
     <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">route</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">extras</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
@@ -159,13 +160,13 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">mount_route</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">route</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">route</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp"</span>
 
 <div class="viewcode-block" id="ConnectorSpec.default_audience">
 <a class="viewcode-back" href="../../module_docs/enlace_connector/connector.html#enlace_connector.ConnectorSpec.default_audience">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">default_audience</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">platform_origin</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;This connector&#39;s public URL under *platform_origin* (the token audience).&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">platform_origin</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}</span><span class="s2">&quot;</span></div>
+<span class="w">        </span><span class="sd">"""This connector's public URL under *platform_origin* (the token audience)."""</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">platform_origin</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}</span><span class="s2">"</span></div>
 </div>
 
 
@@ -173,11 +174,11 @@
 <div class="viewcode-block" id="make_stdio_server">
 <a class="viewcode-back" href="../../module_docs/enlace_connector/connector.html#enlace_connector.make_stdio_server">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">make_stdio_server</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a FastMCP server for *spec*, for local stdio serving (no auth).</span>
+<span class="w">    </span><span class="sd">"""Build a FastMCP server for *spec*, for local stdio serving (no auth).</span>
 
 <span class="sd">    Use for ``server.run()`` in Claude Desktop / Claude Code while developing the</span>
 <span class="sd">    tools; the hosted path uses :func:`make_connector_app`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">py2mcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">mk_mcp_from_refs</span>
 
     <span class="k">return</span> <span class="n">mk_mcp_from_refs</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">tools</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="p">)</span></div>
@@ -192,14 +193,14 @@
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">audience</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).</span>
+<span class="w">    </span><span class="sd">"""Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).</span>
 
-<span class="sd">    Resolves the spec&#39;s ``auth`` into a py2mcp resource-server config. For</span>
-<span class="sd">    ``auth=&quot;enlace&quot;`` provide *issuer* (the platform origin) and *audience* (this</span>
-<span class="sd">    connector&#39;s public URL); if *audience* is omitted it is derived from *issuer* +</span>
-<span class="sd">    the spec&#39;s route. Returns an ASGI app to run under any ASGI server (or mount in</span>
+<span class="sd">    Resolves the spec's ``auth`` into a py2mcp resource-server config. For</span>
+<span class="sd">    ``auth="enlace"`` provide *issuer* (the platform origin) and *audience* (this</span>
+<span class="sd">    connector's public URL); if *audience* is omitted it is derived from *issuer* +</span>
+<span class="sd">    the spec's route. Returns an ASGI app to run under any ASGI server (or mount in</span>
 <span class="sd">    enlace).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">audience</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">issuer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">audience</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">default_audience</span><span class="p">(</span><span class="n">issuer</span><span class="p">)</span>
     <span class="n">auth</span> <span class="o">=</span> <span class="n">resolve_auth</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">auth</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">,</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">)</span>

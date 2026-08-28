@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/auth.html">enlace_connector.auth</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/connector.html">enlace_connector.connector</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/preflight.html">enlace_connector.preflight</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/scaffold.html">enlace_connector.scaffold</a></li>
 </ul>
 
@@ -78,10 +79,10 @@
            <div itemprop="articleBody">
              
   <h1>Source code for enlace_connector.deploy</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Generate everything needed to deploy a connector on an enlace platform.</span>
+<span></span><span class="sd">"""Generate everything needed to deploy a connector on an enlace platform.</span>
 
-<span class="sd">In production, enlace only *reverse-proxies* a ``mode=&quot;process&quot;`` app&#39;s route to</span>
-<span class="sd">``127.0.0.1:{port}`` — the connector&#39;s actual process runs under a **systemd</span>
+<span class="sd">In production, enlace only *reverse-proxies* a ``mode="process"`` app's route to</span>
+<span class="sd">``127.0.0.1:{port}`` — the connector's actual process runs under a **systemd</span>
 <span class="sd">unit** in its **own venv** (enlace delegates production process management to</span>
 <span class="sd">systemd). So a full deploy is more than an ``app.toml``; this module renders the</span>
 <span class="sd">whole bundle from a :class:`~enlace_connector.connector.ConnectorSpec`:</span>
@@ -90,13 +91,15 @@
 <span class="sd">- the **provisioning script** (build that venv + install deps + create data dirs</span>
 <span class="sd">  + install/start the unit — idempotent, run as root on the box),</span>
 <span class="sd">- the **resource-allowlist** TOML fragment for ``platform.toml`` (access control),</span>
-<span class="sd">- a **runbook** listing the human steps (ship data, provision, deploy, connect).</span>
+<span class="sd">- the **``[auth.oauth_server]``** fragment (session longevity — a platform without</span>
+<span class="sd">  a refresh-token TTL strands every connector at its first token expiry),</span>
+<span class="sd">- a **runbook** listing the human steps (ship data, provision, deploy, verify).</span>
 
 <span class="sd">It generalizes the artifacts first hand-written for the trufflepig connector, so</span>
 <span class="sd">deploying the next one is ``generate_deploy_bundle(spec)`` + following the runbook.</span>
 <span class="sd">Platform specifics (paths, origin) are parameters with tw_platform defaults —</span>
 <span class="sd">``enlace_connector`` stays connector-type-agnostic (it knows nothing of ``ir``).</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
@@ -104,87 +107,90 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.preflight</span><span class="w"> </span><span class="kn">import</span> <span class="n">DFLT_REFRESH_TOKEN_TTL_SECONDS</span><span class="p">,</span> <span class="n">refresh_grant_check_commands</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;DFLT_REMOTE_BASE&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;DFLT_ISSUER&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;MCP_PATH&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;resource_url&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;render_systemd_unit&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;render_provision_script&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;render_allowlist_toml&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;render_runbook&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;generate_deploy_bundle&quot;</span><span class="p">,</span>
+    <span class="s2">"DFLT_REMOTE_BASE"</span><span class="p">,</span>
+    <span class="s2">"DFLT_ISSUER"</span><span class="p">,</span>
+    <span class="s2">"MCP_PATH"</span><span class="p">,</span>
+    <span class="s2">"DFLT_REFRESH_TOKEN_TTL_SECONDS"</span><span class="p">,</span>
+    <span class="s2">"resource_url"</span><span class="p">,</span>
+    <span class="s2">"render_systemd_unit"</span><span class="p">,</span>
+    <span class="s2">"render_provision_script"</span><span class="p">,</span>
+    <span class="s2">"render_allowlist_toml"</span><span class="p">,</span>
+    <span class="s2">"render_oauth_server_toml"</span><span class="p">,</span>
+    <span class="s2">"render_runbook"</span><span class="p">,</span>
+    <span class="s2">"generate_deploy_bundle"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="c1">#: Defaults for the tw_platform target (override per call for another platform).</span>
-<span class="n">DFLT_REMOTE_BASE</span> <span class="o">=</span> <span class="s2">&quot;/opt/tw_platform&quot;</span>
-<span class="n">DFLT_ISSUER</span> <span class="o">=</span> <span class="s2">&quot;https://apps.thorwhalen.com&quot;</span>
-<span class="c1">#: FastMCP&#39;s Streamable-HTTP sub-path — the OAuth *resource* is ``route + MCP_PATH``.</span>
-<span class="n">MCP_PATH</span> <span class="o">=</span> <span class="s2">&quot;/mcp&quot;</span>
+<span class="n">DFLT_REMOTE_BASE</span> <span class="o">=</span> <span class="s2">"/opt/tw_platform"</span>
+<span class="n">DFLT_ISSUER</span> <span class="o">=</span> <span class="s2">"https://apps.thorwhalen.com"</span>
+<span class="c1">#: FastMCP's Streamable-HTTP sub-path — the OAuth *resource* is ``route + MCP_PATH``.</span>
+<span class="n">MCP_PATH</span> <span class="o">=</span> <span class="s2">"/mcp"</span>
 
 <span class="c1"># Provisioning script template. Uses @@TOKEN@@ placeholders (not f-strings) so the</span>
-<span class="c1"># shell&#39;s own ``${...}`` / ``$(...)`` never collide with Python string formatting.</span>
-<span class="n">_PROVISION_TEMPLATE</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;#!/usr/bin/env bash</span>
+<span class="c1"># shell's own ``${...}`` / ``$(...)`` never collide with Python string formatting.</span>
+<span class="n">_PROVISION_TEMPLATE</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">"""#!/usr/bin/env bash</span>
 <span class="s2"># Provision (or update) the @@NAME@@ connector. Run as ROOT on the server.</span>
-<span class="s2"># Idempotent: builds the connector&#39;s own venv (heavy deps kept off the shared</span>
+<span class="s2"># Idempotent: builds the connector's own venv (heavy deps kept off the shared</span>
 <span class="s2"># backend venv) and installs the systemd unit that runs it.</span>
 <span class="s2">set -euo pipefail</span>
 
 <span class="s2">BASE=@@BASE@@</span>
-<span class="s2">VENV=&quot;$BASE/venv&quot;</span>
+<span class="s2">VENV="$BASE/venv"</span>
 <span class="s2">APP_DIR=@@APP_DIR@@</span>
 <span class="s2">UNIT=@@UNIT@@</span>
 <span class="s2"># Same base interpreter that built the shared venv (pyenv has venv+ensurepip; the</span>
 <span class="s2"># bare system python3 may not). Override with $PYTHON.</span>
-<span class="s2">PY_HOME=$(awk -F&#39;= &#39; &#39;/^home/{print $2}&#39; @@REMOTE_BASE@@/venv/pyvenv.cfg 2&gt;/dev/null)</span>
-<span class="s2">PYTHON=&quot;${PYTHON:-${PY_HOME:-/usr/bin}/python}&quot;</span>
+<span class="s2">PY_HOME=$(awk -F'= ' '/^home/{print $2}' @@REMOTE_BASE@@/venv/pyvenv.cfg 2&gt;/dev/null)</span>
+<span class="s2">PYTHON="${PYTHON:-${PY_HOME:-/usr/bin}/python}"</span>
 
-<span class="s2">echo &quot;==&gt; dirs&quot;; mkdir -p &quot;$BASE&quot;@@MKDIR_EXTRA@@</span>
+<span class="s2">echo "==&gt; dirs"; mkdir -p "$BASE"@@MKDIR_EXTRA@@</span>
 
-<span class="s2">echo &quot;==&gt; venv ($PYTHON; --without-pip + get-pip, ensurepip unavailable here)&quot;</span>
-<span class="s2">rm -rf &quot;$VENV&quot;</span>
-<span class="s2">&quot;$PYTHON&quot; -m venv --without-pip &quot;$VENV&quot;</span>
+<span class="s2">echo "==&gt; venv ($PYTHON; --without-pip + get-pip, ensurepip unavailable here)"</span>
+<span class="s2">rm -rf "$VENV"</span>
+<span class="s2">"$PYTHON" -m venv --without-pip "$VENV"</span>
 <span class="s2">curl -fsSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip-@@NAME@@.py</span>
-<span class="s2">&quot;$VENV/bin/python&quot; /tmp/get-pip-@@NAME@@.py --quiet</span>
-<span class="s2">&quot;$VENV/bin/pip&quot; install --quiet --upgrade pip</span>
+<span class="s2">"$VENV/bin/python" /tmp/get-pip-@@NAME@@.py --quiet</span>
+<span class="s2">"$VENV/bin/pip" install --quiet --upgrade pip</span>
 
-<span class="s2">echo &quot;==&gt; deps&quot;; &quot;$VENV/bin/pip&quot; install --quiet @@PIP_SPECS@@</span>
+<span class="s2">echo "==&gt; deps"; "$VENV/bin/pip" install --quiet @@PIP_SPECS@@</span>
 <span class="s2">@@POST@@</span>
-<span class="s2">echo &quot;==&gt; systemd unit&quot;</span>
-<span class="s2">install -m 0644 &quot;$(dirname &quot;$0&quot;)/$UNIT&quot; &quot;/etc/systemd/system/$UNIT&quot;</span>
+<span class="s2">echo "==&gt; systemd unit"</span>
+<span class="s2">install -m 0644 "$(dirname "$0")/$UNIT" "/etc/systemd/system/$UNIT"</span>
 <span class="s2">systemctl daemon-reload</span>
-<span class="s2">systemctl enable --now &quot;$UNIT&quot;</span>
-<span class="s2">systemctl --no-pager --lines=5 status &quot;$UNIT&quot; || true</span>
-<span class="s2">echo &quot;==&gt; done. verify: curl -s http://127.0.0.1:@@PORT@@/ ; data under $BASE&quot;</span>
-<span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">systemctl enable --now "$UNIT"</span>
+<span class="s2">systemctl --no-pager --lines=5 status "$UNIT" || true</span>
+<span class="s2">echo "==&gt; done. verify: curl -s http://127.0.0.1:@@PORT@@/ ; data under $BASE"</span>
+<span class="s2">"""</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-    <span class="n">base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/connectors/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/connectors/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="s2">&quot;remote_base&quot;</span><span class="p">:</span> <span class="n">remote_base</span><span class="p">,</span>
-        <span class="s2">&quot;base&quot;</span><span class="p">:</span> <span class="n">base</span><span class="p">,</span>
-        <span class="s2">&quot;venv&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/venv&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;app_dir&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp.service&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;port&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+        <span class="s2">"name"</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="s2">"remote_base"</span><span class="p">:</span> <span class="n">remote_base</span><span class="p">,</span>
+        <span class="s2">"base"</span><span class="p">:</span> <span class="n">base</span><span class="p">,</span>
+        <span class="s2">"venv"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/venv"</span><span class="p">,</span>
+        <span class="s2">"app_dir"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="s2">"unit"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp.service"</span><span class="p">,</span>
+        <span class="s2">"port"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
     <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_subst</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Substitute path placeholders (``{base}``, ``{venv}``, …) in *text*.&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;base&quot;</span><span class="p">,</span> <span class="s2">&quot;venv&quot;</span><span class="p">,</span> <span class="s2">&quot;app_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;remote_base&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;port&quot;</span><span class="p">):</span>
-        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;{&quot;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;}&quot;</span><span class="p">,</span> <span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+<span class="w">    </span><span class="sd">"""Substitute path placeholders (``{base}``, ``{venv}``, …) in *text*."""</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"base"</span><span class="p">,</span> <span class="s2">"venv"</span><span class="p">,</span> <span class="s2">"app_dir"</span><span class="p">,</span> <span class="s2">"remote_base"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">,</span> <span class="s2">"port"</span><span class="p">):</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"{"</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">"}"</span><span class="p">,</span> <span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">text</span>
 
 
 <div class="viewcode-block" id="resource_url">
 <a class="viewcode-back" href="../../module_docs/enlace_connector/deploy.html#enlace_connector.resource_url">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">resource_url</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;The connector&#39;s OAuth resource = its public MCP endpoint (``route + /mcp``).&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="si">}{</span><span class="n">spec</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}{</span><span class="n">MCP_PATH</span><span class="si">}</span><span class="s2">&quot;</span></div>
+<span class="w">    </span><span class="sd">"""The connector's OAuth resource = its public MCP endpoint (``route + /mcp``)."""</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}{</span><span class="n">spec</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}{</span><span class="n">MCP_PATH</span><span class="si">}</span><span class="s2">"</span></div>
 
 
 
@@ -196,33 +202,33 @@
     <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_REMOTE_BASE</span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the systemd unit that runs the connector in its own venv.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Render the systemd unit that runs the connector in its own venv."""</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
-    <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;CONNECTOR_ISSUER&quot;</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span> <span class="o">**</span><span class="n">spec</span><span class="o">.</span><span class="n">env</span><span class="p">}</span>
-    <span class="n">env_lines</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;Environment=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">_subst</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"CONNECTOR_ISSUER"</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span> <span class="o">**</span><span class="n">spec</span><span class="o">.</span><span class="n">env</span><span class="p">}</span>
+    <span class="n">env_lines</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"Environment=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">_subst</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">)</span>
     <span class="n">exec_start</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;venv&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'venv'</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;# </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector — the production process for apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;# (a mode=process enlace app). enlace only reverse-proxies the route to</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;# this unit on 127.0.0.1:</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">; provisioned via the runbook.</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;[Unit]</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;Description=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="si">}</span><span class="s2"> MCP connector (mode=process :</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;After=network-online.target</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;Wants=network-online.target</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;[Service]</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;Type=simple</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;User=root</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;WorkingDirectory=</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;app_dir&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">env_lines</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;ExecStart=</span><span class="si">{</span><span class="n">exec_start</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;Restart=on-failure</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;RestartSec=3</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;[Install]</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;WantedBy=multi-user.target</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">"# </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector — the production process for apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# (a mode=process enlace app). enlace only reverse-proxies the route to</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"# this unit on 127.0.0.1:</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">; provisioned via the runbook.</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"[Unit]</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"Description=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="si">}</span><span class="s2"> MCP connector (mode=process :</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"After=network-online.target</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"Wants=network-online.target</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"[Service]</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"Type=simple</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"User=root</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"WorkingDirectory=</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'app_dir'</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">env_lines</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"ExecStart=</span><span class="si">{</span><span class="n">exec_start</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"Restart=on-failure</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"RestartSec=3</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"[Install]</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"WantedBy=multi-user.target</span><span class="se">\n</span><span class="s2">"</span>
     <span class="p">)</span></div>
 
 
@@ -232,27 +238,27 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">render_provision_script</span><span class="p">(</span>
     <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_REMOTE_BASE</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the idempotent, run-as-root provisioning script for the connector.</span>
+<span class="w">    </span><span class="sd">"""Render the idempotent, run-as-root provisioning script for the connector.</span>
 
-<span class="sd">    Builds the dedicated venv (this box&#39;s ``ensurepip`` is unavailable, so</span>
+<span class="sd">    Builds the dedicated venv (this box's ``ensurepip`` is unavailable, so</span>
 <span class="sd">    ``--without-pip`` + ``get-pip.py``, using the same base interpreter that made</span>
 <span class="sd">    the shared venv), installs ``extras`` + ``git_installs``, creates the data</span>
 <span class="sd">    dirs, runs ``post_install`` (e.g. warm a model), and installs/starts the unit.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
-    <span class="n">data_dirs</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">_subst</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">remote</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-    <span class="n">pip_specs</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">spec</span><span class="o">.</span><span class="n">extras</span><span class="p">,</span> <span class="o">*</span><span class="n">spec</span><span class="o">.</span><span class="n">git_installs</span><span class="p">])</span>
-    <span class="n">post</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_subst</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">post_install</span><span class="p">)</span>
+    <span class="n">data_dirs</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">_subst</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">remote</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">pip_specs</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="o">*</span><span class="n">spec</span><span class="o">.</span><span class="n">extras</span><span class="p">,</span> <span class="o">*</span><span class="n">spec</span><span class="o">.</span><span class="n">git_installs</span><span class="p">])</span>
+    <span class="n">post</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_subst</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">post_install</span><span class="p">)</span>
     <span class="n">repl</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;@@NAME@@&quot;</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-        <span class="s2">&quot;@@BASE@@&quot;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;base&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;@@APP_DIR@@&quot;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;app_dir&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;@@UNIT@@&quot;</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;unit&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;@@REMOTE_BASE@@&quot;</span><span class="p">:</span> <span class="n">remote_base</span><span class="p">,</span>
-        <span class="s2">&quot;@@MKDIR_EXTRA@@&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">data_dirs</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">data_dirs</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;@@PIP_SPECS@@&quot;</span><span class="p">:</span> <span class="n">pip_specs</span> <span class="ow">or</span> <span class="s2">&quot;pip&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;@@POST@@&quot;</span><span class="p">:</span> <span class="n">post</span><span class="p">,</span>
-        <span class="s2">&quot;@@PORT@@&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
+        <span class="s2">"@@NAME@@"</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="s2">"@@BASE@@"</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s2">"base"</span><span class="p">],</span>
+        <span class="s2">"@@APP_DIR@@"</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s2">"app_dir"</span><span class="p">],</span>
+        <span class="s2">"@@UNIT@@"</span><span class="p">:</span> <span class="n">p</span><span class="p">[</span><span class="s2">"unit"</span><span class="p">],</span>
+        <span class="s2">"@@REMOTE_BASE@@"</span><span class="p">:</span> <span class="n">remote_base</span><span class="p">,</span>
+        <span class="s2">"@@MKDIR_EXTRA@@"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">" </span><span class="si">{</span><span class="n">data_dirs</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">data_dirs</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="s2">"@@PIP_SPECS@@"</span><span class="p">:</span> <span class="n">pip_specs</span> <span class="ow">or</span> <span class="s2">"pip"</span><span class="p">,</span>
+        <span class="s2">"@@POST@@"</span><span class="p">:</span> <span class="n">post</span><span class="p">,</span>
+        <span class="s2">"@@PORT@@"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
     <span class="p">}</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">_PROVISION_TEMPLATE</span>
     <span class="k">for</span> <span class="n">token</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">repl</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -264,18 +270,67 @@
 <div class="viewcode-block" id="render_allowlist_toml">
 <a class="viewcode-back" href="../../module_docs/enlace_connector/deploy.html#enlace_connector.render_allowlist_toml">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">render_allowlist_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the ``[auth.oauth_server.resource_allowlist]`` fragment (or ``&quot;&quot;``).</span>
+<span class="w">    </span><span class="sd">"""Render the ``[auth.oauth_server.resource_allowlist]`` fragment (or ``""``).</span>
 
 <span class="sd">    Empty when ``allowed_users`` is empty (connector open to any authenticated</span>
-<span class="sd">    user). Otherwise maps this connector&#39;s resource URL to the allowed emails —</span>
-<span class="sd">    paste into the platform&#39;s ``platform.toml``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    user). Otherwise maps this connector's resource URL to the allowed emails —</span>
+<span class="sd">    paste into the platform's ``platform.toml``.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">spec</span><span class="o">.</span><span class="n">allowed_users</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
-    <span class="n">users</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;    &quot;</span><span class="si">{</span><span class="n">u</span><span class="si">}</span><span class="s1">&quot;,&#39;</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">allowed_users</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">""</span>
+    <span class="n">users</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">'    "</span><span class="si">{</span><span class="n">u</span><span class="si">}</span><span class="s1">",'</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">allowed_users</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="s2">&quot;[auth.oauth_server.resource_allowlist]</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">resource_url</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span><span class="w"> </span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">)</span><span class="si">}</span><span class="s1">&quot; = [</span><span class="se">\n</span><span class="si">{</span><span class="n">users</span><span class="si">}</span><span class="se">\n</span><span class="s1">]</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s2">"[auth.oauth_server.resource_allowlist]</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">resource_url</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span><span class="w"> </span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">)</span><span class="si">}</span><span class="s1">" = [</span><span class="se">\n</span><span class="si">{</span><span class="n">users</span><span class="si">}</span><span class="se">\n</span><span class="s1">]</span><span class="se">\n</span><span class="s1">'</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="render_oauth_server_toml">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/deploy.html#enlace_connector.render_oauth_server_toml">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">render_oauth_server_toml</span><span class="p">(</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
+    <span class="n">refresh_token_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DFLT_REFRESH_TOKEN_TTL_SECONDS</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render the ``[auth.oauth_server]`` fragment that keeps sessions alive.</span>
+
+<span class="sd">    Companion to :func:`render_allowlist_toml`: that one renders the</span>
+<span class="sd">    ``[auth.oauth_server.resource_allowlist]`` *subtable*, this one the scalar keys</span>
+<span class="sd">    of the parent table — so a **new** platform is configured for connector-length</span>
+<span class="sd">    sessions from the start instead of inheriting a default that issues no refresh</span>
+<span class="sd">    tokens. Paste this block *before* the allowlist fragment (TOML requires a</span>
+<span class="sd">    table's own keys to precede its subtables).</span>
+
+<span class="sd">    &gt;&gt;&gt; from enlace_connector import ConnectorSpec</span>
+<span class="sd">    &gt;&gt;&gt; spec = ConnectorSpec(name="acme", tools=["m:f"])</span>
+<span class="sd">    &gt;&gt;&gt; print(render_oauth_server_toml(spec))  # doctest: +ELLIPSIS</span>
+<span class="sd">    #...</span>
+<span class="sd">    [auth.oauth_server]</span>
+<span class="sd">    refresh_token_ttl_seconds = 2592000</span>
+<span class="sd">    &lt;BLANKLINE&gt;</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">"# --- paste into the platform's platform.toml, BEFORE any</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# [auth.oauth_server.*] subtable (e.g. the resource_allowlist fragment) ---</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"#</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# Session longevity for every connector this platform authorizes. The</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# authorization server only issues refresh tokens when this is &gt; 0; with 0</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"# (or an older build that lacks the grant) every </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> session dies at</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# the first access-token expiry and ONLY an interactive browser</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# re-authorization can revive it -- while the connector process itself keeps</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# looking perfectly healthy.</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"#</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# The resource allowlist is re-evaluated on every refresh, so it doubles as</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# the revocation path: de-listing a user ends their access at the next</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# refresh (access tokens are self-contained JWTs and cannot be revoked).</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"#</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# Verify the DEPLOYED server actually advertises the grant (config saying so</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"# is not evidence -- the running build may be older):</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"#   python -m enlace_connector.preflight </span><span class="si">{</span><span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"[auth.oauth_server]</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"refresh_token_ttl_seconds = </span><span class="si">{</span><span class="n">refresh_token_ttl_seconds</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
     <span class="p">)</span></div>
 
 
@@ -288,36 +343,78 @@
     <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_REMOTE_BASE</span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the human deploy checklist (ship data, provision, deploy, connect).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Render the human deploy checklist (ship, provision, deploy, **verify**).</span>
+
+<span class="sd">    The last step is the one that is easy to skip and expensive to skip: a</span>
+<span class="sd">    connector whose authorization server cannot issue refresh tokens looks fully</span>
+<span class="sd">    deployed and dies silently hours later, so the runbook states that failure mode</span>
+<span class="sd">    in plain words and gives the exact command that detects it.</span>
+<span class="sd">    """</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
     <span class="n">data_lines</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;   rsync -az </span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2">/ tw:</span><span class="si">{</span><span class="n">_subst</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2">/&quot;</span>
+        <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"   rsync -az </span><span class="si">{</span><span class="n">local</span><span class="si">}</span><span class="s2">/ tw:</span><span class="si">{</span><span class="n">_subst</span><span class="p">(</span><span class="n">remote</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2">/"</span>
             <span class="k">for</span> <span class="n">local</span><span class="p">,</span> <span class="n">remote</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">data</span>
         <span class="p">)</span>
-        <span class="ow">or</span> <span class="s2">&quot;   (no data to ship)&quot;</span>
+        <span class="ow">or</span> <span class="s2">"   (no data to ship)"</span>
     <span class="p">)</span>
     <span class="n">allow</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="s2">&quot;5. Add the allowlist fragment (`deploy/allowlist.toml`) to the platform&#39;s &quot;</span>
-        <span class="s2">&quot;`platform.toml`, then restart the backend.&quot;</span>
+        <span class="s2">"5. Platform config fragments → the platform's `platform.toml`, then restart</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   the backend: `deploy/oauth-server.toml` (session longevity — paste first)</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   then `deploy/allowlist.toml` (who may authorize this connector)."</span>
         <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">allowed_users</span>
-        <span class="k">else</span> <span class="s2">&quot;5. (No allowlist — open to any authenticated user.)&quot;</span>
+        <span class="k">else</span> <span class="s2">"5. Platform config fragment → the platform's `platform.toml`, then restart</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   the backend: `deploy/oauth-server.toml` (session longevity). (No</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   allowlist — open to any authenticated user.)"</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;# Deploy runbook — </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;Public URL: `</span><span class="si">{</span><span class="n">resource_url</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span><span class="w"> </span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">)</span><span class="si">}</span><span class="s2">`</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;1. Ship code: deploy the app dir (`app.toml` + `server.py`) via the &quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;platform deploy (rsync to `</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;app_dir&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">`).</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;2. Ship data (rsynced separately from code):</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">data_lines</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;3. Provision (root on the box): copy `deploy/` onto the server and run</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;   `ssh tw &#39;bash </span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;base&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/provision-</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.sh&#39;` — builds the venv,</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;   installs deps, warms models, installs + starts the systemd unit.</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;4. Deploy the platform config (route + backend restart) via the platform &quot;</span>
-        <span class="s2">&quot;deploy tool.</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">allow</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;6. Add the connector in the client (Claude.ai → custom connector → the &quot;</span>
-        <span class="s2">&quot;public URL), or run it stdio locally for testing.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">"# Deploy runbook — </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"Public URL: `</span><span class="si">{</span><span class="n">resource_url</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span><span class="w"> </span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">)</span><span class="si">}</span><span class="s2">`</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"1. Ship code: deploy the app dir (`app.toml` + `server.py`) via the "</span>
+        <span class="sa">f</span><span class="s2">"platform deploy (rsync to `</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'app_dir'</span><span class="p">]</span><span class="si">}</span><span class="s2">`).</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"2. Ship data (rsynced separately from code):</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">data_lines</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"3. Provision (root on the box): copy `deploy/` onto the server and run</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"   `ssh tw 'bash </span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'base'</span><span class="p">]</span><span class="si">}</span><span class="s2">/provision-</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.sh'` — builds the venv,</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   installs deps, warms models, installs + starts the systemd unit.</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"4. Deploy the platform config (route + backend restart) via the platform "</span>
+        <span class="s2">"deploy tool.</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">allow</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"6. Add the connector in the client (Claude.ai → custom connector → the "</span>
+        <span class="s2">"public URL), or run it stdio locally for testing.</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"7. **Verify — the deployment is not done until this passes:** run the</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   refresh-grant check below. Skipping it is how a connector ships broken</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"   and looks fine for an hour.</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"## The failure this verification exists to catch</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"A client's MCP session lives on an access token that expires (typically one</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"hour). If the platform's OAuth authorization server does not advertise the</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"`refresh_token` grant, the client has **no way to renew**: the session dies</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"at that expiry and stays dead until a human re-runs the interactive browser</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"authorization. Everything you would normally look at says the connector is</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"fine — the systemd unit is active with zero restarts, the port answers, the</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"logs show no errors — because nothing *is* broken on this side. The 401 the</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"client shows is worse than useless: it says the client should</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s1">'"automatically re-register and obtain new tokens", which is false — dynamic</span><span class="se">\n</span><span class="s1">'</span>
+        <span class="s2">"client registration yields a `client_id`, never a token. Expect the first</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"signal to be a person telling you the connector has been down all day.</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"So check the authorization server, not the connector:</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"```</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">refresh_grant_check_commands</span><span class="p">(</span><span class="n">issuer</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"```</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"If `refresh_token` is missing from `grant_types_supported`:</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"- upgrade the platform's `enlace_auth` to a build whose token endpoint</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"  implements the refresh grant, and check the version the running backend</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"  actually imports (an installed-from-PyPI package is not updated by editing</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"  a local checkout of it);</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"- set `[auth.oauth_server] refresh_token_ttl_seconds` &gt; 0 in `platform.toml`</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"  (`deploy/oauth-server.toml` in this bundle) — 0 disables the grant;</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"- re-run the check. Config that *says* refresh is enabled is not evidence;</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"  only the deployed server's discovery document is.</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"Two consequences worth knowing once refresh is on: refresh tokens rotate</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"(each use returns a successor and replaying a consumed one revokes the whole</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"family), and the resource allowlist is re-evaluated on **every** refresh —</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"which makes de-listing a user the platform's real revocation path, taking</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"effect at their next refresh rather than instantly.</span><span class="se">\n</span><span class="s2">"</span>
     <span class="p">)</span></div>
 
 
@@ -331,45 +428,56 @@
     <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_REMOTE_BASE</span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
     <span class="n">server_py</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">refresh_token_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DFLT_REFRESH_TOKEN_TTL_SECONDS</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the full deploy bundle for *spec* under *dest*.</span>
+<span class="w">    </span><span class="sd">"""Write the full deploy bundle for *spec* under *dest*.</span>
 
 <span class="sd">    Writes the app dir (``app.toml`` + ``server.py``) and a ``deploy/`` folder (the</span>
-<span class="sd">    systemd unit, provisioning script, allowlist fragment, runbook). Pass</span>
-<span class="sd">    *server_py* to override the generated entry module (e.g. a corpus-bound</span>
-<span class="sd">    ``make_search`` server the composing skill wrote). Returns the written paths.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    systemd unit, provisioning script, the ``platform.toml`` fragments — OAuth</span>
+<span class="sd">    session longevity always, the resource allowlist when the spec restricts users</span>
+<span class="sd">    — and the runbook). Pass *server_py* to override the generated entry module</span>
+<span class="sd">    (e.g. a corpus-bound ``make_search`` server the composing skill wrote); pass</span>
+<span class="sd">    *refresh_token_ttl_seconds* to set the session longevity the platform fragment</span>
+<span class="sd">    configures (``0`` would disable the refresh grant — see</span>
+<span class="sd">    :func:`render_oauth_server_toml`). Returns the written paths.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">.scaffold</span><span class="w"> </span><span class="kn">import</span> <span class="n">render_app_toml</span><span class="p">,</span> <span class="n">render_server_py</span>
 
     <span class="n">dest</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">dest</span> <span class="o">/</span> <span class="s2">&quot;deploy&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">dest</span> <span class="o">/</span> <span class="s2">"deploy"</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
-    <span class="n">command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;venv&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'venv'</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
 
     <span class="n">written</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_w</span><span class="p">(</span><span class="n">rel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">dest</span> <span class="o">/</span> <span class="n">rel</span>
-        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
         <span class="n">written</span><span class="p">[</span><span class="n">rel</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
 
-    <span class="n">_w</span><span class="p">(</span><span class="s2">&quot;app.toml&quot;</span><span class="p">,</span> <span class="n">render_app_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">))</span>
-    <span class="n">_w</span><span class="p">(</span><span class="s2">&quot;server.py&quot;</span><span class="p">,</span> <span class="n">server_py</span> <span class="k">if</span> <span class="n">server_py</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">render_server_py</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
+    <span class="n">_w</span><span class="p">(</span><span class="s2">"app.toml"</span><span class="p">,</span> <span class="n">render_app_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">))</span>
+    <span class="n">_w</span><span class="p">(</span><span class="s2">"server.py"</span><span class="p">,</span> <span class="n">server_py</span> <span class="k">if</span> <span class="n">server_py</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">render_server_py</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
     <span class="n">_w</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;deploy/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp.service&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">"deploy/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp.service"</span><span class="p">,</span>
         <span class="n">render_systemd_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="o">=</span><span class="n">remote_base</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">),</span>
     <span class="p">)</span>
-    <span class="n">prov</span> <span class="o">=</span> <span class="n">dest</span> <span class="o">/</span> <span class="s2">&quot;deploy&quot;</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;provision-</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.sh&quot;</span>
+    <span class="n">prov</span> <span class="o">=</span> <span class="n">dest</span> <span class="o">/</span> <span class="s2">"deploy"</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"provision-</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.sh"</span>
     <span class="n">prov</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
-        <span class="n">render_provision_script</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="o">=</span><span class="n">remote_base</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span>
+        <span class="n">render_provision_script</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="o">=</span><span class="n">remote_base</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span>
     <span class="p">)</span>
     <span class="n">prov</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="mo">0o755</span><span class="p">)</span>
-    <span class="n">written</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;deploy/provision-</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.sh&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prov</span>
+    <span class="n">written</span><span class="p">[</span><span class="sa">f</span><span class="s2">"deploy/provision-</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.sh"</span><span class="p">]</span> <span class="o">=</span> <span class="n">prov</span>
+    <span class="n">_w</span><span class="p">(</span>
+        <span class="s2">"deploy/oauth-server.toml"</span><span class="p">,</span>
+        <span class="n">render_oauth_server_toml</span><span class="p">(</span>
+            <span class="n">spec</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">,</span> <span class="n">refresh_token_ttl_seconds</span><span class="o">=</span><span class="n">refresh_token_ttl_seconds</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
     <span class="n">allowlist</span> <span class="o">=</span> <span class="n">render_allowlist_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">allowlist</span><span class="p">:</span>
-        <span class="n">_w</span><span class="p">(</span><span class="s2">&quot;deploy/allowlist.toml&quot;</span><span class="p">,</span> <span class="n">allowlist</span><span class="p">)</span>
+        <span class="n">_w</span><span class="p">(</span><span class="s2">"deploy/allowlist.toml"</span><span class="p">,</span> <span class="n">allowlist</span><span class="p">)</span>
     <span class="n">_w</span><span class="p">(</span>
-        <span class="s2">&quot;deploy/RUNBOOK.md&quot;</span><span class="p">,</span>
+        <span class="s2">"deploy/RUNBOOK.md"</span><span class="p">,</span>
         <span class="n">render_runbook</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="o">=</span><span class="n">remote_base</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">written</span></div>

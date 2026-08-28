@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/auth.html">enlace_connector.auth</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/connector.html">enlace_connector.connector</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/preflight.html">enlace_connector.preflight</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/scaffold.html">enlace_connector.scaffold</a></li>
 </ul>
 
@@ -78,35 +79,35 @@
            <div itemprop="articleBody">
              
   <h1>Source code for enlace_connector.auth</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Auth configuration for connectors — the resource-server side of MCP OAuth.</span>
+<span></span><span class="sd">"""Auth configuration for connectors — the resource-server side of MCP OAuth.</span>
 
 <span class="sd">A Claude.ai custom connector is an OAuth 2.1 **resource server**: it validates the</span>
 <span class="sd">bearer JWTs an authorization server issued (it never issues tokens itself). This</span>
 <span class="sd">module produces the auth-config dict :func:`py2mcp.http.mk_http_app` consumes — a</span>
-<span class="sd">``JWTVerifier`` bound to a JWKS URI, an issuer, and an audience (the connector&#39;s own</span>
+<span class="sd">``JWTVerifier`` bound to a JWKS URI, an issuer, and an audience (the connector's own</span>
 <span class="sd">URL, per RFC 8707 resource indicators).</span>
 
 <span class="sd">The *authorization server* is pluggable, but the resource-server config is the same</span>
 <span class="sd">shape regardless of who issues the token — so picking an AS is just config:</span>
 
-<span class="sd">- :func:`enlace_resource` — the platform&#39;s own ``enlace_auth`` OAuth server (the</span>
+<span class="sd">- :func:`enlace_resource` — the platform's own ``enlace_auth`` OAuth server (the</span>
 <span class="sd">  endpoints follow the :data:`ENLACE_OAUTH_PATH` convention this package and</span>
 <span class="sd">  ``enlace_auth`` share).</span>
 <span class="sd">- :func:`idp_resource` — an external managed IdP (Auth0, WorkOS, …): pass its</span>
 <span class="sd">  ``jwks_uri`` / ``issuer`` explicitly.</span>
-<span class="sd">- ``None`` / ``&quot;none&quot;`` — unauthenticated (local stdio, or an internal pilot).</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">- ``None`` / ``"none"`` — unauthenticated (local stdio, or an internal pilot).</span>
+<span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;ENLACE_OAUTH_PATH&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;DFLT_SCOPES&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;enlace_resource&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;idp_resource&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;resolve_auth&quot;</span><span class="p">,</span>
+    <span class="s2">"ENLACE_OAUTH_PATH"</span><span class="p">,</span>
+    <span class="s2">"DFLT_SCOPES"</span><span class="p">,</span>
+    <span class="s2">"enlace_resource"</span><span class="p">,</span>
+    <span class="s2">"idp_resource"</span><span class="p">,</span>
+    <span class="s2">"resolve_auth"</span><span class="p">,</span>
 <span class="p">]</span>
 
 <span class="c1">#: Path under the platform origin where ``enlace_auth`` serves its OAuth 2.1</span>
@@ -114,10 +115,10 @@
 <span class="c1">#: AS *issuer* is the bare platform origin; discovery lives at the standard</span>
 <span class="c1">#: ``{issuer}/.well-known/oauth-authorization-server``. This constant is the</span>
 <span class="c1">#: single source of truth shared with ``enlace_auth`` so the two never drift.</span>
-<span class="n">ENLACE_OAUTH_PATH</span> <span class="o">=</span> <span class="s2">&quot;/auth/oauth&quot;</span>
+<span class="n">ENLACE_OAUTH_PATH</span> <span class="o">=</span> <span class="s2">"/auth/oauth"</span>
 
 <span class="c1">#: Default OAuth scopes a connector requires (read-only retrieval).</span>
-<span class="n">DFLT_SCOPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;mcp:read&quot;</span><span class="p">,)</span>
+<span class="n">DFLT_SCOPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"mcp:read"</span><span class="p">,)</span>
 
 
 <div class="viewcode-block" id="enlace_resource">
@@ -127,35 +128,35 @@
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">audience</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">scopes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">DFLT_SCOPES</span><span class="p">,</span>
-    <span class="n">mcp_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;/mcp&quot;</span><span class="p">,</span>
+    <span class="n">mcp_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"/mcp"</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resource-server config validating tokens from the platform&#39;s ``enlace_auth`` AS.</span>
+<span class="w">    </span><span class="sd">"""Resource-server config validating tokens from the platform's ``enlace_auth`` AS.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        issuer: the platform origin acting as the OAuth issuer, e.g.</span>
-<span class="sd">            ``&quot;https://apps.thorwhalen.com&quot;`` (no trailing slash needed).</span>
-<span class="sd">        audience: this connector&#39;s **base** URL (e.g.</span>
-<span class="sd">            ``&quot;https://apps.thorwhalen.com/api/trufflepig_mcp&quot;``).</span>
+<span class="sd">            ``"https://apps.thorwhalen.com"`` (no trailing slash needed).</span>
+<span class="sd">        audience: this connector's **base** URL (e.g.</span>
+<span class="sd">            ``"https://apps.thorwhalen.com/api/trufflepig_mcp"``).</span>
 <span class="sd">        scopes: scopes the connector requires (default :data:`DFLT_SCOPES`).</span>
 <span class="sd">        mcp_path: the MCP transport sub-path (FastMCP default ``/mcp``).</span>
 
 <span class="sd">    The OAuth *resource* a connector validates is its MCP **endpoint**</span>
 <span class="sd">    (``base + mcp_path``) — that is what FastMCP advertises in the RFC 9728</span>
-<span class="sd">    protected-resource metadata, and therefore what the issued token&#39;s ``aud``</span>
+<span class="sd">    protected-resource metadata, and therefore what the issued token's ``aud``</span>
 <span class="sd">    carries. So ``base_url`` (used to build that metadata) is the base, while the</span>
 <span class="sd">    validated ``audience`` is ``base + mcp_path``. Setting them equal causes an</span>
-<span class="sd">    &quot;audience mismatch&quot; 401 at token-validation time.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">issuer</span> <span class="o">=</span> <span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
-    <span class="n">base</span> <span class="o">=</span> <span class="n">audience</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<span class="sd">    "audience mismatch" 401 at token-validation time.</span>
+<span class="sd">    """</span>
+    <span class="n">issuer</span> <span class="o">=</span> <span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">audience</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;jwt&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;issuer&quot;</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span>
-        <span class="s2">&quot;jwks_uri&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">issuer</span><span class="si">}{</span><span class="n">ENLACE_OAUTH_PATH</span><span class="si">}</span><span class="s2">/jwks&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;authorization_servers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">issuer</span><span class="p">],</span>
-        <span class="s2">&quot;audience&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">mcp_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;base_url&quot;</span><span class="p">:</span> <span class="n">base</span><span class="p">,</span>
-        <span class="s2">&quot;required_scopes&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">scopes</span><span class="p">),</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"jwt"</span><span class="p">,</span>
+        <span class="s2">"issuer"</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span>
+        <span class="s2">"jwks_uri"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">issuer</span><span class="si">}{</span><span class="n">ENLACE_OAUTH_PATH</span><span class="si">}</span><span class="s2">/jwks"</span><span class="p">,</span>
+        <span class="s2">"authorization_servers"</span><span class="p">:</span> <span class="p">[</span><span class="n">issuer</span><span class="p">],</span>
+        <span class="s2">"audience"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">mcp_path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="s2">"base_url"</span><span class="p">:</span> <span class="n">base</span><span class="p">,</span>
+        <span class="s2">"required_scopes"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">scopes</span><span class="p">),</span>
     <span class="p">}</span></div>
 
 
@@ -171,20 +172,20 @@
     <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">scopes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">DFLT_SCOPES</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resource-server config validating tokens from an external managed IdP.</span>
+<span class="w">    </span><span class="sd">"""Resource-server config validating tokens from an external managed IdP.</span>
 
 <span class="sd">    Everything is explicit because each IdP (Auth0, WorkOS, Okta…) publishes its</span>
 <span class="sd">    own ``jwks_uri`` / ``issuer``. ``authorization_servers`` defaults to</span>
-<span class="sd">    ``[issuer]`` and ``base_url`` to ``audience`` (this connector&#39;s URL).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    ``[issuer]`` and ``base_url`` to ``audience`` (this connector's URL).</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;jwt&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;issuer&quot;</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span>
-        <span class="s2">&quot;jwks_uri&quot;</span><span class="p">:</span> <span class="n">jwks_uri</span><span class="p">,</span>
-        <span class="s2">&quot;authorization_servers&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">authorization_servers</span> <span class="ow">or</span> <span class="p">[</span><span class="n">issuer</span><span class="p">]),</span>
-        <span class="s2">&quot;audience&quot;</span><span class="p">:</span> <span class="n">audience</span><span class="p">,</span>
-        <span class="s2">&quot;base_url&quot;</span><span class="p">:</span> <span class="n">base_url</span> <span class="ow">or</span> <span class="n">audience</span><span class="p">,</span>
-        <span class="s2">&quot;required_scopes&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">scopes</span><span class="p">),</span>
+        <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"jwt"</span><span class="p">,</span>
+        <span class="s2">"issuer"</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span>
+        <span class="s2">"jwks_uri"</span><span class="p">:</span> <span class="n">jwks_uri</span><span class="p">,</span>
+        <span class="s2">"authorization_servers"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">authorization_servers</span> <span class="ow">or</span> <span class="p">[</span><span class="n">issuer</span><span class="p">]),</span>
+        <span class="s2">"audience"</span><span class="p">:</span> <span class="n">audience</span><span class="p">,</span>
+        <span class="s2">"base_url"</span><span class="p">:</span> <span class="n">base_url</span> <span class="ow">or</span> <span class="n">audience</span><span class="p">,</span>
+        <span class="s2">"required_scopes"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">scopes</span><span class="p">),</span>
     <span class="p">}</span></div>
 
 
@@ -197,33 +198,33 @@
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">audience</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize an ``auth`` spec to a py2mcp auth dict (or ``None`` for no auth).</span>
+<span class="w">    </span><span class="sd">"""Normalize an ``auth`` spec to a py2mcp auth dict (or ``None`` for no auth).</span>
 
 <span class="sd">    Accepts:</span>
-<span class="sd">    - ``None`` or ``&quot;none&quot;`` → unauthenticated (returns ``None``).</span>
+<span class="sd">    - ``None`` or ``"none"`` → unauthenticated (returns ``None``).</span>
 <span class="sd">    - a ready auth dict → returned unchanged.</span>
-<span class="sd">    - ``&quot;enlace&quot;`` → :func:`enlace_resource` (needs *issuer* and *audience*).</span>
-<span class="sd">    - ``&quot;idp&quot;`` → not resolvable from a bare string; pass an explicit dict from</span>
+<span class="sd">    - ``"enlace"`` → :func:`enlace_resource` (needs *issuer* and *audience*).</span>
+<span class="sd">    - ``"idp"`` → not resolvable from a bare string; pass an explicit dict from</span>
 <span class="sd">      :func:`idp_resource` instead (raises with that guidance).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">auth</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">auth</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">auth</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">auth</span> <span class="o">==</span> <span class="s2">"none"</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">auth</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">auth</span>
-    <span class="k">if</span> <span class="n">auth</span> <span class="o">==</span> <span class="s2">&quot;enlace&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">auth</span> <span class="o">==</span> <span class="s2">"enlace"</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">issuer</span> <span class="ow">and</span> <span class="n">audience</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;auth=&#39;enlace&#39; needs issuer and audience (the platform origin and &quot;</span>
-                <span class="s2">&quot;this connector&#39;s public URL).&quot;</span>
+                <span class="s2">"auth='enlace' needs issuer and audience (the platform origin and "</span>
+                <span class="s2">"this connector's public URL)."</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">enlace_resource</span><span class="p">(</span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">,</span> <span class="n">audience</span><span class="o">=</span><span class="n">audience</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">auth</span> <span class="o">==</span> <span class="s2">&quot;idp&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">auth</span> <span class="o">==</span> <span class="s2">"idp"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;auth=&#39;idp&#39; can&#39;t be resolved from a bare string; build it explicitly &quot;</span>
-            <span class="s2">&quot;with enlace_connector.idp_resource(jwks_uri=..., issuer=..., &quot;</span>
-            <span class="s2">&quot;audience=...) and pass that dict as auth.&quot;</span>
+            <span class="s2">"auth='idp' can't be resolved from a bare string; build it explicitly "</span>
+            <span class="s2">"with enlace_connector.idp_resource(jwks_uri=..., issuer=..., "</span>
+            <span class="s2">"audience=...) and pass that dict as auth."</span>
         <span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized auth spec: </span><span class="si">{</span><span class="n">auth</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unrecognized auth spec: </span><span class="si">{</span><span class="n">auth</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span></div>
 
 </pre></div>
 

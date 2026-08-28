@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_connector/auth.html">enlace_connector.auth</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_connector/connector.html">enlace_connector.connector</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_connector/deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_connector/preflight.html">enlace_connector.preflight</a></li>
 <li class="toctree-l1"><a class="reference internal" href="module_docs/enlace_connector/scaffold.html">enlace_connector.scaffold</a></li>
 </ul>
 
@@ -84,14 +85,17 @@
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  
 </div>
 <h2 id="A">A</h2>
@@ -103,6 +107,8 @@
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.allowed_users">(enlace_connector.ConnectorSpec attribute)</a>
 </li>
       </ul></li>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.AS_METADATA_PATH">AS_METADATA_PATH (in module enlace_connector.preflight)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/enlace_connector/connector.html#enlace_connector.connector.ConnectorSpec.auth">auth (enlace_connector.connector.ConnectorSpec attribute)</a>
@@ -111,12 +117,38 @@
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.auth">(enlace_connector.ConnectorSpec attribute)</a>
 </li>
       </ul></li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.authorization_server_metadata">authorization_server_metadata() (in module enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.authorization_server_metadata">(in module enlace_connector.preflight)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.check_jwks_uri_matches_convention">check_jwks_uri_matches_convention() (in module enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.check_jwks_uri_matches_convention">(in module enlace_connector.preflight)</a>
+</li>
+      </ul></li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.check_refresh_grant_supported">check_refresh_grant_supported() (in module enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.check_refresh_grant_supported">(in module enlace_connector.preflight)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.CheckResult">CheckResult (class in enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.CheckResult">(class in enlace_connector.preflight)</a>
+</li>
+      </ul></li>
       <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec">ConnectorSpec (class in enlace_connector)</a>
 
       <ul>
@@ -143,9 +175,15 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.DFLT_CHECKS">DFLT_CHECKS (in module enlace_connector.preflight)</a>
+</li>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.DFLT_REFRESH_TOKEN_TTL_SECONDS">DFLT_REFRESH_TOKEN_TTL_SECONDS (in module enlace_connector.preflight)</a>
+</li>
       <li><a href="module_docs/enlace_connector/deploy.html#enlace_connector.deploy.DFLT_REMOTE_BASE">DFLT_REMOTE_BASE (in module enlace_connector.deploy)</a>
 </li>
       <li><a href="module_docs/enlace_connector/auth.html#enlace_connector.auth.DFLT_SCOPES">DFLT_SCOPES (in module enlace_connector.auth)</a>
+</li>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.DFLT_TIMEOUT">DFLT_TIMEOUT (in module enlace_connector.preflight)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -181,6 +219,13 @@
         <li><a href="module_docs/enlace_connector/deploy.html#module-enlace_connector.deploy">module</a>
 </li>
       </ul></li>
+      <li>
+    enlace_connector.preflight
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#module-enlace_connector.preflight">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
@@ -208,6 +253,28 @@
 
       <ul>
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.extras">(enlace_connector.ConnectorSpec attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightContext.fetch">fetch (enlace_connector.preflight.PreflightContext attribute)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightContext.fetch">(enlace_connector.PreflightContext attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.fetch_json">fetch_json() (in module enlace_connector.preflight)</a>
+</li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.format_report">format_report() (in module enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.format_report">(in module enlace_connector.preflight)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -243,11 +310,21 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightContext.issuer">issuer (enlace_connector.preflight.PreflightContext attribute)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightContext.issuer">(enlace_connector.PreflightContext attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.main">main() (in module enlace_connector.preflight)</a>
+</li>
       <li><a href="module_docs/enlace_connector.html#enlace_connector.make_connector_app">make_connector_app() (in module enlace_connector)</a>
 
       <ul>
@@ -262,8 +339,20 @@
       </ul></li>
       <li><a href="module_docs/enlace_connector/deploy.html#enlace_connector.deploy.MCP_PATH">MCP_PATH (in module enlace_connector.deploy)</a>
 </li>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightContext.metadata">metadata (enlace_connector.preflight.PreflightContext property)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightContext.metadata">(enlace_connector.PreflightContext property)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightContext.metadata_url">metadata_url (enlace_connector.preflight.PreflightContext property)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightContext.metadata_url">(enlace_connector.PreflightContext property)</a>
+</li>
+      </ul></li>
       <li>
     module
 
@@ -276,6 +365,8 @@
 </li>
         <li><a href="module_docs/enlace_connector/deploy.html#module-enlace_connector.deploy">enlace_connector.deploy</a>
 </li>
+        <li><a href="module_docs/enlace_connector/preflight.html#module-enlace_connector.preflight">enlace_connector.preflight</a>
+</li>
         <li><a href="module_docs/enlace_connector/scaffold.html#module-enlace_connector.scaffold">enlace_connector.scaffold</a>
 </li>
       </ul></li>
@@ -285,10 +376,26 @@
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="module_docs/enlace_connector/connector.html#enlace_connector.connector.ConnectorSpec.name">name (enlace_connector.connector.ConnectorSpec attribute)</a>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.CheckResult.name">name (enlace_connector.CheckResult attribute)</a>
 
       <ul>
+        <li><a href="module_docs/enlace_connector/connector.html#enlace_connector.connector.ConnectorSpec.name">(enlace_connector.connector.ConnectorSpec attribute)</a>
+</li>
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.name">(enlace_connector.ConnectorSpec attribute)</a>
+</li>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.CheckResult.name">(enlace_connector.preflight.CheckResult attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.CheckResult.ok">ok (enlace_connector.CheckResult attribute)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.CheckResult.ok">(enlace_connector.preflight.CheckResult attribute)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -303,8 +410,6 @@
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.port">(enlace_connector.ConnectorSpec attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/enlace_connector/connector.html#enlace_connector.connector.ConnectorSpec.post_install">post_install (enlace_connector.connector.ConnectorSpec attribute)</a>
 
       <ul>
@@ -312,11 +417,31 @@
 </li>
       </ul></li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightContext">PreflightContext (class in enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightContext">(class in enlace_connector.preflight)</a>
+</li>
+      </ul></li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightError">PreflightError</a>, <a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightError">[1]</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.REFRESH_GRANT">REFRESH_GRANT (in module enlace_connector.preflight)</a>
+</li>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.refresh_grant_check_commands">refresh_grant_check_commands() (in module enlace_connector.preflight)</a>
+</li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.CheckResult.remedy">remedy (enlace_connector.CheckResult attribute)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.CheckResult.remedy">(enlace_connector.preflight.CheckResult attribute)</a>
+</li>
+      </ul></li>
       <li><a href="module_docs/enlace_connector.html#enlace_connector.render_allowlist_toml">render_allowlist_toml() (in module enlace_connector)</a>
 
       <ul>
@@ -329,12 +454,20 @@
         <li><a href="module_docs/enlace_connector/scaffold.html#enlace_connector.scaffold.render_app_toml">(in module enlace_connector.scaffold)</a>
 </li>
       </ul></li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.render_oauth_server_toml">render_oauth_server_toml() (in module enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/deploy.html#enlace_connector.deploy.render_oauth_server_toml">(in module enlace_connector.deploy)</a>
+</li>
+      </ul></li>
       <li><a href="module_docs/enlace_connector.html#enlace_connector.render_provision_script">render_provision_script() (in module enlace_connector)</a>
 
       <ul>
         <li><a href="module_docs/enlace_connector/deploy.html#enlace_connector.deploy.render_provision_script">(in module enlace_connector.deploy)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/enlace_connector.html#enlace_connector.render_runbook">render_runbook() (in module enlace_connector)</a>
 
       <ul>
@@ -347,8 +480,6 @@
         <li><a href="module_docs/enlace_connector/scaffold.html#enlace_connector.scaffold.render_server_py">(in module enlace_connector.scaffold)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/enlace_connector.html#enlace_connector.render_systemd_unit">render_systemd_unit() (in module enlace_connector)</a>
 
       <ul>
@@ -385,12 +516,24 @@
         <li><a href="module_docs/enlace_connector/scaffold.html#enlace_connector.scaffold.scaffold_app">(in module enlace_connector.scaffold)</a>
 </li>
       </ul></li>
+      <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.PreflightContext.spec">spec (enlace_connector.preflight.PreflightContext attribute)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector.html#enlace_connector.PreflightContext.spec">(enlace_connector.PreflightContext attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="module_docs/enlace_connector/connector.html#enlace_connector.connector.ConnectorSpec.stateless_http">stateless_http (enlace_connector.connector.ConnectorSpec attribute)</a>
 
       <ul>
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.stateless_http">(enlace_connector.ConnectorSpec attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.CheckResult.summary">summary (enlace_connector.CheckResult attribute)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.CheckResult.summary">(enlace_connector.preflight.CheckResult attribute)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -411,6 +554,18 @@
 
       <ul>
         <li><a href="module_docs/enlace_connector.html#enlace_connector.ConnectorSpec.tools">(enlace_connector.ConnectorSpec attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="module_docs/enlace_connector.html#enlace_connector.verify_deployment">verify_deployment() (in module enlace_connector)</a>
+
+      <ul>
+        <li><a href="module_docs/enlace_connector/preflight.html#enlace_connector.preflight.verify_deployment">(in module enlace_connector.preflight)</a>
 </li>
       </ul></li>
   </ul></td>

@@ -6,4 +6,5 @@
    module_docs/enlace_connector/auth
    module_docs/enlace_connector/connector
    module_docs/enlace_connector/deploy
+   module_docs/enlace_connector/preflight
    module_docs/enlace_connector/scaffold

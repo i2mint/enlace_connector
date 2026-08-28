@@ -24,7 +24,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="enlace_connector.scaffold" href="scaffold.html" />
+    <link rel="next" title="enlace_connector.preflight" href="preflight.html" />
     <link rel="prev" title="enlace_connector.connector" href="connector.html" /> 
 </head>
 
@@ -57,12 +57,14 @@
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.MCP_PATH"><code class="docutils literal notranslate"><span class="pre">MCP_PATH</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.generate_deploy_bundle"><code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.render_allowlist_toml"><code class="docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.render_oauth_server_toml"><code class="docutils literal notranslate"><span class="pre">render_oauth_server_toml()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.render_provision_script"><code class="docutils literal notranslate"><span class="pre">render_provision_script()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.render_runbook"><code class="docutils literal notranslate"><span class="pre">render_runbook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.render_systemd_unit"><code class="docutils literal notranslate"><span class="pre">render_systemd_unit()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#enlace_connector.deploy.resource_url"><code class="docutils literal notranslate"><span class="pre">resource_url()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="preflight.html">enlace_connector.preflight</a></li>
 <li class="toctree-l1"><a class="reference internal" href="scaffold.html">enlace_connector.scaffold</a></li>
 </ul>
 
@@ -103,7 +105,9 @@ whole bundle from a <a class="reference internal" href="connector.html#enlace_co
 <li><p>the <strong>provisioning script</strong> (build that venv + install deps + create data dirs
 + install/start the unit — idempotent, run as root on the box),</p></li>
 <li><p>the <strong>resource-allowlist</strong> TOML fragment for <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> (access control),</p></li>
-<li><p>a <strong>runbook</strong> listing the human steps (ship data, provision, deploy, connect).</p></li>
+<li><p>the <strong>``[auth.oauth_server]``</strong> fragment (session longevity — a platform without
+a refresh-token TTL strands every connector at its first token expiry),</p></li>
+<li><p>a <strong>runbook</strong> listing the human steps (ship data, provision, deploy, verify).</p></li>
 </ul>
 <p>It generalizes the artifacts first hand-written for the trufflepig connector, so
 deploying the next one is <code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle(spec)</span></code> + following the runbook.
@@ -123,12 +127,16 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_connector.deploy.generate_deploy_bundle">
-<span class="sig-prename descclassname"><span class="pre">enlace_connector.deploy.</span></span><span class="sig-name descname"><span class="pre">generate_deploy_bundle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><span class="pre">ConnectorSpec</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_py</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/enlace_connector/deploy.html#generate_deploy_bundle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.deploy.generate_deploy_bundle" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.deploy.</span></span><span class="sig-name descname"><span class="pre">generate_deploy_bundle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><span class="pre">ConnectorSpec</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_py</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refresh_token_ttl_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2592000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../../_modules/enlace_connector/deploy.html#generate_deploy_bundle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.deploy.generate_deploy_bundle" title="Link to this definition"></a></dt>
 <dd><p>Write the full deploy bundle for <em>spec</em> under <em>dest</em>.</p>
 <p>Writes the app dir (<code class="docutils literal notranslate"><span class="pre">app.toml</span></code> + <code class="docutils literal notranslate"><span class="pre">server.py</span></code>) and a <code class="docutils literal notranslate"><span class="pre">deploy/</span></code> folder (the
-systemd unit, provisioning script, allowlist fragment, runbook). Pass
-<em>server_py</em> to override the generated entry module (e.g. a corpus-bound
-<code class="docutils literal notranslate"><span class="pre">make_search</span></code> server the composing skill wrote). Returns the written paths.</p>
+systemd unit, provisioning script, the <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> fragments — OAuth
+session longevity always, the resource allowlist when the spec restricts users
+— and the runbook). Pass <em>server_py</em> to override the generated entry module
+(e.g. a corpus-bound <code class="docutils literal notranslate"><span class="pre">make_search</span></code> server the composing skill wrote); pass
+<em>refresh_token_ttl_seconds</em> to set the session longevity the platform fragment
+configures (<code class="docutils literal notranslate"><span class="pre">0</span></code> would disable the refresh grant — see
+<a class="reference internal" href="#enlace_connector.deploy.render_oauth_server_toml" title="enlace_connector.deploy.render_oauth_server_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_oauth_server_toml()</span></code></a>). Returns the written paths.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -138,6 +146,26 @@ systemd unit, provisioning script, allowlist fragment, runbook). Pass
 <p>Empty when <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is empty (connector open to any authenticated
 user). Otherwise maps this connector’s resource URL to the allowed emails —
 paste into the platform’s <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.deploy.render_oauth_server_toml">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.deploy.</span></span><span class="sig-name descname"><span class="pre">render_oauth_server_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><span class="pre">ConnectorSpec</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refresh_token_ttl_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2592000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../_modules/enlace_connector/deploy.html#render_oauth_server_toml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.deploy.render_oauth_server_toml" title="Link to this definition"></a></dt>
+<dd><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server]</span></code> fragment that keeps sessions alive.</p>
+<p>Companion to <a class="reference internal" href="#enlace_connector.deploy.render_allowlist_toml" title="enlace_connector.deploy.render_allowlist_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a>: that one renders the
+<code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> <em>subtable</em>, this one the scalar keys
+of the parent table — so a <strong>new</strong> platform is configured for connector-length
+sessions from the start instead of inheriting a default that issues no refresh
+tokens. Paste this block <em>before</em> the allowlist fragment (TOML requires a
+table’s own keys to precede its subtables).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_oauth_server_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
+<span class="go">#...</span>
+<span class="go">[auth.oauth_server]</span>
+<span class="go">refresh_token_ttl_seconds = 2592000</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -153,7 +181,11 @@ dirs, runs <code class="docutils literal notranslate"><span class="pre">post_ins
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_connector.deploy.render_runbook">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.deploy.</span></span><span class="sig-name descname"><span class="pre">render_runbook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><span class="pre">ConnectorSpec</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../_modules/enlace_connector/deploy.html#render_runbook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.deploy.render_runbook" title="Link to this definition"></a></dt>
-<dd><p>Render the human deploy checklist (ship data, provision, deploy, connect).</p>
+<dd><p>Render the human deploy checklist (ship, provision, deploy, <strong>verify</strong>).</p>
+<p>The last step is the one that is easy to skip and expensive to skip: a
+connector whose authorization server cannot issue refresh tokens looks fully
+deployed and dies silently hours later, so the runbook states that failure mode
+in plain words and gives the exact command that detects it.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -175,7 +207,7 @@ dirs, runs <code class="docutils literal notranslate"><span class="pre">post_ins
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="connector.html" class="btn btn-neutral float-left" title="enlace_connector.connector" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="scaffold.html" class="btn btn-neutral float-right" title="enlace_connector.scaffold" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="preflight.html" class="btn btn-neutral float-right" title="enlace_connector.preflight" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

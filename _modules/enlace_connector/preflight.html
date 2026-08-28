@@ -1,0 +1,502 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>enlace_connector.preflight &mdash; enlace_connector 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/toggleprompt.js?v=d7ede5d2"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            enlace_connector
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector.html">enlace_connector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/auth.html">enlace_connector.auth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/connector.html">enlace_connector.connector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/preflight.html">enlace_connector.preflight</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../module_docs/enlace_connector/scaffold.html">enlace_connector.scaffold</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">enlace_connector</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">enlace_connector.preflight</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for enlace_connector.preflight</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Preflight/verify checks — is the target platform able to keep a connector *alive*?</span>
+
+<span class="sd">A connector deployment can be perfectly healthy and still be **dead to its users**.</span>
+<span class="sd">The failure this module exists to catch: the platform's OAuth 2.1 authorization</span>
+<span class="sd">server issues a short-lived access token and **no refresh token** (it does not</span>
+<span class="sd">advertise ``refresh_token`` in ``grant_types_supported``). Every client session then</span>
+<span class="sd">hard-dies at the first token expiry — while the connector process stays green,</span>
+<span class="sd">the port answers, and nothing errors anywhere. The only recovery is a human</span>
+<span class="sd">re-running the interactive browser authorization, and the stock 401 challenge text</span>
+<span class="sd">actively misinforms by claiming the client can renew on its own.</span>
+
+<span class="sd">Nothing about the connector bundle can detect that from the inside, so it is a</span>
+<span class="sd">*preflight of the authorization server*: fetch the AS's discovery document at</span>
+<span class="sd">``{issuer}/.well-known/oauth-authorization-server`` and assert what it advertises.</span>
+
+<span class="sd">Run it as a function, or from the shell::</span>
+
+<span class="sd">    python -m enlace_connector.preflight https://apps.example.com</span>
+
+<span class="sd">Checks are plain callables of a :class:`PreflightContext`, so a platform with extra</span>
+<span class="sd">requirements passes its own ``checks=`` sequence to :func:`verify_deployment`</span>
+<span class="sd">without this module knowing about them. The HTTP fetcher is likewise a parameter</span>
+<span class="sd">(:func:`fetch_json` by default — stdlib only), which is what makes the whole thing</span>
+<span class="sd">testable offline:</span>
+
+<span class="sd">&gt;&gt;&gt; md = {"grant_types_supported": ["authorization_code", "refresh_token"],</span>
+<span class="sd">...       "jwks_uri": "https://p.example.com/auth/oauth/jwks"}</span>
+<span class="sd">&gt;&gt;&gt; ctx = PreflightContext(issuer="https://p.example.com", fetch=lambda url: md)</span>
+<span class="sd">&gt;&gt;&gt; check_refresh_grant_supported(ctx).ok</span>
+<span class="sd">True</span>
+<span class="sd">&gt;&gt;&gt; print(check_refresh_grant_supported(ctx).summary)</span>
+<span class="sd">authorization server advertises the refresh_token grant</span>
+
+<span class="sd">A server missing the grant fails loudly, with the remedy attached:</span>
+
+<span class="sd">&gt;&gt;&gt; stale = PreflightContext(issuer="https://p.example.com",</span>
+<span class="sd">...                          fetch=lambda url: {"grant_types_supported":</span>
+<span class="sd">...                                             ["authorization_code"]})</span>
+<span class="sd">&gt;&gt;&gt; result = check_refresh_grant_supported(stale)</span>
+<span class="sd">&gt;&gt;&gt; bool(result)</span>
+<span class="sd">False</span>
+<span class="sd">&gt;&gt;&gt; print(result.summary)</span>
+<span class="sd">authorization server does NOT advertise the refresh_token grant...</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.error</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Sequence</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"AS_METADATA_PATH"</span><span class="p">,</span>
+    <span class="s2">"REFRESH_GRANT"</span><span class="p">,</span>
+    <span class="s2">"DFLT_TIMEOUT"</span><span class="p">,</span>
+    <span class="s2">"DFLT_REFRESH_TOKEN_TTL_SECONDS"</span><span class="p">,</span>
+    <span class="s2">"CheckResult"</span><span class="p">,</span>
+    <span class="s2">"PreflightContext"</span><span class="p">,</span>
+    <span class="s2">"PreflightError"</span><span class="p">,</span>
+    <span class="s2">"fetch_json"</span><span class="p">,</span>
+    <span class="s2">"authorization_server_metadata"</span><span class="p">,</span>
+    <span class="s2">"check_refresh_grant_supported"</span><span class="p">,</span>
+    <span class="s2">"check_jwks_uri_matches_convention"</span><span class="p">,</span>
+    <span class="s2">"DFLT_CHECKS"</span><span class="p">,</span>
+    <span class="s2">"verify_deployment"</span><span class="p">,</span>
+    <span class="s2">"format_report"</span><span class="p">,</span>
+    <span class="s2">"refresh_grant_check_commands"</span><span class="p">,</span>
+    <span class="s2">"main"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="c1">#: RFC 8414 discovery path, relative to the issuer origin.</span>
+<span class="n">AS_METADATA_PATH</span> <span class="o">=</span> <span class="s2">"/.well-known/oauth-authorization-server"</span>
+<span class="c1">#: The grant a long-lived connector session depends on.</span>
+<span class="n">REFRESH_GRANT</span> <span class="o">=</span> <span class="s2">"refresh_token"</span>
+<span class="c1">#: Seconds to wait on a discovery fetch before giving up.</span>
+<span class="n">DFLT_TIMEOUT</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="c1">#: Default refresh-token lifetime to configure on a platform (30 days). This is the</span>
+<span class="c1">#: session longevity a connector inherits; ``0`` disables the grant entirely.</span>
+<span class="n">DFLT_REFRESH_TOKEN_TTL_SECONDS</span> <span class="o">=</span> <span class="mi">2592000</span>
+
+<span class="n">_NO_REFRESH_REMEDY</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"Clients will lose access at the first access-token expiry (typically 1h) with "</span>
+    <span class="s2">"no way to renew: the connector process stays healthy while every session 401s, "</span>
+    <span class="s2">"and a human must redo the interactive browser authorization to restore it. "</span>
+    <span class="s2">"Fix the authorization server before calling this deployment good: upgrade the "</span>
+    <span class="s2">"platform's enlace_auth to a build whose token endpoint implements the "</span>
+    <span class="s2">"refresh_token grant, and set [auth.oauth_server] refresh_token_ttl_seconds &gt; 0 "</span>
+    <span class="s2">"in platform.toml (see deploy/oauth-server.toml in the connector bundle). Note "</span>
+    <span class="s2">"that an installed-from-PyPI enlace_auth is NOT updated by editing a local "</span>
+    <span class="s2">"checkout -- verify the version the running backend actually imports."</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="fetch_json">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.fetch_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_json</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DFLT_TIMEOUT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""GET *url* and parse the response as JSON (stdlib only, no extra deps)."""</span>
+    <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>  <span class="c1"># noqa: S310</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="CheckResult">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.CheckResult">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CheckResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Outcome of one preflight check.</span>
+
+<span class="sd">    Truthy when the check passed, so ``all(results)`` reads naturally.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name: stable slug for the check (usable as a CI job/report key).</span>
+<span class="sd">        ok: whether the checked property holds.</span>
+<span class="sd">        summary: one line stating what was (or was not) observed.</span>
+<span class="sd">        remedy: what to do about it — empty when ``ok``.</span>
+<span class="sd">    """</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">ok</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">remedy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ok</span></div>
+
+
+
+<div class="viewcode-block" id="PreflightContext">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.PreflightContext">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PreflightContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""What a check is given: the target AS, the connector (if any), and a fetcher.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        issuer: the authorization server's issuer origin (the platform origin).</span>
+<span class="sd">        spec: the connector being verified — optional, so the AS itself can be</span>
+<span class="sd">            preflighted before any connector exists.</span>
+<span class="sd">        fetch: ``fetch(url) -&gt; parsed_json``; defaults to :func:`fetch_json`. Pass</span>
+<span class="sd">            your own to test offline, to add auth headers, or to use ``httpx``.</span>
+<span class="sd">    """</span>
+
+    <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">fetch</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">issuer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fetch</span> <span class="o">=</span> <span class="n">fetch_json</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""The AS discovery document (fetched once per context, checked to be a doc)."""</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>  <span class="c1"># set in __post_init__</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_url</span><span class="si">}</span><span class="s2"> did not serve a JSON object "</span>
+                <span class="sa">f</span><span class="s2">"(got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">) — that is not an OAuth "</span>
+                <span class="s2">"authorization server discovery document."</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Where the AS discovery document lives."""</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">issuer</span><span class="si">}{</span><span class="n">AS_METADATA_PATH</span><span class="si">}</span><span class="s2">"</span></div>
+
+
+
+<div class="viewcode-block" id="PreflightError">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.PreflightError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PreflightError</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Raised by :func:`verify_deployment` in ``strict`` mode when a check fails."""</span></div>
+
+
+
+<div class="viewcode-block" id="authorization_server_metadata">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.authorization_server_metadata">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">authorization_server_metadata</span><span class="p">(</span>
+    <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">fetch</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Fetch the RFC 8414 discovery document advertised by *issuer*."""</span>
+    <span class="k">return</span> <span class="n">PreflightContext</span><span class="p">(</span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">,</span> <span class="n">fetch</span><span class="o">=</span><span class="n">fetch</span><span class="p">)</span><span class="o">.</span><span class="n">metadata</span></div>
+
+
+
+<div class="viewcode-block" id="check_refresh_grant_supported">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.check_refresh_grant_supported">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_refresh_grant_supported</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">PreflightContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""THE check: does the AS advertise ``refresh_token`` in ``grant_types_supported``?</span>
+
+<span class="sd">    An authorization server that omits it can only ever hand out access tokens that</span>
+<span class="sd">    expire into a dead end, which is invisible from the connector's own health.</span>
+<span class="sd">    """</span>
+    <span class="n">grants</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"grant_types_supported"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span>
+    <span class="n">ok</span> <span class="o">=</span> <span class="n">REFRESH_GRANT</span> <span class="ow">in</span> <span class="n">grants</span>
+    <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="s2">"authorization server advertises the refresh_token grant"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">"authorization server does NOT advertise the refresh_token grant "</span>
+            <span class="sa">f</span><span class="s2">"(grant_types_supported=</span><span class="si">{</span><span class="n">grants</span><span class="si">!r}</span><span class="s2"> at </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">metadata_url</span><span class="si">}</span><span class="s2">) — connector "</span>
+            <span class="s2">"sessions will strand at the first access-token expiry"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">"oauth_refresh_grant"</span><span class="p">,</span>
+        <span class="n">ok</span><span class="o">=</span><span class="n">ok</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="n">summary</span><span class="p">,</span>
+        <span class="n">remedy</span><span class="o">=</span><span class="s2">""</span> <span class="k">if</span> <span class="n">ok</span> <span class="k">else</span> <span class="n">_NO_REFRESH_REMEDY</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="check_jwks_uri_matches_convention">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.check_jwks_uri_matches_convention">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_jwks_uri_matches_convention</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">PreflightContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""For ``auth="enlace"`` connectors: the AS's ``jwks_uri`` is the one we validate against.</span>
+
+<span class="sd">    Catches an issuer/route drift that would make every token fail signature</span>
+<span class="sd">    validation — a different symptom of "deployed, healthy, unusable".</span>
+<span class="sd">    """</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">.auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ENLACE_OAUTH_PATH</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">"oauth_jwks_uri"</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">ctx</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">auth</span> <span class="o">!=</span> <span class="s2">"enlace"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"not an enlace-issued connector — skipped"</span><span class="p">)</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">issuer</span><span class="si">}{</span><span class="n">ENLACE_OAUTH_PATH</span><span class="si">}</span><span class="s2">/jwks"</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"jwks_uri"</span><span class="p">)</span>
+    <span class="n">ok</span> <span class="o">=</span> <span class="n">found</span> <span class="o">==</span> <span class="n">expected</span>
+    <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">ok</span><span class="o">=</span><span class="n">ok</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"jwks_uri is the expected </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">if</span> <span class="n">ok</span>
+            <span class="k">else</span> <span class="sa">f</span><span class="s2">"jwks_uri is </span><span class="si">{</span><span class="n">found</span><span class="si">!r}</span><span class="s2">, expected </span><span class="si">{</span><span class="n">expected</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">),</span>
+        <span class="n">remedy</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">""</span>
+            <span class="k">if</span> <span class="n">ok</span>
+            <span class="k">else</span> <span class="p">(</span>
+                <span class="s2">"The connector validates tokens against enlace_auth's conventional "</span>
+                <span class="s2">"JWKS path. Either the issuer is wrong in the systemd unit "</span>
+                <span class="s2">"(CONNECTOR_ISSUER) or the platform serves its OAuth endpoints "</span>
+                <span class="s2">"elsewhere; reconcile before deploying."</span>
+            <span class="p">)</span>
+        <span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1">#: The checks :func:`verify_deployment` runs by default (a sequence, so callers can</span>
+<span class="c1">#: extend or replace it without this module knowing their requirements).</span>
+<span class="n">DFLT_CHECKS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">PreflightContext</span><span class="p">],</span> <span class="n">CheckResult</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">check_refresh_grant_supported</span><span class="p">,</span>
+    <span class="n">check_jwks_uri_matches_convention</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_run</span><span class="p">(</span><span class="n">check</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">PreflightContext</span><span class="p">],</span> <span class="n">CheckResult</span><span class="p">],</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">PreflightContext</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Run one check, turning an unreachable/malformed AS into a failed result."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">check</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">URLError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">check</span><span class="p">,</span> <span class="s2">"__name__"</span><span class="p">,</span> <span class="s2">"check"</span><span class="p">),</span>
+            <span class="n">ok</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">summary</span><span class="o">=</span><span class="sa">f</span><span class="s2">"check could not run: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="n">remedy</span><span class="o">=</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Could not read </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">metadata_url</span><span class="si">}</span><span class="s2">. An authorization server that "</span>
+                <span class="s2">"does not answer discovery cannot be verified — treat this as a "</span>
+                <span class="s2">"failure, not as 'probably fine'."</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="verify_deployment">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.verify_deployment">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_deployment</span><span class="p">(</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">checks</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">PreflightContext</span><span class="p">],</span> <span class="n">CheckResult</span><span class="p">]]</span> <span class="o">=</span> <span class="n">DFLT_CHECKS</span><span class="p">,</span>
+    <span class="n">fetch</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">CheckResult</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Run the preflight checks against *issuer*; return one result per check.</span>
+
+<span class="sd">    This is the "is this deployment actually good?" gate — run it after deploying a</span>
+<span class="sd">    connector (and, ideally, before), because the most consequential property of the</span>
+<span class="sd">    platform is one the connector cannot observe about itself.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        spec: the connector being verified (optional — the AS can be checked alone).</span>
+<span class="sd">        issuer: the authorization server / platform origin.</span>
+<span class="sd">        checks: the checks to run (defaults to :data:`DFLT_CHECKS`).</span>
+<span class="sd">        fetch: ``fetch(url) -&gt; parsed_json`` seam (defaults to :func:`fetch_json`).</span>
+<span class="sd">        strict: raise :class:`PreflightError` if any check fails.</span>
+
+<span class="sd">    &gt;&gt;&gt; md = {"grant_types_supported": ["authorization_code"]}</span>
+<span class="sd">    &gt;&gt;&gt; results = verify_deployment(issuer="https://p.example.com",</span>
+<span class="sd">    ...                             fetch=lambda url: md)</span>
+<span class="sd">    &gt;&gt;&gt; [r.name for r in results if not r]</span>
+<span class="sd">    ['oauth_refresh_grant', 'oauth_jwks_uri']</span>
+<span class="sd">    """</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">PreflightContext</span><span class="p">(</span><span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">,</span> <span class="n">spec</span><span class="o">=</span><span class="n">spec</span><span class="p">,</span> <span class="n">fetch</span><span class="o">=</span><span class="n">fetch</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">_run</span><span class="p">(</span><span class="n">check</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span> <span class="k">for</span> <span class="n">check</span> <span class="ow">in</span> <span class="n">checks</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">strict</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PreflightError</span><span class="p">(</span><span class="n">format_report</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<div class="viewcode-block" id="format_report">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.format_report">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_report</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">CheckResult</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Render check results as a human-readable report (used by the CLI and errors).</span>
+
+<span class="sd">    &gt;&gt;&gt; print(format_report([CheckResult("a", True, "fine"),</span>
+<span class="sd">    ...                      CheckResult("b", False, "broken", "fix it")]))</span>
+<span class="sd">    PASS  a: fine</span>
+<span class="sd">    FAIL  b: broken</span>
+<span class="sd">          -&gt; fix it</span>
+<span class="sd">    """</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">r</span><span class="o">.</span><span class="n">ok</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">summary</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">remedy</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"      -&gt; </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">remedy</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="refresh_grant_check_commands">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.refresh_grant_check_commands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">refresh_grant_check_commands</span><span class="p">(</span><span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The copy-pasteable refresh-grant check, for runbooks and docs.</span>
+
+<span class="sd">    &gt;&gt;&gt; print(refresh_grant_check_commands("https://p.example.com/"))</span>
+<span class="sd">    curl -s https://p.example.com/.well-known/oauth-authorization-server \\</span>
+<span class="sd">         | python3 -c "import json,sys; print(json.load(sys.stdin).get('grant_types_supported'))"</span>
+<span class="sd">    # must include 'refresh_token'; equivalently (exit code 1 on failure):</span>
+<span class="sd">    python -m enlace_connector.preflight https://p.example.com</span>
+<span class="sd">    """</span>
+    <span class="n">issuer</span> <span class="o">=</span> <span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"curl -s </span><span class="si">{</span><span class="n">issuer</span><span class="si">}{</span><span class="n">AS_METADATA_PATH</span><span class="si">}</span><span class="s2"> </span><span class="se">\\\n</span><span class="s2">"</span>
+        <span class="s1">'     | python3 -c "import json,sys; '</span>
+        <span class="s2">"print(json.load(sys.stdin).get('grant_types_supported'))</span><span class="se">\"\n</span><span class="s2">"</span>
+        <span class="s2">"# must include 'refresh_token'; equivalently (exit code 1 on failure):</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"python -m enlace_connector.preflight </span><span class="si">{</span><span class="n">issuer</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../module_docs/enlace_connector/preflight.html#enlace_connector.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""CLI: ``python -m enlace_connector.preflight &lt;issuer&gt;`` → 0 if all checks pass."""</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">prog</span><span class="o">=</span><span class="s2">"python -m enlace_connector.preflight"</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"Verify a platform's OAuth authorization server can keep connector "</span>
+            <span class="s2">"sessions alive (refresh grant advertised, JWKS where we expect it)."</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"issuer"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"platform origin, e.g. https://apps.example.com"</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--timeout"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DFLT_TIMEOUT</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"HTTP timeout in seconds"</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fetch</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fetch_json</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="n">verify_deployment</span><span class="p">(</span><span class="n">issuer</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">issuer</span><span class="p">,</span> <span class="n">fetch</span><span class="o">=</span><span class="n">fetch</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">format_report</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+    <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
