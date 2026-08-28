@@ -56,8 +56,9 @@ the connector, only where the token comes from.
 `generate_deploy_bundle(spec, dest)` writes everything a `mode="process"` connector
 needs — the app dir (`app.toml` + `server.py`), a **systemd unit** (runs it in its
 own venv), a **provisioning script** (build that venv + install `extras`/`git_installs`
-+ create `data` dirs + `post_install`), the **`resource_allowlist`** fragment (from
-`allowed_users`), and a **runbook**:
++ create `data` dirs + `post_install`), the two **`platform.toml` fragments**
+(`oauth-server.toml` — session longevity; `allowlist.toml` — from `allowed_users`),
+and a **runbook**:
 
 ```python
 spec = ConnectorSpec(
@@ -67,11 +68,44 @@ spec = ConnectorSpec(
     env={"XDG_DATA_HOME": "{base}/xdg-data", "HF_HOME": "{base}/hf-cache"},
     allowed_users=["a@acme.com", "b@acme.com"],
 )
-generate_deploy_bundle(spec, "apps/acme_mcp")   # → app dir + deploy/{unit,provision,allowlist,runbook}
+generate_deploy_bundle(spec, "apps/acme_mcp")   # → app dir + deploy/{unit,provision,toml fragments,runbook}
 ```
 
 Platform specifics (paths, origin) are parameters with tw_platform defaults; the
 package stays connector-type-agnostic (it knows nothing of `ir`).
+
+## Verify before you call it deployed
+
+A connector can be perfectly healthy and completely dead to its users. If the
+platform's authorization server does not advertise the **`refresh_token` grant**,
+every client session dies at the first access-token expiry (typically one hour) and
+only a human re-running the interactive browser authorization can bring it back —
+while the process stays up, the port answers, and nothing errors anywhere. It has
+happened; the first signal was a person saying the connector had been down all day.
+
+So the deployment isn't good until the *authorization server* is checked:
+
+```bash
+python -m enlace_connector.preflight https://apps.thorwhalen.com   # exit 1 if it would strand
+```
+
+```python
+from enlace_connector import verify_deployment, format_report
+
+results = verify_deployment(spec, issuer="https://apps.thorwhalen.com")
+print(format_report(results))
+assert all(results)          # or pass strict=True to raise
+```
+
+It fetches `{issuer}/.well-known/oauth-authorization-server` and asserts what the
+**deployed** server advertises — config claiming refresh is enabled is not evidence,
+since the running build may predate the feature. Checks are plain callables of a
+`PreflightContext` (`checks=` to extend or replace them) and the HTTP fetcher is a
+parameter (`fetch=`), so this is testable offline and CI-friendly.
+
+Configure it from the start too: `deploy/oauth-server.toml` in the bundle carries the
+`[auth.oauth_server] refresh_token_ttl_seconds` key (30 days by default; `0` disables
+the grant), so a **new** platform doesn't inherit a stranding default.
 
 ## Cost / LLM note
 
