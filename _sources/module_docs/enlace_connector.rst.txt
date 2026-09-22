@@ -1,4 +1,0 @@
-enlace_connector
-================
-.. automodule:: enlace_connector
-   :members:

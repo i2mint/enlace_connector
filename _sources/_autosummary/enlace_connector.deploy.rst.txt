@@ -1,0 +1,26 @@
+enlace\_connector.deploy
+========================
+
+.. automodule:: enlace_connector.deploy
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DFLT_REMOTE_BASE
+      MCP_PATH
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      resource_url
+      render_systemd_unit
+      render_provision_script
+      render_allowlist_toml
+      render_display_names_toml
+      render_oauth_server_toml
+      render_runbook
+      generate_deploy_bundle
+   

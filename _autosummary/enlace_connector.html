@@ -1,0 +1,1230 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<link rel="alternate" type="text/markdown" href="enlace_connector.html.md">
+<link rel="describedby" href="../llms.txt" type="text/markdown">
+<link rel="alternate" type="text/markdown" href="enlace_connector.html.md">
+<link rel="describedby" href="llms.txt">
+    <title>enlace_connector &#8212; enlace_connector</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=cb8930eaaf36d9849b67" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=a65a585f" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=cb8930eaaf36d9849b67"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67" />
+
+    <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=fd10adb8"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_autosummary/enlace_connector';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="enlace_connector.auth" href="enlace_connector.auth.html" />
+    <link rel="prev" title="API reference" href="../api.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.0.1" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">enlace_connector</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_connector" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../api.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../ai-agents.html">
+    For AI agents
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/i2mint/enlace_connector" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">enlace_connector</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="enlace_connector.auth.html">enlace_connector.auth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_connector.connector.html">enlace_connector.connector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_connector.deploy.html">enlace_connector.deploy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_connector.preflight.html">enlace_connector.preflight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_connector.scaffold.html">enlace_connector.scaffold</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../api.html" class="nav-link">API reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">enlace_connector</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-enlace_connector">
+<span id="enlace-connector"></span><h1>enlace_connector<a class="headerlink" href="#module-enlace_connector" title="Link to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">enlace_connector</span></code> — deploy Python functions as authenticated MCP connectors.</p>
+<p>A Claude.ai “custom connector” is a remote MCP server. This package turns a set of
+Python functions into one — wired for the <a class="reference external" href="https://github.com/i2mint/enlace">enlace</a>
+platform and its <a class="reference external" href="https://github.com/i2mint/enlace_auth">enlace_auth</a> OAuth server,
+built on <a class="reference external" href="https://github.com/thorwhalen/py2mcp">py2mcp</a>.</p>
+<p>Declare a connector once:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="n">make_connector_app</span>
+
+<span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"trufflepig"</span><span class="p">,</span>
+    <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"truffle.mcp:search_trufflepig"</span><span class="p">,</span> <span class="s2">"truffle.mcp:search_wallow"</span><span class="p">],</span>
+    <span class="n">auth</span><span class="o">=</span><span class="s2">"enlace"</span><span class="p">,</span>                 <span class="c1"># validate the platform's enlace_auth tokens</span>
+    <span class="n">extras</span><span class="o">=</span><span class="p">[</span><span class="s2">"truffle"</span><span class="p">],</span>            <span class="c1"># what the connector's runtime venv needs</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>…then run it where you need it:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">make_stdio_server(spec)</span></code> → a FastMCP server for Claude Desktop / Claude Code.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">make_connector_app(spec,</span> <span class="pre">issuer=...)</span></code> → the Streamable-HTTP ASGI app a host runs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scaffold_app(spec,</span> <span class="pre">dest)</span></code> → an enlace <code class="docutils literal notranslate"><span class="pre">mode=&quot;process&quot;</span></code> app dir (<code class="docutils literal notranslate"><span class="pre">app.toml</span></code> +
+<code class="docutils literal notranslate"><span class="pre">server.py</span></code>) so a heavy connector runs in its own venv, reverse-proxied by enlace.</p></li>
+</ul>
+<p>The authorization server is pluggable (<code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> for the platform’s own
+<code class="docutils literal notranslate"><span class="pre">enlace_auth</span></code>; <code class="docutils literal notranslate"><span class="pre">idp_resource(...)</span></code> for Auth0/WorkOS/…; <code class="docutils literal notranslate"><span class="pre">None</span></code> for an
+unauthenticated local/pilot run) — the resource-server validation is identical
+regardless of who issues the token.</p>
+<p>Whichever one you point at, <strong>verify it before calling a deployment good</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">verify_deployment</span><span class="p">,</span> <span class="n">format_report</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">format_report</span><span class="p">(</span><span class="n">verify_deployment</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="s2">"https://apps.example.com"</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>An authorization server that cannot issue refresh tokens strands every connector
+session at its first access-token expiry while the connector process goes on
+looking perfectly healthy — <a class="reference internal" href="enlace_connector.preflight.html#module-enlace_connector.preflight" title="enlace_connector.preflight"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enlace_connector.preflight</span></code></a> is what catches that
+in seconds instead of when a user complains a day later.</p>
+<p class="rubric">Functions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.make_connector_app" title="enlace_connector.make_connector_app"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_connector_app</span></code></a>(spec, *[, issuer, audience])</p></td>
+<td><p>Build the Streamable-HTTP ASGI app for <em>spec</em> (the hosted connector).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.make_stdio_server" title="enlace_connector.make_stdio_server"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_stdio_server</span></code></a>(spec)</p></td>
+<td><p>Build a FastMCP server for <em>spec</em>, for local stdio serving (no auth).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.resolve_auth" title="enlace_connector.resolve_auth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_auth</span></code></a>(auth, *[, issuer, audience])</p></td>
+<td><p>Normalize an <code class="docutils literal notranslate"><span class="pre">auth</span></code> spec to a py2mcp auth dict (or <code class="docutils literal notranslate"><span class="pre">None</span></code> for no auth).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.enlace_resource" title="enlace_connector.enlace_resource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enlace_resource</span></code></a>(*, issuer, audience[, ...])</p></td>
+<td><p>Resource-server config validating tokens from the platform's <code class="docutils literal notranslate"><span class="pre">enlace_auth</span></code> AS.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.idp_resource" title="enlace_connector.idp_resource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">idp_resource</span></code></a>(*, jwks_uri, issuer, audience)</p></td>
+<td><p>Resource-server config validating tokens from an external managed IdP.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.scaffold_app" title="enlace_connector.scaffold_app"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scaffold_app</span></code></a>(spec, dest_dir, *, port[, command])</p></td>
+<td><p>Write <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> and <code class="docutils literal notranslate"><span class="pre">server.py</span></code> for <em>spec</em> into <em>dest_dir</em>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.generate_deploy_bundle" title="enlace_connector.generate_deploy_bundle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_deploy_bundle</span></code></a>(spec, dest, *[, ...])</p></td>
+<td><p>Write the full deploy bundle for <em>spec</em> under <em>dest</em>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_systemd_unit" title="enlace_connector.render_systemd_unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_systemd_unit</span></code></a>(spec, *[, remote_base, ...])</p></td>
+<td><p>Render the systemd unit that runs the connector in its own venv.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_provision_script" title="enlace_connector.render_provision_script"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_provision_script</span></code></a>(spec, *[, remote_base])</p></td>
+<td><p>Render the idempotent, run-as-root provisioning script for the connector.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_allowlist_toml" title="enlace_connector.render_allowlist_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_allowlist_toml</span></code></a>(spec, *[, issuer])</p></td>
+<td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> fragment (or <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_display_names_toml" title="enlace_connector.render_display_names_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_display_names_toml</span></code></a>(spec, *[, issuer])</p></td>
+<td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_display_names]</span></code> fragment.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_oauth_server_toml" title="enlace_connector.render_oauth_server_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_oauth_server_toml</span></code></a>(spec, *[, issuer, ...])</p></td>
+<td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server]</span></code> fragment that keeps sessions alive.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_runbook" title="enlace_connector.render_runbook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_runbook</span></code></a>(spec, *[, remote_base, issuer])</p></td>
+<td><p>Render the human deploy checklist (ship, provision, deploy, <strong>verify</strong>).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.resource_url" title="enlace_connector.resource_url"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource_url</span></code></a>(spec, *[, issuer])</p></td>
+<td><p>The connector's OAuth resource = its public MCP endpoint (<code class="docutils literal notranslate"><span class="pre">route</span> <span class="pre">+</span> <span class="pre">/mcp</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_app_toml" title="enlace_connector.render_app_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_app_toml</span></code></a>(spec, *, port[, command])</p></td>
+<td><p>Render the enlace <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> for <em>spec</em> as a <code class="docutils literal notranslate"><span class="pre">mode=&quot;process&quot;</span></code> app.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_server_py" title="enlace_connector.render_server_py"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_server_py</span></code></a>(spec)</p></td>
+<td><p>Render the <code class="docutils literal notranslate"><span class="pre">server.py</span></code> that exposes <code class="docutils literal notranslate"><span class="pre">app</span></code> for enlace's process runner.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_deployment</span></code></a>([spec, checks, fetch, strict])</p></td>
+<td><p>Run the preflight checks against <em>issuer</em>; return one result per check.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.check_refresh_grant_supported" title="enlace_connector.check_refresh_grant_supported"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_refresh_grant_supported</span></code></a>(ctx)</p></td>
+<td><p>THE check: does the AS advertise <code class="docutils literal notranslate"><span class="pre">refresh_token</span></code> in <code class="docutils literal notranslate"><span class="pre">grant_types_supported</span></code>?</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.check_jwks_uri_matches_convention" title="enlace_connector.check_jwks_uri_matches_convention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention</span></code></a>(ctx)</p></td>
+<td><p>For <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> connectors: the AS's <code class="docutils literal notranslate"><span class="pre">jwks_uri</span></code> is the one we validate against.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.authorization_server_metadata" title="enlace_connector.authorization_server_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">authorization_server_metadata</span></code></a>(issuer, *[, fetch])</p></td>
+<td><p>Fetch the RFC 8414 discovery document advertised by <em>issuer</em>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.format_report" title="enlace_connector.format_report"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_report</span></code></a>(results)</p></td>
+<td><p>Render check results as a human-readable report (used by the CLI and errors).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Classes</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.ConnectorSpec" title="enlace_connector.ConnectorSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a>(name, tools[, auth, title, ...])</p></td>
+<td><p>A declarative connector definition (see the module docstring).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.CheckResult" title="enlace_connector.CheckResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CheckResult</span></code></a>(name, ok, summary[, remedy])</p></td>
+<td><p>Outcome of one preflight check.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.PreflightContext" title="enlace_connector.PreflightContext"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PreflightContext</span></code></a>(issuer[, spec, fetch])</p></td>
+<td><p>What a check is given: the target AS, the connector (if any), and a fetcher.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Exceptions</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.PreflightError" title="enlace_connector.PreflightError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PreflightError</span></code></a></p></td>
+<td><p>Raised by <a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_deployment()</span></code></a> in <code class="docutils literal notranslate"><span class="pre">strict</span></code> mode when a check fails.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_connector.CheckResult">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">CheckResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ok</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remedy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#CheckResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.CheckResult" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Outcome of one preflight check.</p>
+<p>Truthy when the check passed, so <code class="docutils literal notranslate"><span class="pre">all(results)</span></code> reads naturally.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.CheckResult.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#enlace_connector.CheckResult.name" title="Link to this definition">#</a></dt>
+<dd><p>stable slug for the check (usable as a CI job/report key).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.CheckResult.ok">
+<span class="sig-name descname"><span class="pre">ok</span></span><a class="headerlink" href="#enlace_connector.CheckResult.ok" title="Link to this definition">#</a></dt>
+<dd><p>whether the checked property holds.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.CheckResult.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><a class="headerlink" href="#enlace_connector.CheckResult.summary" title="Link to this definition">#</a></dt>
+<dd><p>one line stating what was (or was not) observed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.CheckResult.remedy">
+<span class="sig-name descname"><span class="pre">remedy</span></span><a class="headerlink" href="#enlace_connector.CheckResult.remedy" title="Link to this definition">#</a></dt>
+<dd><p>what to do about it — empty when <code class="docutils literal notranslate"><span class="pre">ok</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">ConnectorSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tools</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extras</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_installs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8030</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_install</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateless_http</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A declarative connector definition (see the module docstring).</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.name" title="Link to this definition">#</a></dt>
+<dd><p>short identifier — the enlace app name and default route stem.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.tools">
+<span class="sig-name descname"><span class="pre">tools</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.tools" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;module:function&quot;</span></code> refs exposed as MCP tools.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.auth">
+<span class="sig-name descname"><span class="pre">auth</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.auth" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;enlace&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> / an auth dict (e.g. from <code class="docutils literal notranslate"><span class="pre">idp_resource</span></code>).
+Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;enlace&quot;</span></code> — the platform’s own OAuth server.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.title">
+<span class="sig-name descname"><span class="pre">title</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.title" title="Link to this definition">#</a></dt>
+<dd><p>human-facing MCP server name (defaults to <em>name</em>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.route">
+<span class="sig-name descname"><span class="pre">route</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.route" title="Link to this definition">#</a></dt>
+<dd><p>enlace mount route (defaults to <code class="docutils literal notranslate"><span class="pre">&quot;/{name}-mcp&quot;</span></code>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.extras">
+<span class="sig-name descname"><span class="pre">extras</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.extras" title="Link to this definition">#</a></dt>
+<dd><p>PyPI requirements the connector’s own runtime venv needs (e.g. the
+package owning the tools + its embedder deps).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.git_installs">
+<span class="sig-name descname"><span class="pre">git_installs</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.git_installs" title="Link to this definition">#</a></dt>
+<dd><p>non-PyPI deps as pip specs (e.g.
+<code class="docutils literal notranslate"><span class="pre">&quot;git+ssh://git&#64;github.com/org/pkg&quot;</span></code>) for private/unreleased packages.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.port">
+<span class="sig-name descname"><span class="pre">port</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.port" title="Link to this definition">#</a></dt>
+<dd><p>the fixed local port the connector process binds; enlace reverse-
+proxies the route to <code class="docutils literal notranslate"><span class="pre">127.0.0.1:{port}</span></code>. Must be free on the box.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.data" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">(local_path,</span> <span class="pre">remote_path)</span></code> pairs to co-locate on the server —
+large artifacts (corpus stores, model caches) shipped <em>separately</em> from
+code (rsynced), the deploy runbook lists the copy step.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.env">
+<span class="sig-name descname"><span class="pre">env</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.env" title="Link to this definition">#</a></dt>
+<dd><p>environment variables the connector’s systemd unit sets (e.g.
+<code class="docutils literal notranslate"><span class="pre">XDG_DATA_HOME</span></code> / <code class="docutils literal notranslate"><span class="pre">HF_HOME</span></code> pointing at the <code class="docutils literal notranslate"><span class="pre">data</span></code> dirs).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.allowed_users">
+<span class="sig-name descname"><span class="pre">allowed_users</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.allowed_users" title="Link to this definition">#</a></dt>
+<dd><p>emails permitted to authorize this connector — becomes the
+platform’s <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> entry. Empty =
+open to any authenticated platform user.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.post_install">
+<span class="sig-name descname"><span class="pre">post_install</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.post_install" title="Link to this definition">#</a></dt>
+<dd><p>shell commands run <em>inside the connector venv</em> after deps
+install (e.g. pre-warming an embedding model so the first query
+doesn’t block). <code class="docutils literal notranslate"><span class="pre">{venv}</span></code> / <code class="docutils literal notranslate"><span class="pre">{base}</span></code> placeholders are substituted.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.stateless_http">
+<span class="sig-name descname"><span class="pre">stateless_http</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.stateless_http" title="Link to this definition">#</a></dt>
+<dd><p>run the MCP transport statelessly (recommended behind a
+multi-worker server / load balancer). Defaults to True.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.default_audience">
+<span class="sig-name descname"><span class="pre">default_audience</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">platform_origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec.default_audience"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec.default_audience" title="Link to this definition">#</a></dt>
+<dd><p>This connector’s public URL under <em>platform_origin</em> (the token audience).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="enlace_connector.PreflightContext">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">PreflightContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">issuer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#PreflightContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.PreflightContext" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>What a check is given: the target AS, the connector (if any), and a fetcher.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.PreflightContext.issuer">
+<span class="sig-name descname"><span class="pre">issuer</span></span><a class="headerlink" href="#enlace_connector.PreflightContext.issuer" title="Link to this definition">#</a></dt>
+<dd><p>the authorization server’s issuer origin (the platform origin).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.PreflightContext.spec">
+<span class="sig-name descname"><span class="pre">spec</span></span><a class="headerlink" href="#enlace_connector.PreflightContext.spec" title="Link to this definition">#</a></dt>
+<dd><p>the connector being verified — optional, so the AS itself can be
+preflighted before any connector exists.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.PreflightContext.fetch">
+<span class="sig-name descname"><span class="pre">fetch</span></span><a class="headerlink" href="#enlace_connector.PreflightContext.fetch" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">fetch(url)</span> <span class="pre">-&gt;</span> <span class="pre">parsed_json</span></code>; defaults to <code class="xref py py-func docutils literal notranslate"><span class="pre">fetch_json()</span></code>. Pass
+your own to test offline, to add auth headers, or to use <code class="docutils literal notranslate"><span class="pre">httpx</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="enlace_connector.PreflightContext.metadata">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">metadata</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#enlace_connector.PreflightContext.metadata" title="Link to this definition">#</a></dt>
+<dd><p>The AS discovery document (fetched once per context, checked to be a doc).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="enlace_connector.PreflightContext.metadata_url">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">metadata_url</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#enlace_connector.PreflightContext.metadata_url" title="Link to this definition">#</a></dt>
+<dd><p>Where the AS discovery document lives.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="enlace_connector.PreflightError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">PreflightError</span></span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#PreflightError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.PreflightError" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></p>
+<p>Raised by <a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_deployment()</span></code></a> in <code class="docutils literal notranslate"><span class="pre">strict</span></code> mode when a check fails.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.authorization_server_metadata">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">authorization_server_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">issuer</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#authorization_server_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.authorization_server_metadata" title="Link to this definition">#</a></dt>
+<dd><p>Fetch the RFC 8414 discovery document advertised by <em>issuer</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.check_jwks_uri_matches_convention">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">check_jwks_uri_matches_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#check_jwks_uri_matches_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.check_jwks_uri_matches_convention" title="Link to this definition">#</a></dt>
+<dd><p>For <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> connectors: the AS’s <code class="docutils literal notranslate"><span class="pre">jwks_uri</span></code> is the one we validate against.</p>
+<p>Catches an issuer/route drift that would make every token fail signature
+validation — a different symptom of “deployed, healthy, unusable”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.check_refresh_grant_supported">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">check_refresh_grant_supported</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#check_refresh_grant_supported"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.check_refresh_grant_supported" title="Link to this definition">#</a></dt>
+<dd><p>THE check: does the AS advertise <code class="docutils literal notranslate"><span class="pre">refresh_token</span></code> in <code class="docutils literal notranslate"><span class="pre">grant_types_supported</span></code>?</p>
+<p>An authorization server that omits it can only ever hand out access tokens that
+expire into a dead end, which is invisible from the connector’s own health.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.enlace_resource">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">enlace_resource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scopes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('mcp:read',)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mcp_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/mcp'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/auth.html#enlace_resource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.enlace_resource" title="Link to this definition">#</a></dt>
+<dd><p>Resource-server config validating tokens from the platform’s <code class="docutils literal notranslate"><span class="pre">enlace_auth</span></code> AS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>issuer</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – the platform origin acting as the OAuth issuer, e.g.
+<code class="docutils literal notranslate"><span class="pre">&quot;https://apps.thorwhalen.com&quot;</span></code> (no trailing slash needed).</p></li>
+<li><p><strong>audience</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – this connector’s <strong>base</strong> URL (e.g.
+<code class="docutils literal notranslate"><span class="pre">&quot;https://apps.thorwhalen.com/api/trufflepig_mcp&quot;</span></code>).</p></li>
+<li><p><strong>scopes</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – scopes the connector requires (default <code class="xref py py-data docutils literal notranslate"><span class="pre">DFLT_SCOPES</span></code>).</p></li>
+<li><p><strong>mcp_path</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – the MCP transport sub-path (FastMCP default <code class="docutils literal notranslate"><span class="pre">/mcp</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+</dl>
+<p>The OAuth <em>resource</em> a connector validates is its MCP <strong>endpoint</strong>
+(<code class="docutils literal notranslate"><span class="pre">base</span> <span class="pre">+</span> <span class="pre">mcp_path</span></code>) — that is what FastMCP advertises in the RFC 9728
+protected-resource metadata, and therefore what the issued token’s <code class="docutils literal notranslate"><span class="pre">aud</span></code>
+carries. So <code class="docutils literal notranslate"><span class="pre">base_url</span></code> (used to build that metadata) is the base, while the
+validated <code class="docutils literal notranslate"><span class="pre">audience</span></code> is <code class="docutils literal notranslate"><span class="pre">base</span> <span class="pre">+</span> <span class="pre">mcp_path</span></code>. Setting them equal causes an
+“audience mismatch” 401 at token-validation time.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.format_report">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">format_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#format_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.format_report" title="Link to this definition">#</a></dt>
+<dd><p>Render check results as a human-readable report (used by the CLI and errors).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">format_report</span><span class="p">([</span><span class="n">CheckResult</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"fine"</span><span class="p">),</span>
+<span class="gp">... </span>                     <span class="n">CheckResult</span><span class="p">(</span><span class="s2">"b"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"broken"</span><span class="p">,</span> <span class="s2">"fix it"</span><span class="p">)]))</span>
+<span class="go">PASS  a: fine</span>
+<span class="go">FAIL  b: broken</span>
+<span class="go">      -&gt; fix it</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.generate_deploy_bundle">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">generate_deploy_bundle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_py</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refresh_token_ttl_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2592000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#generate_deploy_bundle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.generate_deploy_bundle" title="Link to this definition">#</a></dt>
+<dd><p>Write the full deploy bundle for <em>spec</em> under <em>dest</em>.</p>
+<p>Writes the app dir (<code class="docutils literal notranslate"><span class="pre">app.toml</span></code> + <code class="docutils literal notranslate"><span class="pre">server.py</span></code>) and a <code class="docutils literal notranslate"><span class="pre">deploy/</span></code> folder (the
+systemd unit, provisioning script, the <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> fragments — OAuth
+session longevity always, the resource allowlist when the spec restricts users
+— and the runbook). Pass <em>server_py</em> to override the generated entry module
+(e.g. a corpus-bound <code class="docutils literal notranslate"><span class="pre">make_search</span></code> server the composing skill wrote); pass
+<em>refresh_token_ttl_seconds</em> to set the session longevity the platform fragment
+configures (<code class="docutils literal notranslate"><span class="pre">0</span></code> would disable the refresh grant — see
+<a class="reference internal" href="#enlace_connector.render_oauth_server_toml" title="enlace_connector.render_oauth_server_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_oauth_server_toml()</span></code></a>). Returns the written paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.idp_resource">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">idp_resource</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">jwks_uri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">authorization_servers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scopes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('mcp:read',)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/auth.html#idp_resource"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.idp_resource" title="Link to this definition">#</a></dt>
+<dd><p>Resource-server config validating tokens from an external managed IdP.</p>
+<p>Everything is explicit because each IdP (Auth0, WorkOS, Okta…) publishes its
+own <code class="docutils literal notranslate"><span class="pre">jwks_uri</span></code> / <code class="docutils literal notranslate"><span class="pre">issuer</span></code>. <code class="docutils literal notranslate"><span class="pre">authorization_servers</span></code> defaults to
+<code class="docutils literal notranslate"><span class="pre">[issuer]</span></code> and <code class="docutils literal notranslate"><span class="pre">base_url</span></code> to <code class="docutils literal notranslate"><span class="pre">audience</span></code> (this connector’s URL).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.make_connector_app">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">make_connector_app</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#make_connector_app"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.make_connector_app" title="Link to this definition">#</a></dt>
+<dd><p>Build the Streamable-HTTP ASGI app for <em>spec</em> (the hosted connector).</p>
+<p>Resolves the spec’s <code class="docutils literal notranslate"><span class="pre">auth</span></code> into a py2mcp resource-server config. For
+<code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> provide <em>issuer</em> (the platform origin) and <em>audience</em> (this
+connector’s public URL); if <em>audience</em> is omitted it is derived from <em>issuer</em> +
+the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
+enlace).</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.make_stdio_server">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">make_stdio_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#make_stdio_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.make_stdio_server" title="Link to this definition">#</a></dt>
+<dd><p>Build a FastMCP server for <em>spec</em>, for local stdio serving (no auth).</p>
+<p>Use for <code class="docutils literal notranslate"><span class="pre">server.run()</span></code> in Claude Desktop / Claude Code while developing the
+tools; the hosted path uses <a class="reference internal" href="#enlace_connector.make_connector_app" title="enlace_connector.make_connector_app"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_connector_app()</span></code></a>.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_allowlist_toml">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_allowlist_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_allowlist_toml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_allowlist_toml" title="Link to this definition">#</a></dt>
+<dd><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> fragment (or <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>).</p>
+<p>Empty when <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code> is empty (connector open to any authenticated
+user). Otherwise maps this connector’s resource URL to the allowed emails —
+paste into the platform’s <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_app_toml">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_app_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/scaffold.html#render_app_toml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_app_toml" title="Link to this definition">#</a></dt>
+<dd><p>Render the enlace <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> for <em>spec</em> as a <code class="docutils literal notranslate"><span class="pre">mode=&quot;process&quot;</span></code> app.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_display_names_toml">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_display_names_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_display_names_toml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_display_names_toml" title="Link to this definition">#</a></dt>
+<dd><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_display_names]</span></code> fragment.</p>
+<p>The shared OAuth consent page (<code class="docutils literal notranslate"><span class="pre">enlace_auth</span></code>) shows <em>some</em> product name to
+every user authorizing <em>any</em> connector on the platform — resolved from
+<code class="docutils literal notranslate"><span class="pre">resource_display_names</span></code>, keyed by resource URL (see
+<a class="reference internal" href="#enlace_connector.resource_url" title="enlace_connector.resource_url"><code class="xref py py-func docutils literal notranslate"><span class="pre">resource_url()</span></code></a>), with a generic fallback when a resource has no entry.
+Before this existed, that string had to be hand-typed once in platform
+config and drifted the moment a second connector was added: every consent
+screen showed the <em>first</em> connector’s name (i2mint/enlace_auth#18).</p>
+<p>This makes <a class="reference internal" href="#enlace_connector.ConnectorSpec.title" title="enlace_connector.ConnectorSpec.title"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ConnectorSpec.title</span></code></a> the single source instead — paste the
+fragment into the platform’s <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> alongside
+<a class="reference internal" href="#enlace_connector.render_allowlist_toml" title="enlace_connector.render_allowlist_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a>’s.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Acme Knowledge"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_display_names_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
+<span class="go">[auth.oauth_server.resource_display_names]</span>
+<span class="go">"https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_oauth_server_toml">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_oauth_server_toml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refresh_token_ttl_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2592000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_oauth_server_toml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_oauth_server_toml" title="Link to this definition">#</a></dt>
+<dd><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server]</span></code> fragment that keeps sessions alive.</p>
+<p>Companion to <a class="reference internal" href="#enlace_connector.render_allowlist_toml" title="enlace_connector.render_allowlist_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a>: that one renders the
+<code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> <em>subtable</em>, this one the scalar keys
+of the parent table — so a <strong>new</strong> platform is configured for connector-length
+sessions from the start instead of inheriting a default that issues no refresh
+tokens. Paste this block <em>before</em> the allowlist fragment (TOML requires a
+table’s own keys to precede its subtables).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_oauth_server_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
+<span class="go">#...</span>
+<span class="go">[auth.oauth_server]</span>
+<span class="go">refresh_token_ttl_seconds = 2592000</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_provision_script">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_provision_script</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_provision_script"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_provision_script" title="Link to this definition">#</a></dt>
+<dd><p>Render the idempotent, run-as-root provisioning script for the connector.</p>
+<p>Builds the dedicated venv (this box’s <code class="docutils literal notranslate"><span class="pre">ensurepip</span></code> is unavailable, so
+<code class="docutils literal notranslate"><span class="pre">--without-pip</span></code> + <code class="docutils literal notranslate"><span class="pre">get-pip.py</span></code>, using the same base interpreter that made
+the shared venv), installs <code class="docutils literal notranslate"><span class="pre">extras</span></code> + <code class="docutils literal notranslate"><span class="pre">git_installs</span></code>, creates the data
+dirs, runs <code class="docutils literal notranslate"><span class="pre">post_install</span></code> (e.g. warm a model), and installs/starts the unit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_runbook">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_runbook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_runbook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_runbook" title="Link to this definition">#</a></dt>
+<dd><p>Render the human deploy checklist (ship, provision, deploy, <strong>verify</strong>).</p>
+<p>The last step is the one that is easy to skip and expensive to skip: a
+connector whose authorization server cannot issue refresh tokens looks fully
+deployed and dies silently hours later, so the runbook states that failure mode
+in plain words and gives the exact command that detects it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_server_py">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_server_py</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/scaffold.html#render_server_py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_server_py" title="Link to this definition">#</a></dt>
+<dd><p>Render the <code class="docutils literal notranslate"><span class="pre">server.py</span></code> that exposes <code class="docutils literal notranslate"><span class="pre">app</span></code> for enlace’s process runner.</p>
+<p>The embedded <code class="docutils literal notranslate"><span class="pre">SPEC</span></code> carries every field <code class="xref py py-func docutils literal notranslate">
+<span class="pre">make_connector_app()</span></code> reads at serve time — tools, auth, name/title, route and
+<code class="docutils literal notranslate"><span class="pre">stateless_http</span></code>. Deploy-time-only fields (<code class="docutils literal notranslate"><span class="pre">extras</span></code>, <code class="docutils literal notranslate"><span class="pre">git_installs</span></code>,
+<code class="docutils literal notranslate"><span class="pre">data</span></code>, <code class="docutils literal notranslate"><span class="pre">env</span></code>, <code class="docutils literal notranslate"><span class="pre">post_install</span></code>, <code class="docutils literal notranslate"><span class="pre">allowed_users</span></code>) are deliberately
+omitted: they are consumed by the provisioning bundle, not by the process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.render_systemd_unit">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_systemd_unit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_systemd_unit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_systemd_unit" title="Link to this definition">#</a></dt>
+<dd><p>Render the systemd unit that runs the connector in its own venv.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.resolve_auth">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">resolve_auth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auth</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/auth.html#resolve_auth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.resolve_auth" title="Link to this definition">#</a></dt>
+<dd><p>Normalize an <code class="docutils literal notranslate"><span class="pre">auth</span></code> spec to a py2mcp auth dict (or <code class="docutils literal notranslate"><span class="pre">None</span></code> for no auth).</p>
+<p>Accepts:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> → unauthenticated (returns <code class="docutils literal notranslate"><span class="pre">None</span></code>).</p></li>
+<li><p>a ready auth dict → returned unchanged.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;enlace&quot;</span></code> → <a class="reference internal" href="#enlace_connector.enlace_resource" title="enlace_connector.enlace_resource"><code class="xref py py-func docutils literal notranslate"><span class="pre">enlace_resource()</span></code></a> (needs <em>issuer</em> and <em>audience</em>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;idp&quot;</span></code> → not resolvable from a bare string; pass an explicit dict from
+<a class="reference internal" href="#enlace_connector.idp_resource" title="enlace_connector.idp_resource"><code class="xref py py-func docutils literal notranslate"><span class="pre">idp_resource()</span></code></a> instead (raises with that guidance).</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>] | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.resource_url">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">resource_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#resource_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.resource_url" title="Link to this definition">#</a></dt>
+<dd><p>The connector’s OAuth resource = its public MCP endpoint (<code class="docutils literal notranslate"><span class="pre">route</span> <span class="pre">+</span> <span class="pre">/mcp</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.scaffold_app">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">scaffold_app</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_dir</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/scaffold.html#scaffold_app"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.scaffold_app" title="Link to this definition">#</a></dt>
+<dd><p>Write <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> and <code class="docutils literal notranslate"><span class="pre">server.py</span></code> for <em>spec</em> into <em>dest_dir</em>.</p>
+<p><em>dest_dir</em> is the enlace app directory (e.g. <code class="docutils literal notranslate"><span class="pre">tw_platform/apps/&lt;name&gt;</span></code>).
+Returns the paths written. Creates <em>dest_dir</em> if needed; overwrites the two
+generated files (they are derived artifacts).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.verify_deployment">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">verify_deployment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(&lt;function</span> <span class="pre">check_refresh_grant_supported&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;function</span> <span class="pre">check_jwks_uri_matches_convention&gt;)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fetch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#verify_deployment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.verify_deployment" title="Link to this definition">#</a></dt>
+<dd><p>Run the preflight checks against <em>issuer</em>; return one result per check.</p>
+<p>This is the “is this deployment actually good?” gate — run it after deploying a
+connector (and, ideally, before), because the most consequential property of the
+platform is one the connector cannot observe about itself.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spec</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – the connector being verified (optional — the AS can be checked alone).</p></li>
+<li><p><strong>issuer</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – the authorization server / platform origin.</p></li>
+<li><p><strong>checks</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.PreflightContext" title="enlace_connector.preflight.PreflightContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreflightContext</span></code></a>], <a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a>]]</span>) – the checks to run (defaults to <code class="xref py py-data docutils literal notranslate"><span class="pre">DFLT_CHECKS</span></code>).</p></li>
+<li><p><strong>fetch</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – <code class="docutils literal notranslate"><span class="pre">fetch(url)</span> <span class="pre">-&gt;</span> <span class="pre">parsed_json</span></code> seam (defaults to <code class="xref py py-func docutils literal notranslate"><span class="pre">fetch_json()</span></code>).</p></li>
+<li><p><strong>strict</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – raise <a class="reference internal" href="#enlace_connector.PreflightError" title="enlace_connector.PreflightError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreflightError</span></code></a> if any check fails.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a>]</span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">md</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"grant_types_supported"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"authorization_code"</span><span class="p">]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">verify_deployment</span><span class="p">(</span><span class="n">issuer</span><span class="o">=</span><span class="s2">"https://p.example.com"</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">fetch</span><span class="o">=</span><span class="k">lambda</span> <span class="n">url</span><span class="p">:</span> <span class="n">md</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="p">]</span>
+<span class="go">['oauth_refresh_grant', 'oauth_jwks_uri']</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<p class="rubric">Modules</p>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_connector.auth.html#module-enlace_connector.auth" title="enlace_connector.auth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">auth</span></code></a></p></td>
+<td><p>Auth configuration for connectors — the resource-server side of MCP OAuth.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_connector.connector.html#module-enlace_connector.connector" title="enlace_connector.connector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">connector</span></code></a></p></td>
+<td><p>Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_connector.deploy.html#module-enlace_connector.deploy" title="enlace_connector.deploy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deploy</span></code></a></p></td>
+<td><p>Generate everything needed to deploy a connector on an enlace platform.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_connector.preflight.html#module-enlace_connector.preflight" title="enlace_connector.preflight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preflight</span></code></a></p></td>
+<td><p>Preflight/verify checks — is the target platform able to keep a connector <em>alive</em>?</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_connector.scaffold.html#module-enlace_connector.scaffold" title="enlace_connector.scaffold"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scaffold</span></code></a></p></td>
+<td><p>Generate the enlace app directory that serves a connector.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../api.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">API reference</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="enlace_connector.auth.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">enlace_connector.auth</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.CheckResult"><code class="docutils literal notranslate"><span class="pre">CheckResult</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.CheckResult.name"><code class="docutils literal notranslate"><span class="pre">CheckResult.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.CheckResult.ok"><code class="docutils literal notranslate"><span class="pre">CheckResult.ok</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.CheckResult.summary"><code class="docutils literal notranslate"><span class="pre">CheckResult.summary</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.CheckResult.remedy"><code class="docutils literal notranslate"><span class="pre">CheckResult.remedy</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.name"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.tools"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.tools</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.auth"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.auth</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.title"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.title</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.route"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.route</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.extras"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.extras</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.git_installs"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.git_installs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.port"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.port</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.data"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.data</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.env"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.env</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.allowed_users"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.allowed_users</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.post_install"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.post_install</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.stateless_http"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.stateless_http</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.default_audience"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.default_audience()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext"><code class="docutils literal notranslate"><span class="pre">PreflightContext</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext.issuer"><code class="docutils literal notranslate"><span class="pre">PreflightContext.issuer</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext.spec"><code class="docutils literal notranslate"><span class="pre">PreflightContext.spec</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext.fetch"><code class="docutils literal notranslate"><span class="pre">PreflightContext.fetch</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext.metadata"><code class="docutils literal notranslate"><span class="pre">PreflightContext.metadata</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext.metadata_url"><code class="docutils literal notranslate"><span class="pre">PreflightContext.metadata_url</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightError"><code class="docutils literal notranslate"><span class="pre">PreflightError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.authorization_server_metadata"><code class="docutils literal notranslate"><span class="pre">authorization_server_metadata()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_jwks_uri_matches_convention"><code class="docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_refresh_grant_supported"><code class="docutils literal notranslate"><span class="pre">check_refresh_grant_supported()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.enlace_resource"><code class="docutils literal notranslate"><span class="pre">enlace_resource()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.format_report"><code class="docutils literal notranslate"><span class="pre">format_report()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.generate_deploy_bundle"><code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.idp_resource"><code class="docutils literal notranslate"><span class="pre">idp_resource()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.make_connector_app"><code class="docutils literal notranslate"><span class="pre">make_connector_app()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.make_stdio_server"><code class="docutils literal notranslate"><span class="pre">make_stdio_server()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_allowlist_toml"><code class="docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_app_toml"><code class="docutils literal notranslate"><span class="pre">render_app_toml()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_display_names_toml"><code class="docutils literal notranslate"><span class="pre">render_display_names_toml()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_oauth_server_toml"><code class="docutils literal notranslate"><span class="pre">render_oauth_server_toml()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_provision_script"><code class="docutils literal notranslate"><span class="pre">render_provision_script()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_runbook"><code class="docutils literal notranslate"><span class="pre">render_runbook()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_server_py"><code class="docutils literal notranslate"><span class="pre">render_server_py()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_systemd_unit"><code class="docutils literal notranslate"><span class="pre">render_systemd_unit()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.resolve_auth"><code class="docutils literal notranslate"><span class="pre">resolve_auth()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.resource_url"><code class="docutils literal notranslate"><span class="pre">resource_url()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.scaffold_app"><code class="docutils literal notranslate"><span class="pre">scaffold_app()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.verify_deployment"><code class="docutils literal notranslate"><span class="pre">verify_deployment()</span></code></a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/_autosummary/enlace_connector.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=cb8930eaaf36d9849b67"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=cb8930eaaf36d9849b67"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.21.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+enlace\_connector.scaffold
+==========================
+
+.. automodule:: enlace_connector.scaffold
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      render_app_toml
+      render_server_py
+      scaffold_app
+   

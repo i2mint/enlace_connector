@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "built_at": "2026-09-22T14:36:44Z",
+  "package": {
+    "name": "enlace_connector",
+    "version": "0.0.1",
+    "display_name": "enlace_connector",
+    "source": "pyproject.toml"
+  },
+  "git": {
+    "available": true,
+    "commit": "0613f444d5c181a012b496c49b9a39088bcc5f05",
+    "short_commit": "0613f44",
+    "branch": "main",
+    "tags": [],
+    "dirty": false,
+    "remote_url": "https://github.com/i2mint/enlace_connector",
+    "commit_url": "https://github.com/i2mint/enlace_connector/commit/0613f444d5c181a012b496c49b9a39088bcc5f05",
+    "error": null
+  },
+  "ci": {
+    "provider": "github",
+    "repository": "i2mint/enlace_connector",
+    "sha": "0613f444d5c181a012b496c49b9a39088bcc5f05",
+    "sha_in_history": true,
+    "ref": "refs/heads/main",
+    "ref_name": "main",
+    "run_id": "35741280690",
+    "run_url": "https://github.com/i2mint/enlace_connector/actions/runs/35741280690",
+    "server_url": "https://github.com"
+  },
+  "tools": {
+    "epythet": "0.2.12",
+    "sphinx": "9.1.0",
+    "docutils": "0.22.4",
+    "python": "3.12.14"
+  },
+  "config": {
+    "theme": "auto",
+    "html_theme": "pydata_sphinx_theme",
+    "accent": "#913149",
+    "mode": "auto",
+    "api_generator": "autosummary",
+    "ignore": [
+      "tests/",
+      "scrap/",
+      "examples/"
+    ],
+    "agent_outputs": true,
+    "aggregates": [
+      "md"
+    ],
+    "ai_artifacts": true,
+    "provenance": true,
+    "docs_dir": "docsrc"
+  },
+  "site": {
+    "modules_documented": 6,
+    "objects_documented": 108
+  },
+  "pypi": {
+    "checked": true,
+    "latest": null,
+    "relation": "unknown",
+    "error": null
+  },
+  "reproduce": "git clone https://github.com/i2mint/enlace_connector && cd enlace_connector\ngit checkout 0613f444d5c181a012b496c49b9a39088bcc5f05\npip install \"epythet==0.2.12\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "warnings": [],
+  "alignment": {
+    "aligned": true,
+    "notes": []
+  }
+}

@@ -1,0 +1,21 @@
+enlace\_connector.auth
+======================
+
+.. automodule:: enlace_connector.auth
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      ENLACE_OAUTH_PATH
+      DFLT_SCOPES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      enlace_resource
+      idp_resource
+      resolve_auth
+   

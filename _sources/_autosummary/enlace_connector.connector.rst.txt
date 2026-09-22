@@ -1,0 +1,19 @@
+enlace\_connector.connector
+===========================
+
+.. automodule:: enlace_connector.connector
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_stdio_server
+      make_connector_app
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ConnectorSpec
+   

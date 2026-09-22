@@ -1,0 +1,25 @@
+# enlace_connector
+
+> Deploy Python functions as authenticated MCP connectors on an enlace platform
+
+
+## Pages
+
+- [enlace_connector](index.html.md): Deploy Python functions as &#42;&#42;authenticated MCP connectors&#42;&#42; on an
+- [API reference](api.html.md): | &#96;enlace_connector&#96;   | &#96;enlace_connector&#96; — deploy Python functions as authenticated MCP connector...
+- [enlace_connector](_autosummary/enlace_connector.html.md): &#96;enlace_connector&#96; — deploy Python functions as authenticated MCP connectors.
+- [enlace_connector.auth](_autosummary/enlace_connector.auth.html.md): Auth configuration for connectors — the resource-server side of MCP OAuth.
+- [enlace_connector.connector](_autosummary/enlace_connector.connector.html.md): Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).
+- [enlace_connector.deploy](_autosummary/enlace_connector.deploy.html.md): Generate everything needed to deploy a connector on an enlace platform.
+- [enlace_connector.preflight](_autosummary/enlace_connector.preflight.html.md): Preflight/verify checks — is the target platform able to keep a connector &#42;alive&#42;?
+- [enlace_connector.scaffold](_autosummary/enlace_connector.scaffold.html.md): Generate the enlace app directory that serves a connector.
+- [For AI agents](ai-agents.html.md): &#96;enlace_connector&#96; ships artifacts for coding agents alongside its code. This page lists
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-09-22 14:36 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+
+## Optional
+
+- [enlace_connector.md](enlace_connector.md): Complete documentation in a single file.
+
+## Build
+
+- [build_info.json](build_info.json): build provenance (commit, version, tool versions, whether the docs match the package)

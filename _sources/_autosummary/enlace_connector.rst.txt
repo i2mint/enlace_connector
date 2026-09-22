@@ -1,0 +1,57 @@
+﻿enlace\_connector
+=================
+
+.. automodule:: enlace_connector
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      make_connector_app
+      make_stdio_server
+      resolve_auth
+      enlace_resource
+      idp_resource
+      scaffold_app
+      generate_deploy_bundle
+      render_systemd_unit
+      render_provision_script
+      render_allowlist_toml
+      render_display_names_toml
+      render_oauth_server_toml
+      render_runbook
+      resource_url
+      render_app_toml
+      render_server_py
+      verify_deployment
+      check_refresh_grant_supported
+      check_jwks_uri_matches_convention
+      authorization_server_metadata
+      format_report
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      ConnectorSpec
+      CheckResult
+      PreflightContext
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      PreflightError
+   
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   auth
+   connector
+   deploy
+   preflight
+   scaffold

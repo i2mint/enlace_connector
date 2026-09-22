@@ -1,0 +1,42 @@
+enlace\_connector.preflight
+===========================
+
+.. automodule:: enlace_connector.preflight
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      AS_METADATA_PATH
+      REFRESH_GRANT
+      DFLT_TIMEOUT
+      DFLT_REFRESH_TOKEN_TTL_SECONDS
+      DFLT_CHECKS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      fetch_json
+      authorization_server_metadata
+      check_refresh_grant_supported
+      check_jwks_uri_matches_convention
+      verify_deployment
+      format_report
+      refresh_grant_check_commands
+      main
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      CheckResult
+      PreflightContext
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      PreflightError
+   

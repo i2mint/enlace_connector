@@ -1,4 +1,0 @@
-enlace_connector.preflight
-==========================
-.. automodule:: enlace_connector.preflight
-   :members:
