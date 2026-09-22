@@ -8,6 +8,7 @@ from enlace_connector import (
     ConnectorSpec,
     generate_deploy_bundle,
     render_allowlist_toml,
+    render_display_names_toml,
     render_oauth_server_toml,
     render_provision_script,
     render_runbook,
@@ -67,6 +68,51 @@ def test_allowlist_toml_lists_resource_and_users_or_empty():
     assert render_allowlist_toml(ConnectorSpec(name="x", tools=["m:f"])) == ""
 
 
+def test_display_names_toml_maps_resource_to_title_always_emitted():
+    t = render_display_names_toml(SPEC)
+    assert '"https://apps.thorwhalen.com/api/acme_mcp/mcp" = "Acme Knowledge"' in t
+    assert "[auth.oauth_server.resource_display_names]" in t
+    # emitted even for an unnamed connector -- falls back to spec.name via server_name
+    unnamed = ConnectorSpec(name="x", tools=["m:f"])
+    t2 = render_display_names_toml(unnamed)
+    assert '"https://apps.thorwhalen.com/x-mcp/mcp" = "x"' in t2
+
+
+def test_display_names_and_allowlist_toml_escape_quotes_and_backslashes():
+    # a title/email with a literal " or \ must not break platform.toml's parse
+    # -- these fragments are copy-pasted into it verbatim (render_runbook step 5)
+    tricky = ConnectorSpec(
+        name="acme",
+        tools=["m:f"],
+        title='Say "Hi" \\ Bot',
+        allowed_users=['weird"user\\@acme.com'],
+    )
+    dn = render_display_names_toml(tricky)
+    al = render_allowlist_toml(tricky)
+    # escaped forms are present, verbatim (backslash then quote each escaped)
+    assert '"Say \\"Hi\\" \\\\ Bot"' in dn
+    assert '"weird\\"user\\\\@acme.com"' in al
+    # and the raw, unescaped title/email must not appear anywhere
+    assert 'Say "Hi" \\ Bot' not in dn
+    assert 'weird"user\\@acme.com' not in al
+    # round-trip through a real TOML parser when one is available (3.11+ stdlib)
+    try:
+        import tomllib
+    except ModuleNotFoundError:
+        return
+    parsed_dn = tomllib.loads(dn)
+    parsed_al = tomllib.loads(al)
+    assert (
+        parsed_dn["auth"]["oauth_server"]["resource_display_names"][
+            resource_url(tricky)
+        ]
+        == 'Say "Hi" \\ Bot'
+    )
+    assert parsed_al["auth"]["oauth_server"]["resource_allowlist"][
+        resource_url(tricky)
+    ] == ['weird"user\\@acme.com']
+
+
 def test_runbook_lists_data_ship_and_allowlist_step():
     r = render_runbook(SPEC)
     assert (
@@ -75,6 +121,7 @@ def test_runbook_lists_data_ship_and_allowlist_step():
     )
     assert "provision-acme.sh" in r
     assert "allowlist.toml" in r
+    assert "display-name.toml" in r
 
 
 def test_oauth_server_toml_configures_session_longevity():
@@ -121,6 +168,7 @@ def test_generate_deploy_bundle_writes_all_artifacts(tmp_path):
         "deploy/acme-mcp.service",
         "deploy/provision-acme.sh",
         "deploy/allowlist.toml",
+        "deploy/display-name.toml",
         "deploy/oauth-server.toml",
         "deploy/RUNBOOK.md",
     ):
