@@ -10,6 +10,9 @@ whole bundle from a :class:`~enlace_connector.connector.ConnectorSpec`:
 - the **provisioning script** (build that venv + install deps + create data dirs
   + install/start the unit — idempotent, run as root on the box),
 - the **resource-allowlist** TOML fragment for ``platform.toml`` (access control),
+- the **resource-display-names** TOML fragment (so the shared OAuth consent page
+  shows *this* connector's name, not whichever connector configured it first —
+  i2mint/enlace_auth#18),
 - the **``[auth.oauth_server]``** fragment (session longevity — a platform without
   a refresh-token TTL strands every connector at its first token expiry),
 - a **runbook** listing the human steps (ship data, provision, deploy, verify).
@@ -37,6 +40,7 @@ __all__ = [
     "render_systemd_unit",
     "render_provision_script",
     "render_allowlist_toml",
+    "render_display_names_toml",
     "render_oauth_server_toml",
     "render_runbook",
     "generate_deploy_bundle",
@@ -83,6 +87,19 @@ systemctl enable --now "$UNIT"
 systemctl --no-pager --lines=5 status "$UNIT" || true
 echo "==> done. verify: curl -s http://127.0.0.1:@@PORT@@/ ; data under $BASE"
 """
+
+
+def _toml_string(value: str) -> str:
+    """Escape *value* for use inside a TOML basic (double-quoted) string.
+
+    Both ``resource_allowlist`` and ``resource_display_names`` fragments are
+    documented as copy-paste-into-``platform.toml`` output (see
+    :func:`render_runbook`), so an unescaped ``"`` or ``\\`` in an interpolated
+    value (an email, or — more plausibly — a freeform connector ``title``) would
+    produce invalid TOML and break the *entire* platform config on paste, not
+    just this connector's entry.
+    """
+    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 def _paths(spec: ConnectorSpec, remote_base: str) -> dict[str, str]:
@@ -186,10 +203,39 @@ def render_allowlist_toml(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> 
     """
     if not spec.allowed_users:
         return ""
-    users = "\n".join(f'    "{u}",' for u in spec.allowed_users)
+    users = "\n".join(f'    "{_toml_string(u)}",' for u in spec.allowed_users)
     return (
         "[auth.oauth_server.resource_allowlist]\n"
-        f'"{resource_url(spec, issuer=issuer)}" = [\n{users}\n]\n'
+        f'"{_toml_string(resource_url(spec, issuer=issuer))}" = [\n{users}\n]\n'
+    )
+
+
+def render_display_names_toml(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
+    """Render the ``[auth.oauth_server.resource_display_names]`` fragment.
+
+    The shared OAuth consent page (``enlace_auth``) shows *some* product name to
+    every user authorizing *any* connector on the platform — resolved from
+    ``resource_display_names``, keyed by resource URL (see
+    :func:`resource_url`), with a generic fallback when a resource has no entry.
+    Before this existed, that string had to be hand-typed once in platform
+    config and drifted the moment a second connector was added: every consent
+    screen showed the *first* connector's name (i2mint/enlace_auth#18).
+
+    This makes :attr:`ConnectorSpec.title` the single source instead — paste the
+    fragment into the platform's ``platform.toml`` alongside
+    :func:`render_allowlist_toml`'s.
+
+    >>> from enlace_connector import ConnectorSpec
+    >>> spec = ConnectorSpec(name="acme", tools=["m:f"], title="Acme Knowledge")
+    >>> print(render_display_names_toml(spec))  # doctest: +ELLIPSIS
+    [auth.oauth_server.resource_display_names]
+    "https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"
+    <BLANKLINE>
+    """
+    return (
+        "[auth.oauth_server.resource_display_names]\n"
+        f'"{_toml_string(resource_url(spec, issuer=issuer))}" = '
+        f'"{_toml_string(spec.server_name)}"\n'
     )
 
 
@@ -262,12 +308,14 @@ def render_runbook(
     )
     allow = (
         "5. Platform config fragments → the platform's `platform.toml`, then restart\n"
-        "   the backend: `deploy/oauth-server.toml` (session longevity — paste first)\n"
+        "   the backend: `deploy/oauth-server.toml` (session longevity — paste first),\n"
+        "   `deploy/display-name.toml` (what the consent screen calls this connector),\n"
         "   then `deploy/allowlist.toml` (who may authorize this connector)."
         if spec.allowed_users
-        else "5. Platform config fragment → the platform's `platform.toml`, then restart\n"
-        "   the backend: `deploy/oauth-server.toml` (session longevity). (No\n"
-        "   allowlist — open to any authenticated user.)"
+        else "5. Platform config fragments → the platform's `platform.toml`, then restart\n"
+        "   the backend: `deploy/oauth-server.toml` (session longevity) and\n"
+        "   `deploy/display-name.toml` (what the consent screen calls this connector).\n"
+        "   (No allowlist — open to any authenticated user.)"
     )
     return (
         f"# Deploy runbook — {spec.name} connector\n\n"
@@ -372,6 +420,7 @@ def generate_deploy_bundle(
             spec, issuer=issuer, refresh_token_ttl_seconds=refresh_token_ttl_seconds
         ),
     )
+    _w("deploy/display-name.toml", render_display_names_toml(spec, issuer=issuer))
     allowlist = render_allowlist_toml(spec, issuer=issuer)
     if allowlist:
         _w("deploy/allowlist.toml", allowlist)
