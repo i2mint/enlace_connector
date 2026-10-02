@@ -63,13 +63,16 @@ The host switches it on with environment variables (the unit file's
 
 | Variable | Meaning |
 |---|---|
-| `CONNECTOR_USAGE_LOG_DIR` | directory for the day files; **unset = off**. Use the connector's own data root, off the deploy tree |
-| `CONNECTOR_USAGE_LOG_RETENTION_DAYS` | days to keep (default 90; `none` keeps all) |
-| `CONNECTOR_USAGE_LOG_REDACT` | comma-separated argument names to mask |
+| `CONNECTOR_USAGE_LOG_DIR` | **absolute** directory for the day files, one per connector; **unset = off**. Use the connector's own data root, off the deploy tree (a relative path is refused) |
+| `CONNECTOR_USAGE_LOG_RETENTION_DAYS` | days to keep (default 90; `0` keeps today only; `none` keeps all) |
+| `CONNECTOR_USAGE_LOG_REDACT` | comma-separated argument names to mask (error text is dropped too, since it echoes arguments) |
 | `CONNECTOR_USAGE_LOG_ARGS` | `0` to drop the arguments entirely |
 
 `make_connector_app(spec)` reads them itself; a connector that builds `FastMCP`
-by hand passes `middleware=usage_middleware(spec)` (an empty list when off).
+by hand passes `middleware=usage_middleware(spec)` (an empty list when off). The
+spec's `version` and `usage_outcome` (a `"module:function"` ref to the connector's
+own `(tool, result) -> label | mapping` classifier, e.g. one that knows the search
+tool's "no match" shape) travel into the records.
 The rendered systemd unit ships the `CONNECTOR_USAGE_LOG_DIR` line commented
 out. The arguments are the users' own questions: tell them before you turn it on,
 and read the log with `py2mcp usage <dir>`.

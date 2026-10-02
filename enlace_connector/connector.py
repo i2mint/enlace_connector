@@ -55,6 +55,12 @@ class ConnectorSpec:
             doesn't block). ``{venv}`` / ``{base}`` placeholders are substituted.
         stateless_http: run the MCP transport statelessly (recommended behind a
             multi-worker server / load balancer). Defaults to True.
+        version: the connector's version, written into every usage-log record
+            when logging is on (see :mod:`enlace_connector.usage`).
+        usage_outcome: a ``"module:function"`` ref to this connector's own
+            ``(tool_name, result) -> label | mapping`` usage-outcome classifier
+            (e.g. one that knows the search tool's "no match" shape), used in
+            place of py2mcp's generic one when logging is on.
     """
 
     name: str
@@ -70,6 +76,8 @@ class ConnectorSpec:
     allowed_users: list[str] = field(default_factory=list)
     post_install: list[str] = field(default_factory=list)
     stateless_http: bool = True
+    version: str | None = None
+    usage_outcome: str | None = None
 
     @property
     def server_name(self) -> str:
@@ -113,18 +121,26 @@ def make_connector_app(
 
     Per-call usage logging is attached when the host's *settings* (``os.environ``
     by default) set ``CONNECTOR_USAGE_LOG_DIR`` — see :mod:`enlace_connector.usage`;
-    it is off otherwise. Any extra *middleware* (one or an iterable) runs before it,
-    so a gate (e.g. ``enlace_metering``) refuses a call before it is logged as usage.
+    it is off otherwise; the spec's ``version`` and ``usage_outcome`` feed it. Any
+    extra *middleware* (one or an ordered iterable) runs before it, so a gate (e.g.
+    ``enlace_metering``) refuses a call before it is logged as usage. Do not add a
+    second ``usage_middleware(...)`` there: every call would be recorded twice.
     """
     if audience is None and issuer is not None:
         audience = spec.default_audience(issuer)
     auth = resolve_auth(spec.auth, issuer=issuer, audience=audience)
 
     from py2mcp import mk_http_app
+    from py2mcp.base import normalize_middleware
 
     from .usage import usage_middleware
 
-    extra = [] if middleware is None else list(_iter_middleware(middleware))
+    if isinstance(middleware, (set, frozenset)):
+        raise TypeError(
+            "middleware must be ordered (a list/tuple), not a set: a gate has to "
+            "run before the usage logger, and a set loses that order."
+        )
+    extra = normalize_middleware(middleware) or []
     stack = extra + usage_middleware(spec, settings=settings)
     return mk_http_app(
         spec.tools,
@@ -133,10 +149,3 @@ def make_connector_app(
         stateless_http=spec.stateless_http,
         middleware=stack or None,
     )
-
-
-def _iter_middleware(middleware: Any):
-    """One middleware or an iterable of them -> an iterable (py2mcp's rule)."""
-    if isinstance(middleware, (list, tuple, set)):
-        return middleware
-    return [middleware]

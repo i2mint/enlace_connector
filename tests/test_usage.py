@@ -53,6 +53,12 @@ def test_retention_default_none_and_invalid(tmp_path):
     (mw,) = usage_middleware(SPEC, settings={**base, USAGE_LOG_RETENTION_DAYS: "none"})
     assert mw.sink.retention_days is None
     (mw,) = usage_middleware(SPEC, settings={**base, USAGE_LOG_RETENTION_DAYS: "0"})
+    assert (
+        mw.sink.retention_days == 0
+    )  # today only -- the privacy direction, not "forever"
+    (mw,) = usage_middleware(
+        SPEC, settings={**base, USAGE_LOG_RETENTION_DAYS: "forever"}
+    )
     assert mw.sink.retention_days is None
     with pytest.raises(ValueError, match="integer number of days"):
         usage_middleware(SPEC, settings={**base, USAGE_LOG_RETENTION_DAYS: "soon"})
@@ -65,6 +71,41 @@ def test_args_can_be_dropped(tmp_path):
         SPEC, settings={USAGE_LOG_DIR: str(tmp_path), USAGE_LOG_ARGS: "false"}
     )
     assert mw.include_args is False
+    with pytest.raises(ValueError, match=USAGE_LOG_ARGS):
+        usage_middleware(
+            SPEC, settings={USAGE_LOG_DIR: str(tmp_path), USAGE_LOG_ARGS: "flase"}
+        )
+
+
+def test_relative_dir_is_refused_and_tilde_expands(tmp_path, monkeypatch):
+    for bad in ("logs/usage", "./usage", "usage"):
+        with pytest.raises(ValueError, match="absolute"):
+            usage_middleware(SPEC, settings={USAGE_LOG_DIR: bad})
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (mw,) = usage_middleware(SPEC, settings={USAGE_LOG_DIR: "~/usage"})
+    assert mw.sink.root == tmp_path / "usage"  # absolute after expansion, not <cwd>/~
+
+
+def test_spec_version_and_outcome_ref_reach_the_logger(tmp_path):
+    spec = ConnectorSpec(
+        name="demo",
+        tools=TOOLS,
+        auth="none",
+        version="3.1",
+        usage_outcome="os.path:basename",
+    )
+    (mw,) = usage_middleware(spec, settings={USAGE_LOG_DIR: str(tmp_path)})
+    import os.path
+
+    assert mw.version == "3.1" and mw.outcome is os.path.basename
+    (mw,) = usage_middleware(spec, settings={USAGE_LOG_DIR: str(tmp_path)}, version="9")
+    assert mw.version == "9"
+
+
+def test_a_code_sink_switches_logging_on(tmp_path):
+    records = []
+    (mw,) = usage_middleware(SPEC, settings={}, sink=records.append)
+    assert mw.sink == records.append
 
 
 def test_logger_kwargs_override_settings(tmp_path):
@@ -109,6 +150,9 @@ def test_make_connector_app_off_by_default_and_accepts_extra_middleware(monkeypa
     assert callable(make_connector_app(SPEC))
     assert callable(make_connector_app(SPEC, middleware=Gate()))
     assert callable(make_connector_app(SPEC, middleware=[Gate(), Gate()]))
+    assert callable(make_connector_app(SPEC, middleware=(g for g in [Gate()])))
+    with pytest.raises(TypeError, match="ordered"):
+        make_connector_app(SPEC, middleware={Gate()})
 
 
 def test_systemd_unit_ships_the_switch_commented_out():
