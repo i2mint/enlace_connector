@@ -18,7 +18,7 @@ process that actually serves them.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Mapping
 
 from .auth import resolve_auth
 
@@ -100,6 +100,8 @@ def make_connector_app(
     *,
     issuer: str | None = None,
     audience: str | None = None,
+    settings: Mapping[str, str] | None = None,
+    middleware: Any = None,
 ):
     """Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).
 
@@ -108,6 +110,11 @@ def make_connector_app(
     connector's public URL); if *audience* is omitted it is derived from *issuer* +
     the spec's route. Returns an ASGI app to run under any ASGI server (or mount in
     enlace).
+
+    Per-call usage logging is attached when the host's *settings* (``os.environ``
+    by default) set ``CONNECTOR_USAGE_LOG_DIR`` — see :mod:`enlace_connector.usage`;
+    it is off otherwise. Any extra *middleware* (one or an iterable) runs before it,
+    so a gate (e.g. ``enlace_metering``) refuses a call before it is logged as usage.
     """
     if audience is None and issuer is not None:
         audience = spec.default_audience(issuer)
@@ -115,9 +122,21 @@ def make_connector_app(
 
     from py2mcp import mk_http_app
 
+    from .usage import usage_middleware
+
+    extra = [] if middleware is None else list(_iter_middleware(middleware))
+    stack = extra + usage_middleware(spec, settings=settings)
     return mk_http_app(
         spec.tools,
         name=spec.server_name,
         auth=auth,
         stateless_http=spec.stateless_http,
+        middleware=stack or None,
     )
+
+
+def _iter_middleware(middleware: Any):
+    """One middleware or an iterable of them -> an iterable (py2mcp's rule)."""
+    if isinstance(middleware, (list, tuple, set)):
+        return middleware
+    return [middleware]
