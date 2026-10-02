@@ -82,6 +82,7 @@ def test_relative_dir_is_refused_and_tilde_expands(tmp_path, monkeypatch):
         with pytest.raises(ValueError, match="absolute"):
             usage_middleware(SPEC, settings={USAGE_LOG_DIR: bad})
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))  # what ~ means on Windows
     (mw,) = usage_middleware(SPEC, settings={USAGE_LOG_DIR: "~/usage"})
     assert mw.sink.root == tmp_path / "usage"  # absolute after expansion, not <cwd>/~
 
