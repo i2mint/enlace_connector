@@ -23,7 +23,8 @@ classifiers = [
 ]
 authors = [{ name = "Thor Whalen" }]
 dependencies = [
-    "py2mcp>=0.1.1",
+    # >=0.1.16: py2mcp.usage (the usage-logging middleware this package switches on).
+    "py2mcp>=0.1.16",
 ]
 
 [project.urls]

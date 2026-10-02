@@ -23,6 +23,9 @@ Declare a connector once::
 - ``scaffold_app(spec, dest)`` → an enlace ``mode="process"`` app dir (``app.toml`` +
   ``server.py``) so a heavy connector runs in its own venv, reverse-proxied by enlace.
 
+Per-call usage logging (who called which tool, with what, and what came back) is
+off unless the host sets ``CONNECTOR_USAGE_LOG_DIR`` (see ``enlace_connector.usage``).
+
 The authorization server is pluggable (``auth="enlace"`` for the platform's own
 ``enlace_auth``; ``idp_resource(...)`` for Auth0/WorkOS/…; ``None`` for an
 unauthenticated local/pilot run) — the resource-server validation is identical
@@ -71,6 +74,7 @@ from .preflight import (
     verify_deployment,
 )
 from .scaffold import render_app_toml, render_server_py, scaffold_app
+from .usage import usage_middleware
 
 __version__ = "0.0.1"
 
@@ -95,6 +99,7 @@ __all__ = [
     "resource_url",
     "render_app_toml",
     "render_server_py",
+    "usage_middleware",
     # preflight / verify — the deployment isn't good until these pass
     "verify_deployment",
     "check_refresh_grant_supported",
