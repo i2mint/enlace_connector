@@ -1,0 +1,19 @@
+enlace\_connector.usage
+=======================
+
+.. automodule:: enlace_connector.usage
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      USAGE_LOG_DIR
+      DFLT_RETENTION_DAYS
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      usage_middleware
+   

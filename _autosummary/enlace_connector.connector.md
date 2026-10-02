@@ -18,16 +18,16 @@ process that actually serves them.
 
 ### Functions
 
-| [`make_stdio_server`](#enlace_connector.connector.make_stdio_server)(spec)                          | Build a FastMCP server for *spec*, for local stdio serving (no auth).   |
-|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`make_connector_app`](#enlace_connector.connector.make_connector_app)(spec, \*[, issuer, audience]) | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).   |
+| [`make_stdio_server`](#enlace_connector.connector.make_stdio_server)(spec)                     | Build a FastMCP server for *spec*, for local stdio serving (no auth).   |
+|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`make_connector_app`](#enlace_connector.connector.make_connector_app)(spec, \*[, issuer, ...]) | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).   |
 
 ### Classes
 
 | [`ConnectorSpec`](#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True)
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -97,6 +97,18 @@ doesn’t block). `{venv}` / `{base}` placeholders are substituted.
 run the MCP transport statelessly (recommended behind a
 multi-worker server / load balancer). Defaults to True.
 
+#### version
+
+the connector’s version, written into every usage-log record
+when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.md#module-enlace_connector.usage)).
+
+#### usage_outcome
+
+a `"module:function"` ref to this connector’s own
+`(tool_name, result) -> label | mapping` usage-outcome classifier
+(e.g. one that knows the search tool’s “no match” shape), used in
+place of py2mcp’s generic one when logging is on.
+
 #### default_audience(platform_origin)
 
 This connector’s public URL under *platform_origin* (the token audience).
@@ -104,7 +116,7 @@ This connector’s public URL under *platform_origin* (the token audience).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### enlace_connector.connector.make_connector_app(spec, , issuer=None, audience=None)
+### enlace_connector.connector.make_connector_app(spec, , issuer=None, audience=None, settings=None, middleware=None)
 
 Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).
 
@@ -113,6 +125,13 @@ Resolves the spec’s `auth` into a py2mcp resource-server config. For
 connector’s public URL); if *audience* is omitted it is derived from *issuer* +
 the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
 enlace).
+
+Per-call usage logging is attached when the host’s *settings* (`os.environ`
+by default) set `CONNECTOR_USAGE_LOG_DIR` — see [`enlace_connector.usage`](enlace_connector.usage.md#module-enlace_connector.usage);
+it is off otherwise; the spec’s `version` and `usage_outcome` feed it. Any
+extra *middleware* (one or an ordered iterable) runs before it, so a gate (e.g.
+`enlace_metering`) refuses a call before it is logged as usage. Do not add a
+second `usage_middleware(...)` there: every call would be recorded twice.
 
 ### enlace_connector.connector.make_stdio_server(spec)
 

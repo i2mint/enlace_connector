@@ -27,6 +27,9 @@ spec = ConnectorSpec(
 - `scaffold_app(spec, dest)` → an enlace `mode="process"` app dir (`app.toml` +
   `server.py`) so a heavy connector runs in its own venv, reverse-proxied by enlace.
 
+Per-call usage logging (who called which tool, with what, and what came back) is
+off unless the host sets `CONNECTOR_USAGE_LOG_DIR` (see `enlace_connector.usage`).
+
 The authorization server is pluggable (`auth="enlace"` for the platform’s own
 `enlace_auth`; `idp_resource(...)` for Auth0/WorkOS/…; `None` for an
 unauthenticated local/pilot run) — the resource-server validation is identical
@@ -46,7 +49,7 @@ in seconds instead of when a user complains a day later.
 
 ### Functions
 
-| [`make_connector_app`](#enlace_connector.make_connector_app)(spec, \*[, issuer, audience])   | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).               |
+| [`make_connector_app`](#enlace_connector.make_connector_app)(spec, \*[, issuer, ...])        | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).               |
 |-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
 | [`make_stdio_server`](#enlace_connector.make_stdio_server)(spec)                            | Build a FastMCP server for *spec*, for local stdio serving (no auth).               |
 | [`resolve_auth`](#enlace_connector.resolve_auth)(auth, \*[, issuer, audience])         | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).             |
@@ -63,6 +66,7 @@ in seconds instead of when a user complains a day later.
 | [`resource_url`](#enlace_connector.resource_url)(spec, \*[, issuer])                   | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).          |
 | [`render_app_toml`](#enlace_connector.render_app_toml)(spec, \*, port[, command])         | Render the enlace `app.toml` for *spec* as a `mode="process"` app.                  |
 | [`render_server_py`](#enlace_connector.render_server_py)(spec)                             | Render the `server.py` that exposes `app` for enlace's process runner.              |
+| [`usage_middleware`](#enlace_connector.usage_middleware)(spec, \*[, settings, version])    | The usage-logging middleware for *spec*, or `[]` when it is switched off.           |
 | [`verify_deployment`](#enlace_connector.verify_deployment)([spec, checks, fetch, strict])   | Run the preflight checks against *issuer*; return one result per check.             |
 | [`check_refresh_grant_supported`](#enlace_connector.check_refresh_grant_supported)(ctx)                 | THE check: does the AS advertise `refresh_token` in `grant_types_supported`?        |
 | [`check_jwks_uri_matches_convention`](#enlace_connector.check_jwks_uri_matches_convention)(ctx)             | For `auth="enlace"` connectors: the AS's `jwks_uri` is the one we validate against. |
@@ -105,7 +109,7 @@ one line stating what was (or was not) observed.
 
 what to do about it — empty when `ok`.
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True)
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -174,6 +178,18 @@ doesn’t block). `{venv}` / `{base}` placeholders are substituted.
 
 run the MCP transport statelessly (recommended behind a
 multi-worker server / load balancer). Defaults to True.
+
+#### version
+
+the connector’s version, written into every usage-log record
+when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.md#module-enlace_connector.usage)).
+
+#### usage_outcome
+
+a `"module:function"` ref to this connector’s own
+`(tool_name, result) -> label | mapping` usage-outcome classifier
+(e.g. one that knows the search tool’s “no match” shape), used in
+place of py2mcp’s generic one when logging is on.
 
 #### default_audience(platform_origin)
 
@@ -306,7 +322,7 @@ own `jwks_uri` / `issuer`. `authorization_servers` defaults to
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-### enlace_connector.make_connector_app(spec, , issuer=None, audience=None)
+### enlace_connector.make_connector_app(spec, , issuer=None, audience=None, settings=None, middleware=None)
 
 Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).
 
@@ -315,6 +331,13 @@ Resolves the spec’s `auth` into a py2mcp resource-server config. For
 connector’s public URL); if *audience* is omitted it is derived from *issuer* +
 the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
 enlace).
+
+Per-call usage logging is attached when the host’s *settings* (`os.environ`
+by default) set `CONNECTOR_USAGE_LOG_DIR` — see [`enlace_connector.usage`](enlace_connector.usage.md#module-enlace_connector.usage);
+it is off otherwise; the spec’s `version` and `usage_outcome` feed it. Any
+extra *middleware* (one or an ordered iterable) runs before it, so a gate (e.g.
+`enlace_metering`) refuses a call before it is logged as usage. Do not add a
+second `usage_middleware(...)` there: every call would be recorded twice.
 
 ### enlace_connector.make_stdio_server(spec)
 
@@ -468,6 +491,30 @@ generated files (they are derived artifacts).
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
+### enlace_connector.usage_middleware(spec, , settings=None, version=None, \*\*logger_kwargs)
+
+The usage-logging middleware for *spec*, or `[]` when it is switched off.
+
+* **Parameters:**
+  * **spec** ([`ConnectorSpec`](enlace_connector.connector.md#enlace_connector.connector.ConnectorSpec)) – the connector; its `name`, `version` and `usage_outcome` are
+    carried into every record / the classifier.
+  * **settings** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – where the `CONNECTOR_USAGE_LOG_*` keys are read from
+    (default `os.environ`). Pass a dict to configure in code or tests.
+  * **version** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – overrides `spec.version` for the records.
+  * **\*\*logger_kwargs** ([`Any`](https://docs.python.org/3/library/typing.html#typing.Any)) – forwarded to `py2mcp.usage.UsageLogger` (e.g. a
+    `sink=` for tests, or an `outcome=` callable). They override what
+    the settings and the spec imply. Passing a `sink` switches logging
+    on even without `CONNECTOR_USAGE_LOG_DIR`.
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)
+* **Returns:**
+  A one-element list (the `UsageLogger`) when logging is on, else `[]` —
+  always something `middleware=` accepts.
+* **Raises:**
+  [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – a setting is malformed (a relative log dir, a non-integer
+      retention, an unrecognised yes/no). Loud at boot on purpose: these
+      are configuration mistakes, not runtime conditions.
+
 ### enlace_connector.verify_deployment(spec=None, \*, issuer, checks=(<function check_refresh_grant_supported>, <function check_jwks_uri_matches_convention>), fetch=None, strict=False)
 
 Run the preflight checks against *issuer*; return one result per check.
@@ -501,3 +548,4 @@ platform is one the connector cannot observe about itself.
 | [`deploy`](enlace_connector.deploy.md#module-enlace_connector.deploy)       | Generate everything needed to deploy a connector on an enlace platform.            |
 | [`preflight`](enlace_connector.preflight.md#module-enlace_connector.preflight) | Preflight/verify checks — is the target platform able to keep a connector *alive*? |
 | [`scaffold`](enlace_connector.scaffold.md#module-enlace_connector.scaffold)   | Generate the enlace app directory that serves a connector.                         |
+| [`usage`](enlace_connector.usage.md#module-enlace_connector.usage)         | Switch a connector's per-call usage log on by configuration alone.                 |

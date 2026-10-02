@@ -24,6 +24,7 @@
       resource_url
       render_app_toml
       render_server_py
+      usage_middleware
       verify_deployment
       check_refresh_grant_supported
       check_jwks_uri_matches_convention
@@ -55,3 +56,4 @@
    deploy
    preflight
    scaffold
+   usage

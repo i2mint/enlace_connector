@@ -13,8 +13,9 @@
 - [enlace_connector.deploy](_autosummary/enlace_connector.deploy.html.md): Generate everything needed to deploy a connector on an enlace platform.
 - [enlace_connector.preflight](_autosummary/enlace_connector.preflight.html.md): Preflight/verify checks — is the target platform able to keep a connector &#42;alive&#42;?
 - [enlace_connector.scaffold](_autosummary/enlace_connector.scaffold.html.md): Generate the enlace app directory that serves a connector.
+- [enlace_connector.usage](_autosummary/enlace_connector.usage.html.md): Switch a connector’s per-call usage log on by configuration alone.
 - [For AI agents](ai-agents.html.md): &#96;enlace_connector&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-09-22 14:36 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-02 07:40 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 
