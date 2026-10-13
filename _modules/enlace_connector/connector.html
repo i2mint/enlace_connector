@@ -803,7 +803,15 @@ window.runMermaid = runMermaid;</script>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">mount_route</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">route</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp"</span>
+<span class="w">        </span><span class="sd">"""The route, spelled one way: one leading ``/``, no trailing ``/``.</span>
+
+<span class="sd">        ``"/x/"`` and ``"x"`` both mean ``"/x"``. Everything that names the connector</span>
+<span class="sd">        (its token audience, its allowlist key, its ``app.toml`` route) derives from</span>
+<span class="sd">        this, so a stray slash cannot make two of them disagree (#10).</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">route</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">"/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp"</span>
+        <span class="k">return</span> <span class="s2">"/"</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">route</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ConnectorSpec.default_audience">
 <a class="viewcode-back" href="../../_autosummary/enlace_connector.connector.html#enlace_connector.ConnectorSpec.default_audience">[docs]</a>

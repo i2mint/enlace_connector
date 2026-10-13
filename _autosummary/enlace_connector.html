@@ -687,6 +687,20 @@ place of py2mcp’s generic one when logging is on.</p>
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.mount_route">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">mount_route</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.mount_route" title="Link to this definition">#</a></dt>
+<dd><p>one leading <code class="docutils literal notranslate"><span class="pre">/</span></code>, no trailing <code class="docutils literal notranslate"><span class="pre">/</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;/x/&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> both mean <code class="docutils literal notranslate"><span class="pre">&quot;/x&quot;</span></code>. Everything that names the connector
+(its token audience, its allowlist key, its <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> route) derives from
+this, so a stray slash cannot make two of them disagree (#10).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The route, spelled one way</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -1066,11 +1080,21 @@ omitted: they are consumed by the provisioning bundle, not by the process.</p>
 <dt class="sig sig-object py" id="enlace_connector.resource_url">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">resource_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#resource_url"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.resource_url" title="Link to this definition">#</a></dt>
 <dd><p>The connector’s OAuth resource = its public MCP endpoint (<code class="docutils literal notranslate"><span class="pre">route</span> <span class="pre">+</span> <span class="pre">/mcp</span></code>).</p>
+<p>The result is the allowlist key, so it must be canonical: enlace_auth refuses any
+other spelling at config load. The route is normalized by
+<a class="reference internal" href="#enlace_connector.ConnectorSpec.mount_route" title="enlace_connector.ConnectorSpec.mount_route"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ConnectorSpec.mount_route</span></code></a>; an issuer that is not canonical (an uppercase
+host, a default port, a path segment that is empty or a dot) is refused here
+rather than lowercased, because the same issuer is the connector’s runtime
+<code class="docutils literal notranslate"><span class="pre">iss</span></code>/audience origin and must be fixed at its source (#10).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">resource_url</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">route</span><span class="o">=</span><span class="s2">"/api/x_mcp/"</span><span class="p">))</span>
+<span class="go">'https://apps.thorwhalen.com/api/x_mcp/mcp'</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1247,6 +1271,7 @@ platform is one the connector cannot observe about itself.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.version"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.version</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.usage_outcome"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.usage_outcome</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.default_audience"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.default_audience()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.mount_route"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.mount_route</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightContext"><code class="docutils literal notranslate"><span class="pre">PreflightContext</span></code></a><ul class="nav section-nav flex-column">

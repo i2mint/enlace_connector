@@ -119,6 +119,17 @@ This connector’s public URL under *platform_origin* (the token audience).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+#### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+one leading `/`, no trailing `/`.
+
+`"/x/"` and `"x"` both mean `"/x"`. Everything that names the connector
+(its token audience, its allowlist key, its `app.toml` route) derives from
+this, so a stray slash cannot make two of them disagree (#10).
+
+* **Type:**
+  The route, spelled one way
+
 ### enlace_connector.connector.make_connector_app(spec, , issuer=None, audience=None, settings=None, middleware=None)
 
 Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).

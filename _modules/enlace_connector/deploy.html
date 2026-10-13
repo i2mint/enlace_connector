@@ -740,6 +740,7 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlsplit</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.preflight</span><span class="w"> </span><span class="kn">import</span> <span class="n">DFLT_REFRESH_TOKEN_TTL_SECONDS</span><span class="p">,</span> <span class="n">refresh_grant_check_commands</span>
@@ -837,11 +838,63 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">text</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_non_canonical</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Why *url* is not the one spelling enlace_auth accepts as a resource key, if so.</span>
+
+<span class="sd">    Mirrors ``enlace_auth.resource_policy`` (which refuses such a key when the platform</span>
+<span class="sd">    config loads, taking every app down with it), without importing it: this package</span>
+<span class="sd">    renders the key on a machine that need not have enlace_auth installed.</span>
+<span class="sd">    """</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">urlsplit</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">parts</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"http"</span><span class="p">,</span> <span class="s2">"https"</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">parts</span><span class="o">.</span><span class="n">netloc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"not an absolute http(s) URL"</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">isprintable</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">url</span><span class="p">):</span>
+        <span class="c1"># enlace_auth refuses whitespace; a control character would not even get</span>
+        <span class="c1"># that far, since it makes the platform TOML unparseable.</span>
+        <span class="k">return</span> <span class="s2">"whitespace or a control character"</span>
+    <span class="k">if</span> <span class="n">parts</span><span class="o">.</span><span class="n">query</span> <span class="ow">or</span> <span class="n">parts</span><span class="o">.</span><span class="n">fragment</span> <span class="ow">or</span> <span class="s2">"@"</span> <span class="ow">in</span> <span class="n">parts</span><span class="o">.</span><span class="n">netloc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"a query, fragment or userinfo"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">parts</span><span class="o">.</span><span class="n">scheme</span> <span class="o">+</span> <span class="s2">"://"</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"an uppercase scheme"</span>
+    <span class="k">if</span> <span class="n">parts</span><span class="o">.</span><span class="n">netloc</span> <span class="o">!=</span> <span class="n">parts</span><span class="o">.</span><span class="n">netloc</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">"an uppercase host"</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">parts</span><span class="o">.</span><span class="n">hostname</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"."</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">"a trailing dot on the host"</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="n">parts</span><span class="o">.</span><span class="n">port</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"a port that is not a number"</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">parts</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"https"</span><span class="p">,</span> <span class="mi">443</span><span class="p">),</span> <span class="p">(</span><span class="s2">"http"</span><span class="p">,</span> <span class="mi">80</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="s2">"a default port written out"</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">seg</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">".."</span><span class="p">)</span> <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">parts</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="k">return</span> <span class="s2">"an empty, '.' or '..' path segment"</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
 <div class="viewcode-block" id="resource_url">
 <a class="viewcode-back" href="../../_autosummary/enlace_connector.deploy.html#enlace_connector.resource_url">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">resource_url</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""The connector's OAuth resource = its public MCP endpoint (``route + /mcp``)."""</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}{</span><span class="n">spec</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}{</span><span class="n">MCP_PATH</span><span class="si">}</span><span class="s2">"</span></div>
+<span class="w">    </span><span class="sd">"""The connector's OAuth resource = its public MCP endpoint (``route + /mcp``).</span>
+
+<span class="sd">    The result is the allowlist key, so it must be canonical: enlace_auth refuses any</span>
+<span class="sd">    other spelling at config load. The route is normalized by</span>
+<span class="sd">    :attr:`ConnectorSpec.mount_route`; an issuer that is not canonical (an uppercase</span>
+<span class="sd">    host, a default port, a path segment that is empty or a dot) is refused here</span>
+<span class="sd">    rather than lowercased, because the same issuer is the connector's runtime</span>
+<span class="sd">    ``iss``/audience origin and must be fixed at its source (#10).</span>
+
+<span class="sd">    &gt;&gt;&gt; resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))</span>
+<span class="sd">    'https://apps.thorwhalen.com/api/x_mcp/mcp'</span>
+<span class="sd">    """</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">issuer</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">'/'</span><span class="p">)</span><span class="si">}{</span><span class="n">spec</span><span class="o">.</span><span class="n">mount_route</span><span class="si">}{</span><span class="n">MCP_PATH</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">if</span> <span class="n">why</span> <span class="o">:=</span> <span class="n">_non_canonical</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"resource URL </span><span class="si">{</span><span class="n">url</span><span class="si">!r}</span><span class="s2"> has </span><span class="si">{</span><span class="n">why</span><span class="si">}</span><span class="s2">, so enlace_auth would refuse it as an "</span>
+            <span class="sa">f</span><span class="s2">"allowlist key and refuse to start. Spell the issuer </span><span class="si">{</span><span class="n">issuer</span><span class="si">!r}</span><span class="s2"> and the "</span>
+            <span class="sa">f</span><span class="s2">"route </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">mount_route</span><span class="si">!r}</span><span class="s2"> canonically (lowercase scheme and host, no default "</span>
+            <span class="s2">"port, no empty or dot path segments)."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">url</span></div>
 
 
 

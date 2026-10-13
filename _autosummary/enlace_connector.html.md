@@ -202,6 +202,17 @@ This connector’s public URL under *platform_origin* (the token audience).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+#### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+one leading `/`, no trailing `/`.
+
+`"/x/"` and `"x"` both mean `"/x"`. Everything that names the connector
+(its token audience, its allowlist key, its `app.toml` route) derives from
+this, so a stray slash cannot make two of them disagree (#10).
+
+* **Type:**
+  The route, spelled one way
+
 ### *class* enlace_connector.PreflightContext(issuer, spec=None, fetch=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
@@ -506,8 +517,20 @@ Accepts:
 
 The connector’s OAuth resource = its public MCP endpoint (`route + /mcp`).
 
+The result is the allowlist key, so it must be canonical: enlace_auth refuses any
+other spelling at config load. The route is normalized by
+[`ConnectorSpec.mount_route`](#enlace_connector.ConnectorSpec.mount_route); an issuer that is not canonical (an uppercase
+host, a default port, a path segment that is empty or a dot) is refused here
+rather than lowercased, because the same issuer is the connector’s runtime
+`iss`/audience origin and must be fixed at its source (#10).
+
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
+'https://apps.thorwhalen.com/api/x_mcp/mcp'
+```
 
 ### enlace_connector.scaffold_app(spec, dest_dir, , port, command=None)
 

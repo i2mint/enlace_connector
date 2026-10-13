@@ -1,4 +1,4 @@
-> built 2026-10-13 21:41 UTC from 55e9d1c (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-10-13 21:55 UTC from 8385682 (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -383,6 +383,17 @@ This connector’s public URL under *platform_origin* (the token audience).
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+#### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+one leading `/`, no trailing `/`.
+
+`"/x/"` and `"x"` both mean `"/x"`. Everything that names the connector
+(its token audience, its allowlist key, its `app.toml` route) derives from
+this, so a stray slash cannot make two of them disagree (#10).
+
+* **Type:**
+  The route, spelled one way
+
 ### enlace_connector.connector.make_connector_app(spec, , issuer=None, audience=None, settings=None, middleware=None)
 
 Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).
@@ -606,8 +617,20 @@ Render the systemd unit that runs the connector in its own venv.
 
 The connector’s OAuth resource = its public MCP endpoint (`route + /mcp`).
 
+The result is the allowlist key, so it must be canonical: enlace_auth refuses any
+other spelling at config load. The route is normalized by
+`ConnectorSpec.mount_route`; an issuer that is not canonical (an uppercase
+host, a default port, a path segment that is empty or a dot) is refused here
+rather than lowercased, because the same issuer is the connector’s runtime
+`iss`/audience origin and must be fixed at its source (#10).
+
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
+'https://apps.thorwhalen.com/api/x_mcp/mcp'
+```
 
 
 # _autosummary/enlace_connector.html.md
@@ -815,6 +838,17 @@ This connector’s public URL under *platform_origin* (the token audience).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+one leading `/`, no trailing `/`.
+
+`"/x/"` and `"x"` both mean `"/x"`. Everything that names the connector
+(its token audience, its allowlist key, its `app.toml` route) derives from
+this, so a stray slash cannot make two of them disagree (#10).
+
+* **Type:**
+  The route, spelled one way
 
 ### *class* enlace_connector.PreflightContext(issuer, spec=None, fetch=None)
 
@@ -1120,8 +1154,20 @@ Accepts:
 
 The connector’s OAuth resource = its public MCP endpoint (`route + /mcp`).
 
+The result is the allowlist key, so it must be canonical: enlace_auth refuses any
+other spelling at config load. The route is normalized by
+[`ConnectorSpec.mount_route`](_autosummary/enlace_connector.html.md#enlace_connector.ConnectorSpec.mount_route); an issuer that is not canonical (an uppercase
+host, a default port, a path segment that is empty or a dot) is refused here
+rather than lowercased, because the same issuer is the connector’s runtime
+`iss`/audience origin and must be fixed at its source (#10).
+
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
+'https://apps.thorwhalen.com/api/x_mcp/mcp'
+```
 
 ### enlace_connector.scaffold_app(spec, dest_dir, , port, command=None)
 
@@ -1616,7 +1662,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-13 21:41 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2"><code>55e9d1c</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 21:55 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/8385682fa19fd990b2eae93a840b00cd41ba4e2f"><code>8385682</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1625,7 +1671,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2"><code>55e9d1cf072ca34d420efa82629669a36d16ecb2</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/8385682fa19fd990b2eae93a840b00cd41ba4e2f"><code>8385682fa19fd990b2eae93a840b00cd41ba4e2f</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -1636,9 +1682,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38472275049">38472275049</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38473887829">38473887829</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>55e9d1cf072ca34d420efa82629669a36d16ecb2</code> (in the history of the built commit)    |
+| Event commit | <code>8385682fa19fd990b2eae93a840b00cd41ba4e2f</code> (in the history of the built commit)    |
 
 ## Tools
 
@@ -1669,7 +1715,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 55e9d1cf072ca34d420efa82629669a36d16ecb2
+git checkout 8385682fa19fd990b2eae93a840b00cd41ba4e2f
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -194,5 +194,17 @@ Render the systemd unit that runs the connector in its own venv.
 
 The connector’s OAuth resource = its public MCP endpoint (`route + /mcp`).
 
+The result is the allowlist key, so it must be canonical: enlace_auth refuses any
+other spelling at config load. The route is normalized by
+`ConnectorSpec.mount_route`; an issuer that is not canonical (an uppercase
+host, a default port, a path segment that is empty or a dot) is refused here
+rather than lowercased, because the same issuer is the connector’s runtime
+`iss`/audience origin and must be fixed at its source (#10).
+
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+```pycon
+>>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
+'https://apps.thorwhalen.com/api/x_mcp/mcp'
+```
