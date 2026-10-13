@@ -80,7 +80,7 @@ spec = ConnectorSpec(
     extras=["ir", "sentence-transformers", "py2mcp", "enlace_connector", "uvicorn"],
     data=[("~/.local/share/ir/corpora/<corpus>", "{base}/xdg-data/ir/corpora/<corpus>")],
     env={"XDG_DATA_HOME": "{base}/xdg-data", "HF_HOME": "{base}/hf-cache"},
-    allowed_users=["a@client.com", "b@client.com"],
+    allowed_users=["a@client.com", "b@client.com"],  # required; ["*"] = every account
     post_install=['HF_HOME={base}/hf-cache {venv}/bin/python -c '
                   '"from sentence_transformers import SentenceTransformer as S; S(\\'BAAI/bge-base-en-v1.5\\')"'],
 )
