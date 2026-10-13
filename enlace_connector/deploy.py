@@ -25,6 +25,7 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 
 from __future__ import annotations
 
+import re
 import shlex
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -125,6 +126,38 @@ def _subst(text: str, paths: dict[str, str]) -> str:
     return text
 
 
+_ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _systemd_environment_line(name: str, value: str) -> str:
+    """One ``Environment=`` line that hands the process exactly ``name=value``.
+
+    systemd expands ``%`` specifiers in these values, so a literal ``%`` (a
+    percent-encoded route in ``CONNECTOR_AUDIENCE``, say) is written ``%%``.
+    Without that, ``%2F`` is an "invalid slot" and systemd drops the whole line
+    (#14). It also splits the line on whitespace and strips quotes, so such a
+    value is double-quoted, with ``\\`` and ``"`` escaped. Plain values are
+    left unquoted, so the line reads as it always has.
+
+    >>> _systemd_environment_line("AUD", "https://h/api/a%2Fb-mcp")
+    'Environment=AUD=https://h/api/a%%2Fb-mcp'
+    >>> _systemd_environment_line("GREETING", 'say "hi" now')
+    'Environment="GREETING=say \\\\"hi\\\\" now"'
+    """
+    if not _ENV_NAME.fullmatch(name):
+        raise ValueError(f"not a valid environment variable name: {name!r}")
+    if any(not c.isprintable() for c in value):
+        raise ValueError(
+            f"{name}: a control character (e.g. a newline) cannot go in a systemd "
+            "Environment= line"
+        )
+    assignment = f"{name}={value}".replace("%", "%%")
+    if any(c.isspace() or c in "\"'\\" for c in value):
+        escaped = assignment.replace("\\", "\\\\").replace('"', '\\"')
+        return f'Environment="{escaped}"'
+    return f"Environment={assignment}"
+
+
 def _non_canonical(url: str) -> str | None:
     """Why *url* is not the one spelling enlace_auth accepts as a resource key, if so.
 
@@ -202,7 +235,7 @@ def render_systemd_unit(
     # iss and aud from one origin; an explicit spec.env audience still wins.
     env.setdefault("CONNECTOR_AUDIENCE", spec.default_audience(env["CONNECTOR_ISSUER"]))
     env_lines = "\n".join(
-        f"Environment={k}={_subst(str(v), p)}" for k, v in env.items()
+        _systemd_environment_line(k, _subst(str(v), p)) for k, v in env.items()
     )
     exec_start = (
         f"{p['venv']}/bin/uvicorn server:app --host 127.0.0.1 --port {spec.port}"
