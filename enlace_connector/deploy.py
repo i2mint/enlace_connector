@@ -40,6 +40,8 @@ __all__ = [
     "render_systemd_unit",
     "render_provision_script",
     "render_allowlist_toml",
+    "allowlist_users",
+    "ANY_ACCOUNT",
     "render_display_names_toml",
     "render_oauth_server_toml",
     "render_runbook",
@@ -199,16 +201,55 @@ def render_provision_script(
     return out
 
 
-def render_allowlist_toml(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
-    """Render the ``[auth.oauth_server.resource_allowlist]`` fragment (or ``""``).
+#: enlace_auth's spelling of "every authenticated account" in a resource
+#: allowlist entry (``enlace_auth.resource_policy.ANY_ACCOUNT``).
+ANY_ACCOUNT = "*"
 
-    Empty when ``allowed_users`` is empty (connector open to any authenticated
-    user). Otherwise maps this connector's resource URL to the allowed emails —
-    paste into the platform's ``platform.toml``.
+
+def allowlist_users(spec: ConnectorSpec) -> list[str]:
+    """``spec.allowed_users``, refused when it cannot mean what it seems to.
+
+    enlace_auth fails closed: a resource missing from
+    ``[auth.oauth_server.resource_allowlist]`` is refused to everyone
+    (i2mint/enlace_auth#34). So an empty list no longer means "open". It
+    would deploy a connector that nobody can authorize, and nothing would
+    error until someone tried (#8). Opening a connector to every account is
+    an explicit ``["*"]``.
+
+    >>> from enlace_connector import ConnectorSpec
+    >>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
+    ['*']
+    >>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"]))
+    Traceback (most recent call last):
+    ...
+    ValueError: Connector 'x' has no allowed_users...
     """
-    if not spec.allowed_users:
-        return ""
-    users = "\n".join(f'    "{_toml_string(u)}",' for u in spec.allowed_users)
+    users = list(spec.allowed_users)
+    if not users:
+        raise ValueError(
+            f"Connector {spec.name!r} has no allowed_users. The platform refuses "
+            "every account for a resource it does not list, so this connector "
+            "could not be authorized by anyone. List the emails allowed to use "
+            f'it, or allowed_users=["{ANY_ACCOUNT}"] for every authenticated '
+            "platform account."
+        )
+    if ANY_ACCOUNT in users and len(users) > 1:
+        raise ValueError(
+            f"Connector {spec.name!r}: allowed_users mixes {ANY_ACCOUNT!r} with "
+            f"emails, but {ANY_ACCOUNT!r} already admits every account. Use "
+            f"[{ANY_ACCOUNT!r}] alone, or only the emails."
+        )
+    return users
+
+
+def render_allowlist_toml(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
+    """Render the ``[auth.oauth_server.resource_allowlist]`` fragment.
+
+    Maps this connector's resource URL to the allowed emails (or ``"*"``) —
+    paste into the platform's ``platform.toml``. Raises ``ValueError`` when
+    ``allowed_users`` is empty: see :func:`allowlist_users`.
+    """
+    users = "\n".join(f'    "{_toml_string(u)}",' for u in allowlist_users(spec))
     return (
         "[auth.oauth_server.resource_allowlist]\n"
         f'"{_toml_string(resource_url(spec, issuer=issuer))}" = [\n{users}\n]\n'
@@ -311,16 +352,18 @@ def render_runbook(
         )
         or "   (no data to ship)"
     )
+    who = (
+        "every authenticated platform account (`*`)"
+        if allowlist_users(spec) == [ANY_ACCOUNT]
+        else "who may authorize this connector; no one else can"
+    )
     allow = (
         "5. Platform config fragments → the platform's `platform.toml`, then restart\n"
         "   the backend: `deploy/oauth-server.toml` (session longevity — paste first),\n"
         "   `deploy/display-name.toml` (what the consent screen calls this connector),\n"
-        "   then `deploy/allowlist.toml` (who may authorize this connector)."
-        if spec.allowed_users
-        else "5. Platform config fragments → the platform's `platform.toml`, then restart\n"
-        "   the backend: `deploy/oauth-server.toml` (session longevity) and\n"
-        "   `deploy/display-name.toml` (what the consent screen calls this connector).\n"
-        "   (No allowlist — open to any authenticated user.)"
+        f"   then `deploy/allowlist.toml` ({who}). Skipping the allowlist does not\n"
+        "   leave the connector open: the platform refuses every account for an\n"
+        "   unlisted resource."
     )
     return (
         f"# Deploy runbook — {spec.name} connector\n\n"
@@ -386,8 +429,9 @@ def generate_deploy_bundle(
 
     Writes the app dir (``app.toml`` + ``server.py``) and a ``deploy/`` folder (the
     systemd unit, provisioning script, the ``platform.toml`` fragments — OAuth
-    session longevity always, the resource allowlist when the spec restricts users
-    — and the runbook). Pass *server_py* to override the generated entry module
+    session longevity, the display name and the resource allowlist — and the
+    runbook). Raises ``ValueError``, writing nothing, when ``allowed_users`` is
+    empty (see :func:`allowlist_users`). Pass *server_py* to override the generated entry module
     (e.g. a corpus-bound ``make_search`` server the composing skill wrote); pass
     *refresh_token_ttl_seconds* to set the session longevity the platform fragment
     configures (``0`` would disable the refresh grant — see
@@ -395,6 +439,9 @@ def generate_deploy_bundle(
     """
     from .scaffold import render_app_toml, render_server_py
 
+    # Refuse before writing anything: a half-written bundle for a connector no
+    # one could authorize is worse than none.
+    allowlist = render_allowlist_toml(spec, issuer=issuer)
     dest = Path(dest)
     (dest / "deploy").mkdir(parents=True, exist_ok=True)
     p = _paths(spec, remote_base)
@@ -426,9 +473,7 @@ def generate_deploy_bundle(
         ),
     )
     _w("deploy/display-name.toml", render_display_names_toml(spec, issuer=issuer))
-    allowlist = render_allowlist_toml(spec, issuer=issuer)
-    if allowlist:
-        _w("deploy/allowlist.toml", allowlist)
+    _w("deploy/allowlist.toml", allowlist)
     _w(
         "deploy/RUNBOOK.md",
         render_runbook(spec, remote_base=remote_base, issuer=issuer),

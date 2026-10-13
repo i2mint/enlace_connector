@@ -53,7 +53,9 @@ from .auth import (
 )
 from .connector import ConnectorSpec, make_connector_app, make_stdio_server
 from .deploy import (
+    ANY_ACCOUNT,
     DFLT_REFRESH_TOKEN_TTL_SECONDS,
+    allowlist_users,
     generate_deploy_bundle,
     render_allowlist_toml,
     render_display_names_toml,
@@ -92,6 +94,8 @@ __all__ = [
     "render_systemd_unit",
     "render_provision_script",
     "render_allowlist_toml",
+    "allowlist_users",
+    "ANY_ACCOUNT",
     "render_display_names_toml",
     "render_oauth_server_toml",
     "render_runbook",
