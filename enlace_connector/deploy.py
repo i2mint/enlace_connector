@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 import shlex
+import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -146,9 +147,13 @@ def _systemd_environment_line(name: str, value: str) -> str:
     """
     if not _ENV_NAME.fullmatch(name):
         raise ValueError(f"not a valid environment variable name: {name!r}")
-    if any(not c.isprintable() for c in value):
+    bad = next(
+        (c for c in value if c != "\t" and unicodedata.category(c) in ("Cc", "Cs")),
+        None,
+    )
+    if bad is not None:
         raise ValueError(
-            f"{name}: a control character (e.g. a newline) cannot go in a systemd "
+            f"{name}: control character U+{ord(bad):04X} cannot go in a systemd "
             "Environment= line"
         )
     assignment = f"{name}={value}".replace("%", "%%")
@@ -230,6 +235,14 @@ def render_systemd_unit(
     validates tokens for exactly the key the platform allows (#12).
     """
     p = _paths(spec, remote_base)
+    for key in ("app_dir", "venv"):
+        # These go into WorkingDirectory= and ExecStart= unquoted, where a "%" is
+        # a specifier and whitespace splits the command line.
+        if any(c == "%" or c.isspace() for c in p[key]):
+            raise ValueError(
+                f"{p[key]!r}: a connector path cannot contain '%' or whitespace "
+                "(check the spec name and remote_base)"
+            )
     env = {"CONNECTOR_ISSUER": issuer, **spec.env}
     # From the issuer the unit actually sets, so a spec.env override of it keeps
     # iss and aud from one origin; an explicit spec.env audience still wins.
@@ -240,12 +253,17 @@ def render_systemd_unit(
     exec_start = (
         f"{p['venv']}/bin/uvicorn server:app --host 127.0.0.1 --port {spec.port}"
     )
+    description = f"{spec.server_name} MCP connector (mode=process :{spec.port})"
+    description = description.replace("%", "%%")  # a specifier otherwise
+    usage_log_line = _systemd_environment_line(
+        "CONNECTOR_USAGE_LOG_DIR", f"{p['base']}/data/usage"
+    )
     return (
         f"# {spec.name} connector — the production process for apps/{spec.name}\n"
         "# (a mode=process enlace app). enlace only reverse-proxies the route to\n"
         f"# this unit on 127.0.0.1:{spec.port}; provisioned via the runbook.\n"
         "[Unit]\n"
-        f"Description={spec.server_name} MCP connector (mode=process :{spec.port})\n"
+        f"Description={description}\n"
         "After=network-online.target\n"
         "Wants=network-online.target\n\n"
         "[Service]\n"
@@ -257,7 +275,7 @@ def render_systemd_unit(
         "# uncommented. The arguments it records are the users' own questions, so\n"
         "# switch it on only after telling them. Files are pruned to 90 days by default\n"
         "# (CONNECTOR_USAGE_LOG_RETENTION_DAYS); CONNECTOR_USAGE_LOG_REDACT masks fields.\n"
-        f"#Environment=CONNECTOR_USAGE_LOG_DIR={p['base']}/data/usage\n"
+        f"#{usage_log_line}\n"
         f"ExecStart={exec_start}\n"
         "Restart=on-failure\n"
         "RestartSec=3\n\n"

@@ -1,6 +1,8 @@
 """Tests for the deploy-bundle generators."""
 
 import os
+import shutil
+import subprocess
 
 import pytest
 
@@ -392,10 +394,7 @@ def test_a_percent_in_the_route_survives_systemd_specifier_expansion():
     assert _systemd_unquote(line) == ("CONNECTOR_AUDIENCE", spec.default_audience(DFLT_ISSUER))
 
 
-@pytest.mark.parametrize(
-    "value",
-    ["50%", "a b", 'say "hi"', "back\\slash", "it's", "%%n %i", "plain"],
-)
+@pytest.mark.parametrize("value", ["50%", "a b", 'say "hi"', "it's", "%%n %i", "plain"])
 def test_every_spec_env_value_reaches_the_process_unchanged(value):
     spec = ConnectorSpec(name="x", tools=[], env={"SOME_VAR": value})
     (line,) = [
@@ -411,9 +410,69 @@ def test_plain_values_render_exactly_as_before():
     assert "\nEnvironment=HF_HOME=/srv/x/data/hf\n" in render_systemd_unit(spec)
 
 
+_TRICKY_VALUES = [
+    "50%", "a b", 'say "hi"', "back\\slash", "it's", "%%n %i", "plain",
+    "C:\\new\\table", "\\x41", "abc\\", "$HOME ${HOME}", "#x", ";x", "a=b=c",
+    "", "tab\there", "nbsp\u00a0here", "caf\u00e9",
+]
+
+
+@pytest.mark.skipif(not shutil.which("systemd-analyze"), reason="needs systemd")
+def test_systemd_itself_parses_every_value_back_unchanged(tmp_path):
+    """The oracle that is not the implementation (review of #16).
+
+    ``systemd-analyze verify`` only parses the unit; at debug level it dumps the
+    environment it parsed. Nothing is loaded or started.
+    """
+    from enlace_connector.deploy import _systemd_environment_line
+
+    names = [f"V{i}" for i in range(len(_TRICKY_VALUES))]
+    unit = tmp_path / "oracle-ec14.service"
+    unit.write_text(
+        "[Service]\nType=oneshot\nExecStart=/bin/true\n"
+        + "".join(
+            _systemd_environment_line(n, v) + "\n"
+            for n, v in zip(names, _TRICKY_VALUES)
+        )
+    )
+    out = subprocess.run(
+        ["systemd-analyze", "verify", str(unit)],
+        env={**os.environ, "SYSTEMD_LOG_LEVEL": "debug"},
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    parsed = {}
+    for line in (out.stdout + out.stderr).splitlines():
+        line = line.strip()
+        if line.startswith("Environment: V"):
+            name, _, value = line.removeprefix("Environment: ").partition("=")
+            parsed[name] = value
+    if not parsed:
+        pytest.skip("this systemd-analyze does not dump the parsed environment")
+    for name, value in zip(names, _TRICKY_VALUES):
+        if value.strip() != value or "\t" in value:
+            continue  # the dump line is stripped/escaped: not comparable here
+        assert parsed.get(name) == value, (name, value, parsed.get(name))
+
+
 @pytest.mark.parametrize(
-    "env", [{"BAD NAME": "v"}, {"V": "line1\nline2"}, {"1V": "v"}]
+    "env", [{"BAD NAME": "v"}, {"V": "line1\nline2"}, {"1V": "v"}, {"V": "nul\x00"}]
 )
 def test_an_inexpressible_env_entry_is_refused_at_render_time(env):
     with pytest.raises(ValueError):
         render_systemd_unit(ConnectorSpec(name="x", tools=[], env=env))
+
+
+def test_other_rendered_lines_carry_no_live_specifier():
+    spec = ConnectorSpec(name="x", tools=[], title="Top 50% %n search")
+    unit = render_systemd_unit(spec)
+    (desc,) = [ln for ln in unit.splitlines() if ln.startswith("Description=")]
+    assert "50%% %%n" in desc
+    assert "#Environment=CONNECTOR_USAGE_LOG_DIR=" in unit
+
+
+@pytest.mark.parametrize("remote_base", ["/srv/my apps", "/srv/a%2Fb"])
+def test_an_unrenderable_path_is_refused(remote_base):
+    with pytest.raises(ValueError, match="cannot contain"):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[]), remote_base=remote_base)
