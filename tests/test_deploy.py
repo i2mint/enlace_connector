@@ -60,7 +60,7 @@ def test_provision_script_has_venv_bootstrap_deps_and_unit():
     assert "systemctl enable --now" in s
 
 
-def test_allowlist_toml_lists_resource_and_users_or_empty():
+def test_allowlist_toml_lists_resource_and_users_or_refuses():
     t = render_allowlist_toml(SPEC)
     assert '"https://apps.thorwhalen.com/api/acme_mcp/mcp" = [' in t
     assert '"a@acme.com",' in t and '"b@acme.com",' in t
@@ -149,15 +149,18 @@ def test_oauth_server_toml_is_emitted_even_for_an_open_connector():
 
 def test_any_account_is_explicit_and_alone():
     """``["*"]`` is enlace_auth's "every account"; mixing it with emails is refused."""
-    import tomllib
-
     from enlace_connector import ANY_ACCOUNT
 
     spec = ConnectorSpec(name="x", tools=["m:f"], allowed_users=[ANY_ACCOUNT])
-    parsed = tomllib.loads(render_allowlist_toml(spec))
-    assert list(parsed["auth"]["oauth_server"]["resource_allowlist"].values()) == [
-        ["*"]
-    ]
+    rendered = render_allowlist_toml(spec)
+    assert '= [\n    "*",\n]' in rendered
+    try:  # round-trip through a real TOML parser when one is available (3.11+)
+        import tomllib
+    except ModuleNotFoundError:
+        pass
+    else:
+        parsed = tomllib.loads(rendered)["auth"]["oauth_server"]["resource_allowlist"]
+        assert list(parsed.values()) == [["*"]]
     assert "every authenticated platform account" in render_runbook(spec)
     mixed = ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*", "a@b.com"])
     with pytest.raises(ValueError, match="mixes"):
@@ -236,3 +239,36 @@ def test_a_bundle_without_users_is_refused_before_anything_is_written(tmp_path):
     with pytest.raises(ValueError, match="no allowed_users"):
         generate_deploy_bundle(ConnectorSpec(name="x", tools=["m:f"]), tmp_path / "x")
     assert not (tmp_path / "x").exists()
+
+
+@pytest.mark.parametrize(
+    "users",
+    [
+        "*",
+        "a@acme.com",
+        [""],
+        [" * "],
+        ["**"],
+        ["*@acme.com"],
+        ["  a@acme.com "],
+        ["ann <m@evil.com>"],
+        ["no-at-sign"],
+    ],
+)
+def test_malformed_allowed_users_are_refused(users):
+    """Review of #9: a string, or an entry enlace_auth would refuse at load time."""
+    with pytest.raises(ValueError):
+        render_allowlist_toml(
+            ConnectorSpec(name="x", tools=["m:f"], allowed_users=users)
+        )
+
+
+def test_the_rendered_allowlist_is_what_enlace_auth_accepts():
+    rp = pytest.importorskip("enlace_auth.resource_policy")
+    pytest.importorskip("tomllib")
+    import tomllib
+
+    for users in (["*"], ["a@acme.com", "B@Acme.com"]):
+        spec = ConnectorSpec(name="x", tools=["m:f"], allowed_users=users)
+        table = tomllib.loads(render_allowlist_toml(spec))["auth"]["oauth_server"]
+        rp.parse_resource_allowlist(table["resource_allowlist"])  # does not raise

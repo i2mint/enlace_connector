@@ -224,6 +224,13 @@ def allowlist_users(spec: ConnectorSpec) -> list[str]:
     ...
     ValueError: Connector 'x' has no allowed_users...
     """
+    if isinstance(spec.allowed_users, str):
+        # list("*") == ["*"] would silently open the connector; list("a@b.com")
+        # splits it into characters and breaks the pasted platform.toml.
+        raise ValueError(
+            f"Connector {spec.name!r}: allowed_users must be a list of emails, "
+            f"got the string {spec.allowed_users!r}."
+        )
     users = list(spec.allowed_users)
     if not users:
         raise ValueError(
@@ -239,7 +246,29 @@ def allowlist_users(spec: ConnectorSpec) -> list[str]:
             f"emails, but {ANY_ACCOUNT!r} already admits every account. Use "
             f"[{ANY_ACCOUNT!r}] alone, or only the emails."
         )
+    bad = [u for u in users if u != ANY_ACCOUNT and not _is_plain_email(u)]
+    if bad:
+        # enlace_auth refuses these at config load, which takes the whole
+        # platform down, not just this connector: refuse them here instead.
+        raise ValueError(
+            f"Connector {spec.name!r}: allowed_users entries must be plain emails "
+            f"(or {ANY_ACCOUNT!r} alone): {bad!r}"
+        )
     return users
+
+
+def _is_plain_email(value: str) -> bool:
+    """One ``local@domain``, no whitespace, no ``*``, no display-name form.
+
+    >>> [_is_plain_email(v) for v in ("a@b.com", " a@b.com", "*@b.com", "a b <c@d>")]
+    [True, False, False, False]
+    """
+    if not isinstance(value, str) or not value or value != value.strip():
+        return False
+    if any(c.isspace() for c in value) or any(c in value for c in "*<>,;"):
+        return False
+    local, sep, domain = value.partition("@")
+    return bool(sep and local and domain and "@" not in domain)
 
 
 def render_allowlist_toml(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
