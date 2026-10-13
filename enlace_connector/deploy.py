@@ -135,8 +135,10 @@ def _non_canonical(url: str) -> str | None:
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.netloc:
         return "not an absolute http(s) URL"
-    if any(c.isspace() for c in url):
-        return "whitespace"
+    if any(c.isspace() or not c.isprintable() for c in url):
+        # enlace_auth refuses whitespace; a control character would not even get
+        # that far, since it makes the platform TOML unparseable.
+        return "whitespace or a control character"
     if parts.query or parts.fragment or "@" in parts.netloc:
         return "a query, fragment or userinfo"
     if not url.startswith(parts.scheme + "://"):
@@ -174,7 +176,7 @@ def resource_url(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
         raise ValueError(
             f"resource URL {url!r} has {why}, so enlace_auth would refuse it as an "
             f"allowlist key and refuse to start. Spell the issuer {issuer!r} and the "
-            f"route {spec.route!r} canonically (lowercase scheme and host, no default "
+            f"route {spec.mount_route!r} canonically (lowercase scheme and host, no default "
             "port, no empty or dot path segments)."
         )
     return url

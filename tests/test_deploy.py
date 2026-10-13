@@ -306,6 +306,12 @@ def test_a_non_canonical_issuer_is_refused_not_rendered(issuer, why):
         render_allowlist_toml(SPEC, issuer=issuer)
 
 
+@pytest.mark.parametrize("route", ["/x\x7fy", "/x\x01y", "/x y", "/x\u200by"])
+def test_a_route_with_a_control_or_space_character_is_refused(route):
+    with pytest.raises(ValueError, match="whitespace or a control character"):
+        resource_url(ConnectorSpec(name="acme", tools=[], route=route))
+
+
 def test_a_route_with_an_inner_empty_segment_is_refused():
     with pytest.raises(ValueError, match="path segment"):
         resource_url(ConnectorSpec(name="acme", tools=[], route="/api//acme_mcp"))
