@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import shlex
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .connector import ConnectorSpec
 from .preflight import DFLT_REFRESH_TOKEN_TTL_SECONDS, refresh_grant_check_commands
@@ -124,9 +125,59 @@ def _subst(text: str, paths: dict[str, str]) -> str:
     return text
 
 
+def _non_canonical(url: str) -> str | None:
+    """Why *url* is not the one spelling enlace_auth accepts as a resource key, if so.
+
+    Mirrors ``enlace_auth.resource_policy`` (which refuses such a key when the platform
+    config loads, taking every app down with it), without importing it: this package
+    renders the key on a machine that need not have enlace_auth installed.
+    """
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.netloc:
+        return "not an absolute http(s) URL"
+    if any(c.isspace() for c in url):
+        return "whitespace"
+    if parts.query or parts.fragment or "@" in parts.netloc:
+        return "a query, fragment or userinfo"
+    if not url.startswith(parts.scheme + "://"):
+        return "an uppercase scheme"
+    if parts.netloc != parts.netloc.lower():
+        return "an uppercase host"
+    if (parts.hostname or "").endswith("."):
+        return "a trailing dot on the host"
+    try:
+        port = parts.port
+    except ValueError:
+        return "a port that is not a number"
+    if (parts.scheme, port) in (("https", 443), ("http", 80)):
+        return "a default port written out"
+    if any(seg in ("", ".", "..") for seg in parts.path.rstrip("/").split("/")[1:]):
+        return "an empty, '.' or '..' path segment"
+    return None
+
+
 def resource_url(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
-    """The connector's OAuth resource = its public MCP endpoint (``route + /mcp``)."""
-    return f"{issuer.rstrip('/')}{spec.mount_route}{MCP_PATH}"
+    """The connector's OAuth resource = its public MCP endpoint (``route + /mcp``).
+
+    The result is the allowlist key, so it must be canonical: enlace_auth refuses any
+    other spelling at config load. The route is normalized by
+    :attr:`ConnectorSpec.mount_route`; an issuer that is not canonical (an uppercase
+    host, a default port, a path segment that is empty or a dot) is refused here
+    rather than lowercased, because the same issuer is the connector's runtime
+    ``iss``/audience origin and must be fixed at its source (#10).
+
+    >>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
+    'https://apps.thorwhalen.com/api/x_mcp/mcp'
+    """
+    url = f"{issuer.rstrip('/')}{spec.mount_route}{MCP_PATH}"
+    if why := _non_canonical(url):
+        raise ValueError(
+            f"resource URL {url!r} has {why}, so enlace_auth would refuse it as an "
+            f"allowlist key and refuse to start. Spell the issuer {issuer!r} and the "
+            f"route {spec.route!r} canonically (lowercase scheme and host, no default "
+            "port, no empty or dot path segments)."
+        )
+    return url
 
 
 def render_systemd_unit(

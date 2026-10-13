@@ -15,6 +15,7 @@ from enlace_connector import (
     render_systemd_unit,
     resource_url,
 )
+from enlace_connector.deploy import DFLT_ISSUER, MCP_PATH
 
 SPEC = ConnectorSpec(
     name="acme",
@@ -272,3 +273,62 @@ def test_the_rendered_allowlist_is_what_enlace_auth_accepts():
         spec = ConnectorSpec(name="x", tools=["m:f"], allowed_users=users)
         table = tomllib.loads(render_allowlist_toml(spec))["auth"]["oauth_server"]
         rp.parse_resource_allowlist(table["resource_allowlist"])  # does not raise
+
+
+# --- the resource URL is the allowlist key, so it must be canonical (#10) ---------
+
+
+@pytest.mark.parametrize("route", ["/api/acme_mcp/", "api/acme_mcp", "/api/acme_mcp//"])
+def test_a_stray_slash_in_the_route_still_renders_the_canonical_key(route):
+    spec = ConnectorSpec(name="acme", tools=[], route=route)
+    assert resource_url(spec) == "https://apps.thorwhalen.com/api/acme_mcp/mcp"
+    # the runtime audience derives from the same route, so the two cannot disagree
+    assert f"{spec.default_audience(DFLT_ISSUER)}{MCP_PATH}" == resource_url(spec)
+
+
+@pytest.mark.parametrize(
+    "issuer, why",
+    [
+        ("https://Apps.example.com", "uppercase host"),
+        ("HTTPS://apps.example.com", "uppercase scheme"),
+        ("https://apps.example.com:443", "default port"),
+        ("https://apps.example.com.", "trailing dot"),
+        ("apps.example.com", "absolute"),
+        ("https://apps.example.com/a//b", "path segment"),
+        ("https://apps.example.com/./b", "path segment"),
+        ("https://apps.example.com?x=1", "query"),
+    ],
+)
+def test_a_non_canonical_issuer_is_refused_not_rendered(issuer, why):
+    with pytest.raises(ValueError, match=why):
+        resource_url(SPEC, issuer=issuer)
+    with pytest.raises(ValueError, match=why):
+        render_allowlist_toml(SPEC, issuer=issuer)
+
+
+def test_a_route_with_an_inner_empty_segment_is_refused():
+    with pytest.raises(ValueError, match="path segment"):
+        resource_url(ConnectorSpec(name="acme", tools=[], route="/api//acme_mcp"))
+
+
+def test_a_canonical_non_default_port_and_path_issuer_is_accepted():
+    url = resource_url(SPEC, issuer="https://apps.example.com:8443/base/")
+    assert url == "https://apps.example.com:8443/base/api/acme_mcp/mcp"
+
+
+@pytest.mark.parametrize(
+    "route, issuer",
+    [
+        ("/api/acme_mcp", DFLT_ISSUER),
+        ("/api/acme_mcp/", DFLT_ISSUER),
+        ("api/acme_mcp", "http://localhost:8000/"),
+    ],
+)
+def test_every_rendered_key_round_trips_through_enlace_auth(route, issuer):
+    resource_policy = pytest.importorskip("enlace_auth.resource_policy")
+    tomllib = pytest.importorskip("tomllib")
+    spec = ConnectorSpec(name="acme", tools=[], route=route, allowed_users=["a@acme.com"])
+    table = tomllib.loads(render_allowlist_toml(spec, issuer=issuer))
+    raw = table["auth"]["oauth_server"]["resource_allowlist"]
+    parsed = resource_policy.parse_resource_allowlist(raw)
+    assert set(parsed) == {resource_url(spec, issuer=issuer)}
