@@ -18,6 +18,7 @@
       render_systemd_unit
       render_provision_script
       render_allowlist_toml
+      allowlist_users
       render_display_names_toml
       render_oauth_server_toml
       render_runbook

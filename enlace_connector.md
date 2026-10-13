@@ -1,4 +1,4 @@
-> built 2026-10-02 07:40 UTC from 6e71c95 (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-10-13 21:41 UTC from 55e9d1c (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -91,7 +91,10 @@ own venv), a **provisioning script** (build that venv + install `extras`/`git_in
 
 + create `data` dirs + `post_install`), the two **`platform.toml` fragments**
   (`oauth-server.toml` — session longevity; `allowlist.toml` — from `allowed_users`),
-  and a **runbook**:
+  and a **runbook**. `allowed_users` is required: the platform refuses every account
+  for a resource it does not list, so an empty list raises instead of deploying a
+  connector nobody can authorize. `allowed_users=["*"]` opens it to every
+  authenticated platform account, and has to be written out:
 
 ```python
 spec = ConnectorSpec(
@@ -344,8 +347,11 @@ environment variables the connector’s systemd unit sets (e.g.
 #### allowed_users
 
 emails permitted to authorize this connector — becomes the
-platform’s `[auth.oauth_server.resource_allowlist]` entry. Empty =
-open to any authenticated platform user.
+platform’s `[auth.oauth_server.resource_allowlist]` entry. Required
+for a deploy bundle: enlace_auth refuses every account for a resource
+it does not list (fail closed, since enlace_auth 0.1.30), so an empty
+list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
+admits every authenticated platform account, and must be written out.
 
 #### post_install
 
@@ -432,9 +438,10 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 
 ### Module Attributes
 
-| [`DFLT_REMOTE_BASE`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.DFLT_REMOTE_BASE)   | Defaults for the tw_platform target (override per call for another platform).    |
-|---------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| [`MCP_PATH`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.MCP_PATH)           | FastMCP's Streamable-HTTP sub-path — the OAuth *resource* is `route + MCP_PATH`. |
+| [`DFLT_REMOTE_BASE`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.DFLT_REMOTE_BASE)   | Defaults for the tw_platform target (override per call for another platform).                                                      |
+|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| [`MCP_PATH`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.MCP_PATH)           | FastMCP's Streamable-HTTP sub-path — the OAuth *resource* is `route + MCP_PATH`.                                                   |
+| [`ANY_ACCOUNT`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.ANY_ACCOUNT)        | enlace_auth's spelling of "every authenticated account" in a resource allowlist entry (`enlace_auth.resource_policy.ANY_ACCOUNT`). |
 
 ### Functions
 
@@ -442,11 +449,17 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
 | [`render_systemd_unit`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...]) | Render the systemd unit that runs the connector in its own venv.             |
 | [`render_provision_script`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])  | Render the idempotent, run-as-root provisioning script for the connector.    |
-| [`render_allowlist_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])         | Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).      |
+| [`render_allowlist_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])         | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
+| [`allowlist_users`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.allowlist_users)(spec)                             | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
 | [`render_display_names_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_display_names_toml)(spec, \*[, issuer])     | Render the `[auth.oauth_server.resource_display_names]` fragment.            |
 | [`render_oauth_server_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_oauth_server_toml)(spec, \*[, issuer, ...]) | Render the `[auth.oauth_server]` fragment that keeps sessions alive.         |
 | [`render_runbook`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_runbook)(spec, \*[, remote_base, issuer])   | Render the human deploy checklist (ship, provision, deploy, **verify**).     |
 | [`generate_deploy_bundle`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.generate_deploy_bundle)(spec, dest, \*[, ...])     | Write the full deploy bundle for *spec* under *dest*.                        |
+
+### enlace_connector.deploy.ANY_ACCOUNT *= '\*'*
+
+enlace_auth’s spelling of “every authenticated account” in a resource
+allowlist entry (`enlace_auth.resource_policy.ANY_ACCOUNT`).
 
 ### enlace_connector.deploy.DFLT_REMOTE_BASE *= '/opt/tw_platform'*
 
@@ -456,14 +469,39 @@ Defaults for the tw_platform target (override per call for another platform).
 
 FastMCP’s Streamable-HTTP sub-path — the OAuth *resource* is `route + MCP_PATH`.
 
+### enlace_connector.deploy.allowlist_users(spec)
+
+`spec.allowed_users`, refused when it cannot mean what it seems to.
+
+enlace_auth fails closed: a resource missing from
+`[auth.oauth_server.resource_allowlist]` is refused to everyone
+(i2mint/enlace_auth#34). So an empty list no longer means “open”. It
+would deploy a connector that nobody can authorize, and nothing would
+error until someone tried (#8). Opening a connector to every account is
+an explicit `["*"]`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> from enlace_connector import ConnectorSpec
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
+['*']
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"]))
+Traceback (most recent call last):
+...
+ValueError: Connector 'x' has no allowed_users...
+```
+
 ### enlace_connector.deploy.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
 
 Write the full deploy bundle for *spec* under *dest*.
 
 Writes the app dir (`app.toml` + `server.py`) and a `deploy/` folder (the
 systemd unit, provisioning script, the `platform.toml` fragments — OAuth
-session longevity always, the resource allowlist when the spec restricts users
-— and the runbook). Pass *server_py* to override the generated entry module
+session longevity, the display name and the resource allowlist — and the
+runbook). Raises `ValueError`, writing nothing, when `allowed_users` is
+empty (see [`allowlist_users()`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.allowlist_users)). Pass *server_py* to override the generated entry module
 (e.g. a corpus-bound `make_search` server the composing skill wrote); pass
 *refresh_token_ttl_seconds* to set the session longevity the platform fragment
 configures (`0` would disable the refresh grant — see
@@ -474,11 +512,11 @@ configures (`0` would disable the refresh grant — see
 
 ### enlace_connector.deploy.render_allowlist_toml(spec, , issuer='https://apps.thorwhalen.com')
 
-Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).
+Render the `[auth.oauth_server.resource_allowlist]` fragment.
 
-Empty when `allowed_users` is empty (connector open to any authenticated
-user). Otherwise maps this connector’s resource URL to the allowed emails —
-paste into the platform’s `platform.toml`.
+Maps this connector’s resource URL to the allowed emails (or `"*"`) —
+paste into the platform’s `platform.toml`. Raises `ValueError` when
+`allowed_users` is empty: see [`allowlist_users()`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.allowlist_users).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -635,7 +673,8 @@ in seconds instead of when a user complains a day later.
 | [`generate_deploy_bundle`](_autosummary/enlace_connector.html.md#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                               |
 | [`render_systemd_unit`](_autosummary/enlace_connector.html.md#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                    |
 | [`render_provision_script`](_autosummary/enlace_connector.html.md#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.           |
-| [`render_allowlist_toml`](_autosummary/enlace_connector.html.md#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).             |
+| [`render_allowlist_toml`](_autosummary/enlace_connector.html.md#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                       |
+| [`allowlist_users`](_autosummary/enlace_connector.html.md#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                 |
 | [`render_display_names_toml`](_autosummary/enlace_connector.html.md#enlace_connector.render_display_names_toml)(spec, \*[, issuer])      | Render the `[auth.oauth_server.resource_display_names]` fragment.                   |
 | [`render_oauth_server_toml`](_autosummary/enlace_connector.html.md#enlace_connector.render_oauth_server_toml)(spec, \*[, issuer, ...])  | Render the `[auth.oauth_server]` fragment that keeps sessions alive.                |
 | [`render_runbook`](_autosummary/enlace_connector.html.md#enlace_connector.render_runbook)(spec, \*[, remote_base, issuer])    | Render the human deploy checklist (ship, provision, deploy, **verify**).            |
@@ -741,8 +780,11 @@ environment variables the connector’s systemd unit sets (e.g.
 #### allowed_users
 
 emails permitted to authorize this connector — becomes the
-platform’s `[auth.oauth_server.resource_allowlist]` entry. Empty =
-open to any authenticated platform user.
+platform’s `[auth.oauth_server.resource_allowlist]` entry. Required
+for a deploy bundle: enlace_auth refuses every account for a resource
+it does not list (fail closed, since enlace_auth 0.1.30), so an empty
+list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
+admits every authenticated platform account, and must be written out.
 
 #### post_install
 
@@ -807,6 +849,30 @@ Where the AS discovery document lives.
 Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
 
 Raised by [`verify_deployment()`](_autosummary/enlace_connector.html.md#enlace_connector.verify_deployment) in `strict` mode when a check fails.
+
+### enlace_connector.allowlist_users(spec)
+
+`spec.allowed_users`, refused when it cannot mean what it seems to.
+
+enlace_auth fails closed: a resource missing from
+`[auth.oauth_server.resource_allowlist]` is refused to everyone
+(i2mint/enlace_auth#34). So an empty list no longer means “open”. It
+would deploy a connector that nobody can authorize, and nothing would
+error until someone tried (#8). Opening a connector to every account is
+an explicit `["*"]`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> from enlace_connector import ConnectorSpec
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
+['*']
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"]))
+Traceback (most recent call last):
+...
+ValueError: Connector 'x' has no allowed_users...
+```
 
 ### enlace_connector.authorization_server_metadata(issuer, , fetch=None)
 
@@ -877,8 +943,9 @@ Write the full deploy bundle for *spec* under *dest*.
 
 Writes the app dir (`app.toml` + `server.py`) and a `deploy/` folder (the
 systemd unit, provisioning script, the `platform.toml` fragments — OAuth
-session longevity always, the resource allowlist when the spec restricts users
-— and the runbook). Pass *server_py* to override the generated entry module
+session longevity, the display name and the resource allowlist — and the
+runbook). Raises `ValueError`, writing nothing, when `allowed_users` is
+empty (see [`allowlist_users()`](_autosummary/enlace_connector.html.md#enlace_connector.allowlist_users)). Pass *server_py* to override the generated entry module
 (e.g. a corpus-bound `make_search` server the composing skill wrote); pass
 *refresh_token_ttl_seconds* to set the session longevity the platform fragment
 configures (`0` would disable the refresh grant — see
@@ -924,11 +991,11 @@ tools; the hosted path uses [`make_connector_app()`](_autosummary/enlace_connect
 
 ### enlace_connector.render_allowlist_toml(spec, , issuer='https://apps.thorwhalen.com')
 
-Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).
+Render the `[auth.oauth_server.resource_allowlist]` fragment.
 
-Empty when `allowed_users` is empty (connector open to any authenticated
-user). Otherwise maps this connector’s resource URL to the allowed emails —
-paste into the platform’s `platform.toml`.
+Maps this connector’s resource URL to the allowed emails (or `"*"`) —
+paste into the platform’s `platform.toml`. Raises `ValueError` when
+`allowed_users` is empty: see [`allowlist_users()`](_autosummary/enlace_connector.html.md#enlace_connector.allowlist_users).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -1549,7 +1616,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-02 07:40 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/6e71c950f7643ec5b569d4e71603b8d62ecb9cd8"><code>6e71c95</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 21:41 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2"><code>55e9d1c</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1558,7 +1625,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/6e71c950f7643ec5b569d4e71603b8d62ecb9cd8"><code>6e71c950f7643ec5b569d4e71603b8d62ecb9cd8</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2"><code>55e9d1cf072ca34d420efa82629669a36d16ecb2</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -1569,18 +1636,18 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/36979628746">36979628746</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38472275049">38472275049</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>6e71c950f7643ec5b569d4e71603b8d62ecb9cd8</code> (in the history of the built commit)    |
+| Event commit | <code>55e9d1cf072ca34d420efa82629669a36d16ecb2</code> (in the history of the built commit)    |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.12  |
+| epythet  | 0.2.17  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
-| Python   | 3.12.14 |
+| Python   | 3.12.15 |
 
 ## Configuration as resolved
 
@@ -1602,8 +1669,8 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 6e71c950f7643ec5b569d4e71603b8d62ecb9cd8
-pip install "epythet==0.2.12"
+git checkout 55e9d1cf072ca34d420efa82629669a36d16ecb2
+pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

@@ -5,7 +5,7 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-10-02 07:40 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/6e71c950f7643ec5b569d4e71603b8d62ecb9cd8"><code>6e71c95</code></a> on branch <code>main</code>, for **enlace&#95;connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 21:41 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2"><code>55e9d1c</code></a> on branch <code>main</code>, for **enlace&#95;connector 0.0.1** (from <code>pyproject.toml</code>).
 
 :::{note}
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -15,7 +15,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/i2mint/enlace_connector/commit/6e71c950f7643ec5b569d4e71603b8d62ecb9cd8"><code>6e71c950f7643ec5b569d4e71603b8d62ecb9cd8</code></a> |
+| Commit | <a href="https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2"><code>55e9d1cf072ca34d420efa82629669a36d16ecb2</code></a> |
 | Branch | <code>main</code> |
 | Tags at this commit | none |
 | Working tree | clean |
@@ -26,18 +26,18 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | | |
 |---|---|
 | Repository | <code>i2mint/enlace&#95;connector</code> |
-| Run | <a href="https://github.com/i2mint/enlace_connector/actions/runs/36979628746">36979628746</a> |
+| Run | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38472275049">38472275049</a> |
 | Ref | <code>refs/heads/main</code> |
-| Event commit | <code>6e71c950f7643ec5b569d4e71603b8d62ecb9cd8</code> (in the history of the built commit) |
+| Event commit | <code>55e9d1cf072ca34d420efa82629669a36d16ecb2</code> (in the history of the built commit) |
 
 ## Tools
 
 | | |
 |---|---|
-| epythet | 0.2.12 |
+| epythet | 0.2.17 |
 | Sphinx | 9.1.0 |
 | docutils | 0.22.4 |
-| Python | 3.12.14 |
+| Python | 3.12.15 |
 
 ## Configuration as resolved
 
@@ -59,8 +59,8 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 6e71c950f7643ec5b569d4e71603b8d62ecb9cd8
-pip install "epythet==0.2.12"
+git checkout 55e9d1cf072ca34d420efa82629669a36d16ecb2
+pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

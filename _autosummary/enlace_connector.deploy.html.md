@@ -26,9 +26,10 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 
 ### Module Attributes
 
-| [`DFLT_REMOTE_BASE`](#enlace_connector.deploy.DFLT_REMOTE_BASE)   | Defaults for the tw_platform target (override per call for another platform).    |
-|---------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| [`MCP_PATH`](#enlace_connector.deploy.MCP_PATH)           | FastMCP's Streamable-HTTP sub-path — the OAuth *resource* is `route + MCP_PATH`. |
+| [`DFLT_REMOTE_BASE`](#enlace_connector.deploy.DFLT_REMOTE_BASE)   | Defaults for the tw_platform target (override per call for another platform).                                                      |
+|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| [`MCP_PATH`](#enlace_connector.deploy.MCP_PATH)           | FastMCP's Streamable-HTTP sub-path — the OAuth *resource* is `route + MCP_PATH`.                                                   |
+| [`ANY_ACCOUNT`](#enlace_connector.deploy.ANY_ACCOUNT)        | enlace_auth's spelling of "every authenticated account" in a resource allowlist entry (`enlace_auth.resource_policy.ANY_ACCOUNT`). |
 
 ### Functions
 
@@ -36,11 +37,17 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
 | [`render_systemd_unit`](#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...]) | Render the systemd unit that runs the connector in its own venv.             |
 | [`render_provision_script`](#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])  | Render the idempotent, run-as-root provisioning script for the connector.    |
-| [`render_allowlist_toml`](#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])         | Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).      |
+| [`render_allowlist_toml`](#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])         | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
+| [`allowlist_users`](#enlace_connector.deploy.allowlist_users)(spec)                             | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
 | [`render_display_names_toml`](#enlace_connector.deploy.render_display_names_toml)(spec, \*[, issuer])     | Render the `[auth.oauth_server.resource_display_names]` fragment.            |
 | [`render_oauth_server_toml`](#enlace_connector.deploy.render_oauth_server_toml)(spec, \*[, issuer, ...]) | Render the `[auth.oauth_server]` fragment that keeps sessions alive.         |
 | [`render_runbook`](#enlace_connector.deploy.render_runbook)(spec, \*[, remote_base, issuer])   | Render the human deploy checklist (ship, provision, deploy, **verify**).     |
 | [`generate_deploy_bundle`](#enlace_connector.deploy.generate_deploy_bundle)(spec, dest, \*[, ...])     | Write the full deploy bundle for *spec* under *dest*.                        |
+
+### enlace_connector.deploy.ANY_ACCOUNT *= '\*'*
+
+enlace_auth’s spelling of “every authenticated account” in a resource
+allowlist entry (`enlace_auth.resource_policy.ANY_ACCOUNT`).
 
 ### enlace_connector.deploy.DFLT_REMOTE_BASE *= '/opt/tw_platform'*
 
@@ -50,14 +57,39 @@ Defaults for the tw_platform target (override per call for another platform).
 
 FastMCP’s Streamable-HTTP sub-path — the OAuth *resource* is `route + MCP_PATH`.
 
+### enlace_connector.deploy.allowlist_users(spec)
+
+`spec.allowed_users`, refused when it cannot mean what it seems to.
+
+enlace_auth fails closed: a resource missing from
+`[auth.oauth_server.resource_allowlist]` is refused to everyone
+(i2mint/enlace_auth#34). So an empty list no longer means “open”. It
+would deploy a connector that nobody can authorize, and nothing would
+error until someone tried (#8). Opening a connector to every account is
+an explicit `["*"]`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> from enlace_connector import ConnectorSpec
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
+['*']
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"]))
+Traceback (most recent call last):
+...
+ValueError: Connector 'x' has no allowed_users...
+```
+
 ### enlace_connector.deploy.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
 
 Write the full deploy bundle for *spec* under *dest*.
 
 Writes the app dir (`app.toml` + `server.py`) and a `deploy/` folder (the
 systemd unit, provisioning script, the `platform.toml` fragments — OAuth
-session longevity always, the resource allowlist when the spec restricts users
-— and the runbook). Pass *server_py* to override the generated entry module
+session longevity, the display name and the resource allowlist — and the
+runbook). Raises `ValueError`, writing nothing, when `allowed_users` is
+empty (see [`allowlist_users()`](#enlace_connector.deploy.allowlist_users)). Pass *server_py* to override the generated entry module
 (e.g. a corpus-bound `make_search` server the composing skill wrote); pass
 *refresh_token_ttl_seconds* to set the session longevity the platform fragment
 configures (`0` would disable the refresh grant — see
@@ -68,11 +100,11 @@ configures (`0` would disable the refresh grant — see
 
 ### enlace_connector.deploy.render_allowlist_toml(spec, , issuer='https://apps.thorwhalen.com')
 
-Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).
+Render the `[auth.oauth_server.resource_allowlist]` fragment.
 
-Empty when `allowed_users` is empty (connector open to any authenticated
-user). Otherwise maps this connector’s resource URL to the allowed emails —
-paste into the platform’s `platform.toml`.
+Maps this connector’s resource URL to the allowed emails (or `"*"`) —
+paste into the platform’s `platform.toml`. Raises `ValueError` when
+`allowed_users` is empty: see [`allowlist_users()`](#enlace_connector.deploy.allowlist_users).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

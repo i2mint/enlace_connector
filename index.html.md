@@ -87,7 +87,10 @@ own venv), a **provisioning script** (build that venv + install `extras`/`git_in
 
 + create `data` dirs + `post_install`), the two **`platform.toml` fragments**
   (`oauth-server.toml` — session longevity; `allowlist.toml` — from `allowed_users`),
-  and a **runbook**:
+  and a **runbook**. `allowed_users` is required: the platform refuses every account
+  for a resource it does not list, so an empty list raises instead of deploying a
+  connector nobody can authorize. `allowed_users=["*"]` opens it to every
+  authenticated platform account, and has to be written out:
 
 ```python
 spec = ConnectorSpec(

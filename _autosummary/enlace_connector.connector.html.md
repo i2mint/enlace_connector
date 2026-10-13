@@ -83,8 +83,11 @@ environment variables the connector’s systemd unit sets (e.g.
 #### allowed_users
 
 emails permitted to authorize this connector — becomes the
-platform’s `[auth.oauth_server.resource_allowlist]` entry. Empty =
-open to any authenticated platform user.
+platform’s `[auth.oauth_server.resource_allowlist]` entry. Required
+for a deploy bundle: enlace_auth refuses every account for a resource
+it does not list (fail closed, since enlace_auth 0.1.30), so an empty
+list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
+admits every authenticated platform account, and must be written out.
 
 #### post_install
 

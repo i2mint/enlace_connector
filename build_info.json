@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-02T07:40:05Z",
+  "built_at": "2026-10-13T21:41:37Z",
   "package": {
     "name": "enlace_connector",
     "version": "0.0.1",
@@ -9,31 +9,31 @@
   },
   "git": {
     "available": true,
-    "commit": "6e71c950f7643ec5b569d4e71603b8d62ecb9cd8",
-    "short_commit": "6e71c95",
+    "commit": "55e9d1cf072ca34d420efa82629669a36d16ecb2",
+    "short_commit": "55e9d1c",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/enlace_connector",
-    "commit_url": "https://github.com/i2mint/enlace_connector/commit/6e71c950f7643ec5b569d4e71603b8d62ecb9cd8",
+    "commit_url": "https://github.com/i2mint/enlace_connector/commit/55e9d1cf072ca34d420efa82629669a36d16ecb2",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/enlace_connector",
-    "sha": "6e71c950f7643ec5b569d4e71603b8d62ecb9cd8",
+    "sha": "55e9d1cf072ca34d420efa82629669a36d16ecb2",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "36979628746",
-    "run_url": "https://github.com/i2mint/enlace_connector/actions/runs/36979628746",
+    "run_id": "38472275049",
+    "run_url": "https://github.com/i2mint/enlace_connector/actions/runs/38472275049",
     "server_url": "https://github.com"
   },
   "tools": {
-    "epythet": "0.2.12",
+    "epythet": "0.2.17",
     "sphinx": "9.1.0",
     "docutils": "0.22.4",
-    "python": "3.12.14"
+    "python": "3.12.15"
   },
   "config": {
     "theme": "auto",
@@ -56,7 +56,7 @@
   },
   "site": {
     "modules_documented": 7,
-    "objects_documented": 116
+    "objects_documented": 119
   },
   "pypi": {
     "checked": true,
@@ -64,7 +64,7 @@
     "relation": "unknown",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/enlace_connector && cd enlace_connector\ngit checkout 6e71c950f7643ec5b569d4e71603b8d62ecb9cd8\npip install \"epythet==0.2.12\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/enlace_connector && cd enlace_connector\ngit checkout 55e9d1cf072ca34d420efa82629669a36d16ecb2\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

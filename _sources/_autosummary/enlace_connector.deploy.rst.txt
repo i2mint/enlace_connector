@@ -10,6 +10,7 @@ enlace\_connector.deploy
    
       DFLT_REMOTE_BASE
       MCP_PATH
+      ANY_ACCOUNT
    
    .. rubric:: Functions
 
@@ -19,6 +20,7 @@ enlace\_connector.deploy
       render_systemd_unit
       render_provision_script
       render_allowlist_toml
+      allowlist_users
       render_display_names_toml
       render_oauth_server_toml
       render_runbook

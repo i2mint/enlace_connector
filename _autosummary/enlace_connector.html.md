@@ -59,7 +59,8 @@ in seconds instead of when a user complains a day later.
 | [`generate_deploy_bundle`](#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                               |
 | [`render_systemd_unit`](#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                    |
 | [`render_provision_script`](#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.           |
-| [`render_allowlist_toml`](#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).             |
+| [`render_allowlist_toml`](#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                       |
+| [`allowlist_users`](#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                 |
 | [`render_display_names_toml`](#enlace_connector.render_display_names_toml)(spec, \*[, issuer])      | Render the `[auth.oauth_server.resource_display_names]` fragment.                   |
 | [`render_oauth_server_toml`](#enlace_connector.render_oauth_server_toml)(spec, \*[, issuer, ...])  | Render the `[auth.oauth_server]` fragment that keeps sessions alive.                |
 | [`render_runbook`](#enlace_connector.render_runbook)(spec, \*[, remote_base, issuer])    | Render the human deploy checklist (ship, provision, deploy, **verify**).            |
@@ -165,8 +166,11 @@ environment variables the connector’s systemd unit sets (e.g.
 #### allowed_users
 
 emails permitted to authorize this connector — becomes the
-platform’s `[auth.oauth_server.resource_allowlist]` entry. Empty =
-open to any authenticated platform user.
+platform’s `[auth.oauth_server.resource_allowlist]` entry. Required
+for a deploy bundle: enlace_auth refuses every account for a resource
+it does not list (fail closed, since enlace_auth 0.1.30), so an empty
+list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
+admits every authenticated platform account, and must be written out.
 
 #### post_install
 
@@ -231,6 +235,30 @@ Where the AS discovery document lives.
 Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
 
 Raised by [`verify_deployment()`](#enlace_connector.verify_deployment) in `strict` mode when a check fails.
+
+### enlace_connector.allowlist_users(spec)
+
+`spec.allowed_users`, refused when it cannot mean what it seems to.
+
+enlace_auth fails closed: a resource missing from
+`[auth.oauth_server.resource_allowlist]` is refused to everyone
+(i2mint/enlace_auth#34). So an empty list no longer means “open”. It
+would deploy a connector that nobody can authorize, and nothing would
+error until someone tried (#8). Opening a connector to every account is
+an explicit `["*"]`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> from enlace_connector import ConnectorSpec
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
+['*']
+>>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"]))
+Traceback (most recent call last):
+...
+ValueError: Connector 'x' has no allowed_users...
+```
 
 ### enlace_connector.authorization_server_metadata(issuer, , fetch=None)
 
@@ -301,8 +329,9 @@ Write the full deploy bundle for *spec* under *dest*.
 
 Writes the app dir (`app.toml` + `server.py`) and a `deploy/` folder (the
 systemd unit, provisioning script, the `platform.toml` fragments — OAuth
-session longevity always, the resource allowlist when the spec restricts users
-— and the runbook). Pass *server_py* to override the generated entry module
+session longevity, the display name and the resource allowlist — and the
+runbook). Raises `ValueError`, writing nothing, when `allowed_users` is
+empty (see [`allowlist_users()`](#enlace_connector.allowlist_users)). Pass *server_py* to override the generated entry module
 (e.g. a corpus-bound `make_search` server the composing skill wrote); pass
 *refresh_token_ttl_seconds* to set the session longevity the platform fragment
 configures (`0` would disable the refresh grant — see
@@ -348,11 +377,11 @@ tools; the hosted path uses [`make_connector_app()`](#enlace_connector.make_conn
 
 ### enlace_connector.render_allowlist_toml(spec, , issuer='https://apps.thorwhalen.com')
 
-Render the `[auth.oauth_server.resource_allowlist]` fragment (or `""`).
+Render the `[auth.oauth_server.resource_allowlist]` fragment.
 
-Empty when `allowed_users` is empty (connector open to any authenticated
-user). Otherwise maps this connector’s resource URL to the allowed emails —
-paste into the platform’s `platform.toml`.
+Maps this connector’s resource URL to the allowed emails (or `"*"`) —
+paste into the platform’s `platform.toml`. Raises `ValueError` when
+`allowed_users` is empty: see [`allowlist_users()`](#enlace_connector.allowlist_users).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
