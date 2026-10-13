@@ -363,3 +363,8 @@ def test_the_unit_carries_the_audience_the_allowlist_key_names(route):
 def test_spec_env_still_overrides_the_rendered_audience():
     spec = ConnectorSpec(name="x", tools=[], env={"CONNECTOR_AUDIENCE": "https://o"})
     assert "Environment=CONNECTOR_AUDIENCE=https://o" in render_systemd_unit(spec)
+
+
+def test_a_spec_env_issuer_override_keeps_the_audience_on_the_same_origin():
+    spec = ConnectorSpec(name="x", tools=[], env={"CONNECTOR_ISSUER": "https://other"})
+    assert "Environment=CONNECTOR_AUDIENCE=https://other/x-mcp" in render_systemd_unit(spec)

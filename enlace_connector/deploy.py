@@ -197,11 +197,10 @@ def render_systemd_unit(
     validates tokens for exactly the key the platform allows (#12).
     """
     p = _paths(spec, remote_base)
-    env = {
-        "CONNECTOR_ISSUER": issuer,
-        "CONNECTOR_AUDIENCE": spec.default_audience(issuer),
-        **spec.env,
-    }
+    env = {"CONNECTOR_ISSUER": issuer, **spec.env}
+    # From the issuer the unit actually sets, so a spec.env override of it keeps
+    # iss and aud from one origin; an explicit spec.env audience still wins.
+    env.setdefault("CONNECTOR_AUDIENCE", spec.default_audience(env["CONNECTOR_ISSUER"]))
     env_lines = "\n".join(
         f"Environment={k}={_subst(str(v), p)}" for k, v in env.items()
     )
