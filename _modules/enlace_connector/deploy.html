@@ -738,7 +738,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">unicodedata</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlsplit</span>
 
@@ -838,6 +840,42 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">text</span>
 
 
+<span class="n">_ENV_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z_][A-Za-z0-9_]*"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_systemd_environment_line</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One ``Environment=`` line that hands the process exactly ``name=value``.</span>
+
+<span class="sd">    systemd expands ``%`` specifiers in these values, so a literal ``%`` (a</span>
+<span class="sd">    percent-encoded route in ``CONNECTOR_AUDIENCE``, say) is written ``%%``.</span>
+<span class="sd">    Without that, ``%2F`` is an "invalid slot" and systemd drops the whole line</span>
+<span class="sd">    (#14). It also splits the line on whitespace and strips quotes, so such a</span>
+<span class="sd">    value is double-quoted, with ``\\`` and ``"`` escaped. Plain values are</span>
+<span class="sd">    left unquoted, so the line reads as it always has.</span>
+
+<span class="sd">    &gt;&gt;&gt; _systemd_environment_line("AUD", "https://h/api/a%2Fb-mcp")</span>
+<span class="sd">    'Environment=AUD=https://h/api/a%%2Fb-mcp'</span>
+<span class="sd">    &gt;&gt;&gt; _systemd_environment_line("GREETING", 'say "hi" now')</span>
+<span class="sd">    'Environment="GREETING=say \\\\"hi\\\\" now"'</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_ENV_NAME</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"not a valid environment variable name: </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">value</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">"</span><span class="se">\t</span><span class="s2">"</span> <span class="ow">and</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"Cc"</span><span class="p">,</span> <span class="s2">"Cs"</span><span class="p">)),</span>
+        <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">bad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: control character U+</span><span class="si">{</span><span class="nb">ord</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="si">:</span><span class="s2">04X</span><span class="si">}</span><span class="s2"> cannot go in a systemd "</span>
+            <span class="s2">"Environment= line"</span>
+        <span class="p">)</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"%"</span><span class="p">,</span> <span class="s2">"</span><span class="si">%%</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"</span><span class="se">\"</span><span class="s2">'</span><span class="se">\\</span><span class="s2">"</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">escaped</span> <span class="o">=</span> <span class="n">assignment</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\\\</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'"'</span><span class="p">,</span> <span class="s1">'</span><span class="se">\\</span><span class="s1">"'</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">'Environment="</span><span class="si">{</span><span class="n">escaped</span><span class="si">}</span><span class="s1">"'</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"Environment=</span><span class="si">{</span><span class="n">assignment</span><span class="si">}</span><span class="s2">"</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_non_canonical</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Why *url* is not the one spelling enlace_auth accepts as a resource key, if so.</span>
 
@@ -915,22 +953,35 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    validates tokens for exactly the key the platform allows (#12).</span>
 <span class="sd">    """</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"app_dir"</span><span class="p">,</span> <span class="s2">"venv"</span><span class="p">):</span>
+        <span class="c1"># These go into WorkingDirectory= and ExecStart= unquoted, where a "%" is</span>
+        <span class="c1"># a specifier and whitespace splits the command line.</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="s2">"%"</span> <span class="ow">or</span> <span class="n">c</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[</span><span class="n">key</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">!r}</span><span class="s2">: a connector path cannot contain '%' or whitespace "</span>
+                <span class="s2">"(check the spec name and remote_base)"</span>
+            <span class="p">)</span>
     <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"CONNECTOR_ISSUER"</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span> <span class="o">**</span><span class="n">spec</span><span class="o">.</span><span class="n">env</span><span class="p">}</span>
     <span class="c1"># From the issuer the unit actually sets, so a spec.env override of it keeps</span>
     <span class="c1"># iss and aud from one origin; an explicit spec.env audience still wins.</span>
     <span class="n">env</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"CONNECTOR_AUDIENCE"</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">default_audience</span><span class="p">(</span><span class="n">env</span><span class="p">[</span><span class="s2">"CONNECTOR_ISSUER"</span><span class="p">]))</span>
     <span class="n">env_lines</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">"Environment=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">_subst</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="n">_systemd_environment_line</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">_subst</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">)</span>
     <span class="n">exec_start</span> <span class="o">=</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'venv'</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="si">}</span><span class="s2"> MCP connector (mode=process :</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">description</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"%"</span><span class="p">,</span> <span class="s2">"</span><span class="si">%%</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># a specifier otherwise</span>
+    <span class="n">usage_log_line</span> <span class="o">=</span> <span class="n">_systemd_environment_line</span><span class="p">(</span>
+        <span class="s2">"CONNECTOR_USAGE_LOG_DIR"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'base'</span><span class="p">]</span><span class="si">}</span><span class="s2">/data/usage"</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s2">"# </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector — the production process for apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"# (a mode=process enlace app). enlace only reverse-proxies the route to</span><span class="se">\n</span><span class="s2">"</span>
         <span class="sa">f</span><span class="s2">"# this unit on 127.0.0.1:</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">; provisioned via the runbook.</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"[Unit]</span><span class="se">\n</span><span class="s2">"</span>
-        <span class="sa">f</span><span class="s2">"Description=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="si">}</span><span class="s2"> MCP connector (mode=process :</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"Description=</span><span class="si">{</span><span class="n">description</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"After=network-online.target</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"Wants=network-online.target</span><span class="se">\n\n</span><span class="s2">"</span>
         <span class="s2">"[Service]</span><span class="se">\n</span><span class="s2">"</span>
@@ -942,7 +993,7 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"# uncommented. The arguments it records are the users' own questions, so</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"# switch it on only after telling them. Files are pruned to 90 days by default</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"# (CONNECTOR_USAGE_LOG_RETENTION_DAYS); CONNECTOR_USAGE_LOG_REDACT masks fields.</span><span class="se">\n</span><span class="s2">"</span>
-        <span class="sa">f</span><span class="s2">"#Environment=CONNECTOR_USAGE_LOG_DIR=</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'base'</span><span class="p">]</span><span class="si">}</span><span class="s2">/data/usage</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="n">usage_log_line</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
         <span class="sa">f</span><span class="s2">"ExecStart=</span><span class="si">{</span><span class="n">exec_start</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"Restart=on-failure</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"RestartSec=3</span><span class="se">\n\n</span><span class="s2">"</span>
