@@ -188,9 +188,19 @@ def render_systemd_unit(
     remote_base: str = DFLT_REMOTE_BASE,
     issuer: str = DFLT_ISSUER,
 ) -> str:
-    """Render the systemd unit that runs the connector in its own venv."""
+    """Render the systemd unit that runs the connector in its own venv.
+
+    ``CONNECTOR_AUDIENCE`` is rendered next to ``CONNECTOR_ISSUER`` by the same code
+    that renders the allowlist key, and :func:`render_server_py` passes it through
+    explicitly, so the runtime never re-derives it: a connector venv holding an older
+    ``enlace_connector`` (whose ``mount_route`` spelled the route differently) still
+    validates tokens for exactly the key the platform allows (#12).
+    """
     p = _paths(spec, remote_base)
     env = {"CONNECTOR_ISSUER": issuer, **spec.env}
+    # From the issuer the unit actually sets, so a spec.env override of it keeps
+    # iss and aud from one origin; an explicit spec.env audience still wins.
+    env.setdefault("CONNECTOR_AUDIENCE", spec.default_audience(env["CONNECTOR_ISSUER"]))
     env_lines = "\n".join(
         f"Environment={k}={_subst(str(v), p)}" for k, v in env.items()
     )

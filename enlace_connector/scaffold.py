@@ -57,7 +57,8 @@ def render_server_py(spec: ConnectorSpec) -> str:
         f'"""Auto-generated enlace connector app for {spec.name!r}.\n\n'
         "Built from a ConnectorSpec by enlace_connector. The platform origin (the\n"
         "OAuth issuer) is read from $CONNECTOR_ISSUER; this connector's public URL\n"
-        '(the token audience) is derived from it and the route.\n"""\n\n'
+        "(the token audience) from $CONNECTOR_AUDIENCE, which the rendered unit sets,\n"
+        'else it is derived from the issuer and the route.\n"""\n\n'
         "import os\n\n"
         "from enlace_connector import ConnectorSpec, make_connector_app\n\n"
         "SPEC = ConnectorSpec(\n"
@@ -69,7 +70,9 @@ def render_server_py(spec: ConnectorSpec) -> str:
         f"    stateless_http={spec.stateless_http!r},\n"
         ")\n\n"
         f"_issuer = os.environ.get('CONNECTOR_ISSUER', {DFLT_PLATFORM_ORIGIN!r})\n"
-        "app = make_connector_app(SPEC, issuer=_issuer)\n"
+        "app = make_connector_app(\n"
+        "    SPEC, issuer=_issuer, audience=os.environ.get('CONNECTOR_AUDIENCE') or None\n"
+        ")\n"
     )
 
 

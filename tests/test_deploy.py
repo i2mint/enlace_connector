@@ -338,3 +338,33 @@ def test_every_rendered_key_round_trips_through_enlace_auth(route, issuer):
     raw = table["auth"]["oauth_server"]["resource_allowlist"]
     parsed = resource_policy.parse_resource_allowlist(raw)
     assert set(parsed) == {resource_url(spec, issuer=issuer)}
+
+
+@pytest.mark.parametrize("route", ["x", "//x", "/x/", "/api/x"])
+def test_the_unit_carries_the_audience_the_allowlist_key_names(route):
+    """An older runtime would re-derive a different audience for a stray slash (#12).
+
+    The unit renders it with the same code as the key, and the connector's auth
+    appends the MCP path to it exactly as ``resource_url`` does.
+    """
+    from enlace_connector.auth import enlace_resource
+
+    spec = ConnectorSpec(name="x", tools=[], route=route)
+    unit = render_systemd_unit(spec)
+    (aud,) = [
+        ln.split("=", 2)[2]
+        for ln in unit.splitlines()
+        if ln.startswith("Environment=CONNECTOR_AUDIENCE=")
+    ]
+    validated = enlace_resource(issuer=DFLT_ISSUER, audience=aud)["audience"]
+    assert validated == resource_url(spec)
+
+
+def test_spec_env_still_overrides_the_rendered_audience():
+    spec = ConnectorSpec(name="x", tools=[], env={"CONNECTOR_AUDIENCE": "https://o"})
+    assert "Environment=CONNECTOR_AUDIENCE=https://o" in render_systemd_unit(spec)
+
+
+def test_a_spec_env_issuer_override_keeps_the_audience_on_the_same_origin():
+    spec = ConnectorSpec(name="x", tools=[], env={"CONNECTOR_ISSUER": "https://other"})
+    assert "Environment=CONNECTOR_AUDIENCE=https://other/x-mcp" in render_systemd_unit(spec)

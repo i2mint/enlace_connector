@@ -29,8 +29,7 @@ def test_render_server_py_embeds_spec_and_builds_app():
     src = render_server_py(SPEC)
     assert "ConnectorSpec(" in src
     assert "truffle.mcp:search_trufflepig" in src
-    assert "make_connector_app(SPEC, issuer=_issuer)" in src
-    assert "CONNECTOR_ISSUER" in src
+    assert "CONNECTOR_ISSUER" in src and "CONNECTOR_AUDIENCE" in src
     # The generated module must be syntactically valid Python.
     compile(src, "server.py", "exec")
 
@@ -50,3 +49,23 @@ def test_scaffold_app_writes_both_files(tmp_path):
     out = scaffold_app(SPEC, tmp_path / "trufflepig_mcp", port=8030)
     assert out["app_toml"].exists() and out["server_py"].exists()
     assert 'mode = "process"' in out["app_toml"].read_text()
+
+
+def test_server_py_passes_the_rendered_audience_through(monkeypatch):
+    """The runtime takes $CONNECTOR_AUDIENCE as given, never re-deriving it (#12)."""
+    import enlace_connector
+
+    calls = []
+    monkeypatch.setattr(
+        enlace_connector, "make_connector_app", lambda spec, **kw: calls.append(kw)
+    )
+    src = render_server_py(SPEC)
+    monkeypatch.setenv("CONNECTOR_ISSUER", "https://host")
+    monkeypatch.setenv("CONNECTOR_AUDIENCE", "https://host/rendered")
+    exec(compile(src, "server.py", "exec"), {})
+    monkeypatch.delenv("CONNECTOR_AUDIENCE")
+    exec(compile(src, "server.py", "exec"), {})  # an older unit: derive as before
+    assert calls == [
+        {"issuer": "https://host", "audience": "https://host/rendered"},
+        {"issuer": "https://host", "audience": None},
+    ]
