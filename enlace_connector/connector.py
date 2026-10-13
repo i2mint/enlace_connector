@@ -88,7 +88,15 @@ class ConnectorSpec:
 
     @property
     def mount_route(self) -> str:
-        return self.route or f"/{self.name}-mcp"
+        """The route, spelled one way: one leading ``/``, no trailing ``/``.
+
+        ``"/x/"`` and ``"x"`` both mean ``"/x"``. Everything that names the connector
+        (its token audience, its allowlist key, its ``app.toml`` route) derives from
+        this, so a stray slash cannot make two of them disagree (#10).
+        """
+        if not self.route:
+            return f"/{self.name}-mcp"
+        return "/" + self.route.strip("/")
 
     def default_audience(self, platform_origin: str) -> str:
         """This connector's public URL under *platform_origin* (the token audience)."""

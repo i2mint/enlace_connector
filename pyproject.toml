@@ -34,7 +34,9 @@ Documentation = "https://i2mint.github.io/enlace_connector"
 
 [project.optional-dependencies]
 serve = ["uvicorn"]
-dev = ["pytest"]
+# enlace_auth: the round-trip tests check every rendered allowlist key against its
+# real parser, so the mirror in deploy._non_canonical cannot drift with CI green.
+dev = ["pytest", "enlace_auth>=0.1.32"]
 
 # ============================================================================
 # LINTING / FORMATTING
@@ -89,7 +91,7 @@ project_name = "enlace_connector"
 installer = "uv"
 
 [tool.wads.ci.install]
-# CI installs `.[dev]` (pytest). `serve` holds the uvicorn that the *deployed*
+# CI installs `.[dev]` (pytest, enlace_auth). `serve` holds the uvicorn that the *deployed*
 # connector's own venv needs — not something CI has any use for.
 extras = "dev"
 
