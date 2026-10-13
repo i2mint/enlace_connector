@@ -15,7 +15,7 @@
 - [enlace_connector.scaffold](_autosummary/enlace_connector.scaffold.html.md): Generate the enlace app directory that serves a connector.
 - [enlace_connector.usage](_autosummary/enlace_connector.usage.html.md): Switch a connector’s per-call usage log on by configuration alone.
 - [For AI agents](ai-agents.html.md): &#96;enlace_connector&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-13 21:55 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-13 22:44 UTC&#42;&#42; from commit &lt;a href="https://github.com/i2m...
 
 ## Optional
 

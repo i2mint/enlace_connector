@@ -775,7 +775,8 @@ window.runMermaid = runMermaid;</script>
         <span class="sa">f</span><span class="s1">'"""Auto-generated enlace connector app for </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s1">.</span><span class="se">\n\n</span><span class="s1">'</span>
         <span class="s2">"Built from a ConnectorSpec by enlace_connector. The platform origin (the</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"OAuth issuer) is read from $CONNECTOR_ISSUER; this connector's public URL</span><span class="se">\n</span><span class="s2">"</span>
-        <span class="s1">'(the token audience) is derived from it and the route.</span><span class="se">\n</span><span class="s1">"""</span><span class="se">\n\n</span><span class="s1">'</span>
+        <span class="s2">"(the token audience) from $CONNECTOR_AUDIENCE, which the rendered unit sets,</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s1">'else it is derived from the issuer and the route.</span><span class="se">\n</span><span class="s1">"""</span><span class="se">\n\n</span><span class="s1">'</span>
         <span class="s2">"import os</span><span class="se">\n\n</span><span class="s2">"</span>
         <span class="s2">"from enlace_connector import ConnectorSpec, make_connector_app</span><span class="se">\n\n</span><span class="s2">"</span>
         <span class="s2">"SPEC = ConnectorSpec(</span><span class="se">\n</span><span class="s2">"</span>
@@ -787,7 +788,9 @@ window.runMermaid = runMermaid;</script>
         <span class="sa">f</span><span class="s2">"    stateless_http=</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">stateless_http</span><span class="si">!r}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">")</span><span class="se">\n\n</span><span class="s2">"</span>
         <span class="sa">f</span><span class="s2">"_issuer = os.environ.get('CONNECTOR_ISSUER', </span><span class="si">{</span><span class="n">DFLT_PLATFORM_ORIGIN</span><span class="si">!r}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">"</span>
-        <span class="s2">"app = make_connector_app(SPEC, issuer=_issuer)</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"app = make_connector_app(</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">"    SPEC, issuer=_issuer, audience=os.environ.get('CONNECTOR_AUDIENCE') or None</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="s2">")</span><span class="se">\n</span><span class="s2">"</span>
     <span class="p">)</span></div>
 
 

@@ -187,6 +187,12 @@ in plain words and gives the exact command that detects it.
 
 Render the systemd unit that runs the connector in its own venv.
 
+`CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
+that renders the allowlist key, and `render_server_py()` passes it through
+explicitly, so the runtime never re-derives it: a connector venv holding an older
+`enlace_connector` (whose `mount_route` spelled the route differently) still
+validates tokens for exactly the key the platform allows (#12).
+
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 

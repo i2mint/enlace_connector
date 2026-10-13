@@ -1,4 +1,4 @@
-> built 2026-10-13 21:55 UTC from 8385682 (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-10-13 22:44 UTC from 186e52e (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -610,6 +610,12 @@ in plain words and gives the exact command that detects it.
 
 Render the systemd unit that runs the connector in its own venv.
 
+`CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
+that renders the allowlist key, and `render_server_py()` passes it through
+explicitly, so the runtime never re-derives it: a connector venv holding an older
+`enlace_connector` (whose `mount_route` spelled the route differently) still
+validates tokens for exactly the key the platform allows (#12).
+
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
@@ -1131,6 +1137,12 @@ omitted: they are consumed by the provisioning bundle, not by the process.
 ### enlace_connector.render_systemd_unit(spec, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com')
 
 Render the systemd unit that runs the connector in its own venv.
+
+`CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
+that renders the allowlist key, and [`render_server_py()`](_autosummary/enlace_connector.html.md#enlace_connector.render_server_py) passes it through
+explicitly, so the runtime never re-derives it: a connector venv holding an older
+`enlace_connector` (whose `mount_route` spelled the route differently) still
+validates tokens for exactly the key the platform allows (#12).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -1662,7 +1674,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-13 21:55 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/8385682fa19fd990b2eae93a840b00cd41ba4e2f"><code>8385682</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 22:44 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/186e52e5790dbc29ee3965d3b187923bc90fee43"><code>186e52e</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1671,7 +1683,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/8385682fa19fd990b2eae93a840b00cd41ba4e2f"><code>8385682fa19fd990b2eae93a840b00cd41ba4e2f</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/186e52e5790dbc29ee3965d3b187923bc90fee43"><code>186e52e5790dbc29ee3965d3b187923bc90fee43</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -1682,9 +1694,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38473887829">38473887829</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38479587982">38479587982</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>8385682fa19fd990b2eae93a840b00cd41ba4e2f</code> (in the history of the built commit)    |
+| Event commit | <code>186e52e5790dbc29ee3965d3b187923bc90fee43</code> (in the history of the built commit)    |
 
 ## Tools
 
@@ -1715,7 +1727,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 8385682fa19fd990b2eae93a840b00cd41ba4e2f
+git checkout 186e52e5790dbc29ee3965d3b187923bc90fee43
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

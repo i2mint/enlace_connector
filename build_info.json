@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-13T21:55:04Z",
+  "built_at": "2026-10-13T22:44:18Z",
   "package": {
     "name": "enlace_connector",
     "version": "0.0.1",
@@ -9,24 +9,24 @@
   },
   "git": {
     "available": true,
-    "commit": "8385682fa19fd990b2eae93a840b00cd41ba4e2f",
-    "short_commit": "8385682",
+    "commit": "186e52e5790dbc29ee3965d3b187923bc90fee43",
+    "short_commit": "186e52e",
     "branch": "main",
     "tags": [],
     "dirty": false,
     "remote_url": "https://github.com/i2mint/enlace_connector",
-    "commit_url": "https://github.com/i2mint/enlace_connector/commit/8385682fa19fd990b2eae93a840b00cd41ba4e2f",
+    "commit_url": "https://github.com/i2mint/enlace_connector/commit/186e52e5790dbc29ee3965d3b187923bc90fee43",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "i2mint/enlace_connector",
-    "sha": "8385682fa19fd990b2eae93a840b00cd41ba4e2f",
+    "sha": "186e52e5790dbc29ee3965d3b187923bc90fee43",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "38473887829",
-    "run_url": "https://github.com/i2mint/enlace_connector/actions/runs/38473887829",
+    "run_id": "38479587982",
+    "run_url": "https://github.com/i2mint/enlace_connector/actions/runs/38479587982",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -64,7 +64,7 @@
     "relation": "unknown",
     "error": null
   },
-  "reproduce": "git clone https://github.com/i2mint/enlace_connector && cd enlace_connector\ngit checkout 8385682fa19fd990b2eae93a840b00cd41ba4e2f\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/i2mint/enlace_connector && cd enlace_connector\ngit checkout 186e52e5790dbc29ee3965d3b187923bc90fee43\npip install \"epythet==0.2.17\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,

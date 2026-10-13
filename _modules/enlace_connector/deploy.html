@@ -906,9 +906,19 @@ window.runMermaid = runMermaid;</script>
     <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_REMOTE_BASE</span><span class="p">,</span>
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Render the systemd unit that runs the connector in its own venv."""</span>
+<span class="w">    </span><span class="sd">"""Render the systemd unit that runs the connector in its own venv.</span>
+
+<span class="sd">    ``CONNECTOR_AUDIENCE`` is rendered next to ``CONNECTOR_ISSUER`` by the same code</span>
+<span class="sd">    that renders the allowlist key, and :func:`render_server_py` passes it through</span>
+<span class="sd">    explicitly, so the runtime never re-derives it: a connector venv holding an older</span>
+<span class="sd">    ``enlace_connector`` (whose ``mount_route`` spelled the route differently) still</span>
+<span class="sd">    validates tokens for exactly the key the platform allows (#12).</span>
+<span class="sd">    """</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
     <span class="n">env</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"CONNECTOR_ISSUER"</span><span class="p">:</span> <span class="n">issuer</span><span class="p">,</span> <span class="o">**</span><span class="n">spec</span><span class="o">.</span><span class="n">env</span><span class="p">}</span>
+    <span class="c1"># From the issuer the unit actually sets, so a spec.env override of it keeps</span>
+    <span class="c1"># iss and aud from one origin; an explicit spec.env audience still wins.</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">"CONNECTOR_AUDIENCE"</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">default_audience</span><span class="p">(</span><span class="n">env</span><span class="p">[</span><span class="s2">"CONNECTOR_ISSUER"</span><span class="p">]))</span>
     <span class="n">env_lines</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="sa">f</span><span class="s2">"Environment=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">_subst</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="w"> </span><span class="n">p</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">)</span>
