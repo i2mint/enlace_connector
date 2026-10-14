@@ -41,6 +41,8 @@ __all__ = [
     "DFLT_REFRESH_TOKEN_TTL_SECONDS",
     "resource_url",
     "render_systemd_unit",
+    "diff_unit",
+    "check_distinct_ports",
     "render_provision_script",
     "render_allowlist_toml",
     "allowlist_users",
@@ -108,13 +110,18 @@ def _toml_string(value: str) -> str:
 
 
 def _paths(spec: ConnectorSpec, remote_base: str) -> dict[str, str]:
-    base = f"{remote_base}/connectors/{spec.name}"
+    if spec.app_dir is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", spec.app_dir):
+        raise ValueError(
+            f"app_dir {spec.app_dir!r}: one directory name (letters, digits, '.', '_', "
+            "'-'), not a path"
+        )
+    base = f"{remote_base}/connectors/{spec.dir_name}"
     return {
         "name": spec.name,
         "remote_base": remote_base,
         "base": base,
         "venv": f"{base}/venv",
-        "app_dir": f"{remote_base}/apps/{spec.name}",
+        "app_dir": f"{remote_base}/apps/{spec.dir_name}",
         "unit": f"{spec.name}-mcp.service",
         "port": str(spec.port),
     }
@@ -220,6 +227,68 @@ def resource_url(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
     return url
 
 
+#: ``[Service]`` directives the renderer writes itself, each from its own spec
+#: field; a ``service_directives`` entry may not repeat or override one.
+_OWNED_DIRECTIVES = {
+    "Type": None,
+    "User": None,
+    "WorkingDirectory": "app_dir",
+    "Environment": "env",
+    "EnvironmentFile": "environment_files",
+    "ExecStartPre": "exec_start_pre",
+    "ExecStart": "uvicorn_args",
+    "Restart": None,
+    "RestartSec": None,
+}
+
+
+def _unit_value(key: str, value: str) -> str:
+    """*value*, checked for a ``key=`` line of a unit file, which it cannot span."""
+    if not re.fullmatch(r"(X-)?[A-Za-z][A-Za-z0-9]*", key):
+        raise ValueError(f"not a systemd directive name: {key!r}")
+    bad = next(
+        (c for c in value if unicodedata.category(c) in ("Cc", "Cs", "Zl", "Zp")),
+        None,
+    )
+    if bad is not None:
+        raise ValueError(
+            f"{key}: control character U+{ord(bad):04X} cannot go in a unit file line"
+        )
+    if value.endswith("\\"):
+        # A trailing backslash continues the line: the next directive (ExecStart=,
+        # say) would become part of this value.
+        raise ValueError(f"{key}: a value cannot end in a backslash: {value!r}")
+    return value
+
+
+def _service_directive(key: str, value: str) -> str:
+    if key in _OWNED_DIRECTIVES:
+        field = _OWNED_DIRECTIVES[key]
+        hint = f"; use the spec's {field!r}" if field else ""
+        raise ValueError(
+            f"service_directives cannot set {key}=: the renderer writes it{hint}"
+        )
+    return _unit_value(key, value)
+
+
+def _exec_start(spec: ConnectorSpec, p: dict[str, str]) -> str:
+    """The ``uvicorn`` command line that runs the connector in its own venv."""
+    for arg in spec.uvicorn_args:
+        # Each is one token of ExecStart=, where whitespace splits, quotes group
+        # and "%" is a specifier: refuse rather than mis-render.
+        if not arg or arg == ";" or any(c.isspace() or c in "\"'%\\" for c in arg):
+            raise ValueError(
+                f"uvicorn argument {arg!r}: must be one non-empty token without "
+                "whitespace, quotes, backslashes or '%', and not ';'"
+            )
+    return " ".join(
+        [
+            f"{p['venv']}/bin/uvicorn server:app --host 127.0.0.1 --port {spec.port}",
+            *(_unit_value("ExecStart", a) for a in spec.uvicorn_args),
+        ]
+    )
+
+
 def render_systemd_unit(
     spec: ConnectorSpec,
     *,
@@ -227,6 +296,12 @@ def render_systemd_unit(
     issuer: str = DFLT_ISSUER,
 ) -> str:
     """Render the systemd unit that runs the connector in its own venv.
+
+    A host that hand-maintains its units can treat this as the reference: run
+    :func:`diff_unit` against each installed unit, so the two cannot drift apart
+    silently (#15). The spec carries what such units need: an ``app_dir`` name,
+    ``environment_files`` and ``exec_start_pre`` for scoped secrets,
+    ``uvicorn_args``, and other ``service_directives``.
 
     ``CONNECTOR_AUDIENCE`` is rendered next to ``CONNECTOR_ISSUER`` by the same code
     that renders the allowlist key, and :func:`render_server_py` passes it through
@@ -250,8 +325,22 @@ def render_systemd_unit(
     env_lines = "\n".join(
         _systemd_environment_line(k, _subst(str(v), p)) for k, v in env.items()
     )
-    exec_start = (
-        f"{p['venv']}/bin/uvicorn server:app --host 127.0.0.1 --port {spec.port}"
+    exec_start = _exec_start(spec, p)
+    service_lines = "".join(
+        [
+            *(
+                f"{key}={_service_directive(key, _subst(value, p))}\n"
+                for key, value in spec.service_directives
+            ),
+            *(
+                f"ExecStartPre={_unit_value('ExecStartPre', _subst(cmd, p))}\n"
+                for cmd in spec.exec_start_pre
+            ),
+            *(
+                f"EnvironmentFile={_unit_value('EnvironmentFile', _subst(f, p))}\n"
+                for f in spec.environment_files
+            ),
+        ]
     )
     description = f"{spec.server_name} MCP connector (mode=process :{spec.port})"
     description = description.replace("%", "%%")  # a specifier otherwise
@@ -259,7 +348,7 @@ def render_systemd_unit(
         "CONNECTOR_USAGE_LOG_DIR", f"{p['base']}/data/usage"
     )
     return (
-        f"# {spec.name} connector — the production process for apps/{spec.name}\n"
+        f"# {spec.name} connector — the production process for apps/{spec.dir_name}\n"
         "# (a mode=process enlace app). enlace only reverse-proxies the route to\n"
         f"# this unit on 127.0.0.1:{spec.port}; provisioned via the runbook.\n"
         "[Unit]\n"
@@ -276,6 +365,7 @@ def render_systemd_unit(
         "# switch it on only after telling them. Files are pruned to 90 days by default\n"
         "# (CONNECTOR_USAGE_LOG_RETENTION_DAYS); CONNECTOR_USAGE_LOG_REDACT masks fields.\n"
         f"#{usage_log_line}\n"
+        f"{service_lines}"
         f"ExecStart={exec_start}\n"
         "Restart=on-failure\n"
         "RestartSec=3\n\n"
@@ -588,7 +678,7 @@ def generate_deploy_bundle(
     dest = Path(dest)
     (dest / "deploy").mkdir(parents=True, exist_ok=True)
     p = _paths(spec, remote_base)
-    command = f"{p['venv']}/bin/uvicorn server:app --host 127.0.0.1 --port {spec.port}"
+    command = _exec_start(spec, p)
 
     written: dict[str, Path] = {}
 
@@ -622,3 +712,134 @@ def generate_deploy_bundle(
         render_runbook(spec, remote_base=remote_base, issuer=issuer),
     )
     return written
+
+
+def check_distinct_ports(specs) -> None:
+    """Refuse *specs* that would bind the same local port.
+
+    ``port`` has a default, so two specs that both omit it render units that
+    collide on one box, and the second connector never starts (#15). Run this
+    over every connector a host deploys.
+
+    >>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
+    ...                       ConnectorSpec(name="b", tools=[], port=8032)])
+    >>> check_distinct_ports([ConnectorSpec(name="a", tools=[]),
+    ...                       ConnectorSpec(name="b", tools=[])])
+    Traceback (most recent call last):
+      ...
+    ValueError: connectors share a port: 8030 (a, b)
+    """
+    by_port: dict[int, list[str]] = {}
+    for spec in specs:
+        by_port.setdefault(spec.port, []).append(spec.name)
+    clashes = {port: names for port, names in by_port.items() if len(names) > 1}
+    if clashes:
+        listed = "; ".join(
+            f"{port} ({', '.join(names)})" for port, names in sorted(clashes.items())
+        )
+        raise ValueError(f"connectors share a port: {listed}")
+
+
+#: Unit lines :func:`diff_unit` ignores by default: prose, not behaviour.
+DFLT_DIFF_IGNORE = frozenset({("Unit", "Description")})
+
+
+def _parse_unit(text: str) -> dict[tuple[str, str], list[str]]:
+    """``(section, key) -> values`` of a unit file, in order, comments dropped.
+
+    ``Environment=`` is split into one ``NAME=value`` entry per assignment, with
+    systemd's quoting and ``%%`` undone, so two spellings of the same environment
+    compare equal. Other values are compared with whitespace runs collapsed.
+    """
+    lines, pending = [], ""
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not pending and (not line or line[0] in "#;"):
+            continue
+        if line.endswith("\\"):
+            pending += line[:-1] + " "
+            continue
+        lines.append(pending + line)
+        pending = ""
+    if pending:
+        lines.append(pending)
+
+    parsed: dict[tuple[str, str], list[str]] = {}
+    section = ""
+    for line in lines:
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1].strip()
+            continue
+        key, sep, value = line.partition("=")
+        if not sep:
+            continue
+        key, value = key.strip(), value.strip()
+        if key == "Environment" and not value:
+            # An empty assignment resets the list, as in systemd.
+            parsed[(section, key)] = []
+            continue
+        if key == "Environment":
+            try:
+                values = [a.replace("%%", "%") for a in shlex.split(value)]
+            except ValueError:  # unbalanced quotes: compare it as written
+                values = [value]
+        else:
+            values = [" ".join(value.split())]
+        parsed.setdefault((section, key), []).extend(values)
+    return parsed
+
+
+def _environment(assignments: list[str]) -> dict[str, str]:
+    env: dict[str, str] = {}
+    for assignment in assignments:
+        name, _, value = assignment.partition("=")
+        env[name] = value  # a later assignment wins, as in systemd
+    return env
+
+
+def diff_unit(
+    spec: ConnectorSpec,
+    installed: str,
+    *,
+    remote_base: str = DFLT_REMOTE_BASE,
+    issuer: str = DFLT_ISSUER,
+    ignore=DFLT_DIFF_IGNORE,
+) -> list[str]:
+    """How the *installed* unit text differs from what *spec* renders; ``[]`` if not.
+
+    For a host that keeps its own unit files: run it per connector at deploy time
+    and report the lines, so a unit and its spec cannot drift apart unnoticed
+    (#15). The comparison is semantic: comments, blank lines, line order across
+    directives, whitespace runs and ``Environment=`` quoting do not count; the
+    order of repeated directives (``ExecStartPre=``) does. *ignore* is a set of
+    ``(section, key)`` pairs left out (the ``Description=`` prose, by default).
+    Drop-ins (``<unit>.d/*.conf``) are not read: pass the main unit file.
+
+    >>> spec = ConnectorSpec(name="x", tools=[], port=8040)
+    >>> diff_unit(spec, render_systemd_unit(spec))
+    []
+    >>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
+    '[Service] ExecStart: '
+    """
+    want = _parse_unit(render_systemd_unit(spec, remote_base=remote_base, issuer=issuer))
+    have = _parse_unit(installed)
+    diffs: list[str] = []
+    for section, key in sorted(want.keys() | have.keys()):
+        if (section, key) in ignore:
+            continue
+        w, h = want.get((section, key), []), have.get((section, key), [])
+        if key == "Environment":
+            we, he = _environment(w), _environment(h)
+            for name in sorted(we.keys() | he.keys()):
+                if name not in he:
+                    diffs.append(f"[{section}] Environment {name}: installed lacks it")
+                elif name not in we:
+                    diffs.append(f"[{section}] Environment {name}: not in the spec")
+                elif we[name] != he[name]:
+                    diffs.append(
+                        f"[{section}] Environment {name}: rendered {we[name]!r}, "
+                        f"installed {he[name]!r}"
+                    )
+        elif w != h:
+            diffs.append(f"[{section}] {key}: rendered {w!r}, installed {h!r}")
+    return diffs

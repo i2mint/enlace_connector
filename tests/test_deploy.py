@@ -476,3 +476,163 @@ def test_other_rendered_lines_carry_no_live_specifier():
 def test_an_unrenderable_path_is_refused(remote_base):
     with pytest.raises(ValueError, match="cannot contain"):
         render_systemd_unit(ConnectorSpec(name="x", tools=[]), remote_base=remote_base)
+
+
+# --- #15: specs that describe hand-maintained units, and drift detection ------
+
+from enlace_connector import check_distinct_ports, diff_unit  # noqa: E402
+
+HOSTED = ConnectorSpec(
+    name="audio",
+    tools=[],
+    app_dir="audio_mcp",
+    port=8041,
+    env={"AUDIO_DATA_HOME": "{base}/data"},
+    service_directives=[("RuntimeDirectory", "audio-mcp")],
+    exec_start_pre=[
+        "/bin/sh -c 'umask 077 && grep -E \"^AUDIO_KEY=\" {remote_base}/.env "
+        "> /run/audio-mcp/scoped.env'"
+    ],
+    environment_files=["-/run/audio-mcp/scoped.env"],
+    uvicorn_args=["--no-access-log"],
+)
+
+
+def test_app_dir_names_the_directories_but_not_the_unit():
+    u = render_systemd_unit(HOSTED, remote_base="/srv/p")
+    assert "WorkingDirectory=/srv/p/apps/audio_mcp\n" in u
+    assert "ExecStart=/srv/p/connectors/audio_mcp/venv/bin/uvicorn" in u
+    assert "Environment=AUDIO_DATA_HOME=/srv/p/connectors/audio_mcp/data" in u
+
+
+def test_unit_renders_secrets_scoping_and_extra_args():
+    u = render_systemd_unit(HOSTED, remote_base="/srv/p")
+    assert "\nRuntimeDirectory=audio-mcp\n" in u
+    assert "\nExecStartPre=/bin/sh -c 'umask 077 && grep -E \"^AUDIO_KEY=\" /srv/p/.env" in u
+    assert "\nEnvironmentFile=-/run/audio-mcp/scoped.env\n" in u
+    assert u.rstrip().count("--port 8041 --no-access-log\n") == 1
+
+
+def test_bundle_app_toml_runs_the_same_command_as_the_unit(tmp_path):
+    spec = ConnectorSpec(
+        name="audio", tools=[], port=8041, uvicorn_args=["--no-access-log"],
+        allowed_users=["*"],
+    )
+    written = generate_deploy_bundle(spec, tmp_path)
+    assert "--port 8041 --no-access-log" in written["app.toml"].read_text()
+
+
+@pytest.mark.parametrize("arg", ["", "--a b", "--x=%n", '--q="1"', "a\\b"])
+def test_a_uvicorn_arg_that_is_not_one_token_is_refused(arg):
+    with pytest.raises(ValueError):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], uvicorn_args=[arg]))
+
+
+@pytest.mark.parametrize(
+    "field", ["exec_start_pre", "environment_files", "service_directives"]
+)
+def test_a_newline_cannot_inject_a_unit_line(field):
+    value = ("A", "x\nExecStart=/bin/evil") if field == "service_directives" else (
+        "x\nExecStart=/bin/evil"
+    )
+    with pytest.raises(ValueError):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], **{field: [value]}))
+
+
+def test_ports_that_collide_are_refused():
+    check_distinct_ports([HOSTED, ConnectorSpec(name="b", tools=[], port=8042)])
+    with pytest.raises(ValueError, match="8041 \\(audio, b\\)"):
+        check_distinct_ports([HOSTED, ConnectorSpec(name="b", tools=[], port=8041)])
+
+
+def test_a_unit_rendered_from_its_spec_has_no_drift():
+    assert diff_unit(HOSTED, render_systemd_unit(HOSTED)) == []
+
+
+def test_drift_ignores_comments_order_quoting_and_description():
+    rendered = render_systemd_unit(HOSTED)
+    service = [
+        ln for ln in rendered.split("[Service]\n")[1].split("\n\n")[0].splitlines()
+        if ln and not ln.startswith("#")
+    ]
+    env = [ln for ln in service if ln.startswith("Environment=")]
+    rest = [ln for ln in service if not ln.startswith("Environment=")]
+    hand = (
+        "# maintained by hand\n[Unit]\nDescription=whatever the host calls it\n"
+        "After=network-online.target\nWants=network-online.target\n\n"
+        "[Service]\n"
+        + "\n".join(reversed(rest))  # only one of each, so order is free
+        + "\n"
+        + "\n".join(
+            'Environment="' + ln.removeprefix("Environment=") + '"' for ln in env
+        )
+        + "\n\n[Install]\nWantedBy=multi-user.target\n"
+    )
+    assert diff_unit(HOSTED, hand) == []
+
+
+def test_drift_is_reported_line_by_line():
+    installed = (
+        render_systemd_unit(HOSTED)
+        .replace("EnvironmentFile=-/run/audio-mcp/scoped.env\n", "")
+        .replace(" --no-access-log", "")
+        .replace("Environment=CONNECTOR_AUDIENCE=", "Environment=OLD_AUDIENCE=")
+    )
+    drift = diff_unit(HOSTED, installed)
+    assert any(d.startswith("[Service] EnvironmentFile:") for d in drift)
+    assert any(d.startswith("[Service] ExecStart:") for d in drift)
+    assert "[Service] Environment CONNECTOR_AUDIENCE: installed lacks it" in drift
+    assert "[Service] Environment OLD_AUDIENCE: not in the spec" in drift
+
+
+def test_the_order_of_repeated_exec_start_pre_lines_counts():
+    spec = ConnectorSpec(name="x", tools=[], exec_start_pre=["/bin/a", "/bin/b"])
+    swapped = render_systemd_unit(spec).replace(
+        "ExecStartPre=/bin/a\nExecStartPre=/bin/b", "ExecStartPre=/bin/b\nExecStartPre=/bin/a"
+    )
+    assert diff_unit(spec, swapped) == [
+        "[Service] ExecStartPre: rendered ['/bin/a', '/bin/b'], "
+        "installed ['/bin/b', '/bin/a']"
+    ]
+
+
+# Found by the adversarial review of #17.
+
+
+@pytest.mark.parametrize(
+    "field", ["exec_start_pre", "environment_files", "service_directives"]
+)
+def test_a_trailing_backslash_cannot_swallow_the_next_line(field):
+    value = ("RuntimeDirectory", "foo\\") if field == "service_directives" else "foo\\"
+    with pytest.raises(ValueError, match="backslash"):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], **{field: [value]}))
+
+
+@pytest.mark.parametrize(
+    "key", ["ExecStart", "Type", "User", "WorkingDirectory", "Environment", "Restart"]
+)
+def test_service_directives_cannot_override_what_the_renderer_owns(key):
+    spec = ConnectorSpec(name="x", tools=[], service_directives=[(key, "/bin/true")])
+    with pytest.raises(ValueError, match=f"cannot set {key}="):
+        render_systemd_unit(spec)
+
+
+def test_a_lone_semicolon_is_not_a_uvicorn_arg():
+    """systemd reads it as a command separator; app.toml would pass it to uvicorn."""
+    with pytest.raises(ValueError):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], uvicorn_args=[";", "/bin/true"]))
+
+
+def test_an_empty_environment_line_resets_what_came_before():
+    spec = ConnectorSpec(name="x", tools=[], env={"FOO": "1"})
+    installed = render_systemd_unit(spec).replace(
+        "Environment=FOO=1\n", "Environment=FOO=1\nEnvironment=\n"
+    )
+    drift = diff_unit(spec, installed)
+    assert "[Service] Environment FOO: installed lacks it" in drift
+
+
+@pytest.mark.parametrize("app_dir", ["../evil", "x/y", ".", ""])
+def test_app_dir_is_one_directory_name(app_dir):
+    with pytest.raises(ValueError, match="app_dir"):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], app_dir=app_dir))

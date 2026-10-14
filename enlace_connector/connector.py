@@ -64,6 +64,23 @@ class ConnectorSpec:
             ``(tool_name, result) -> label | mapping`` usage-outcome classifier
             (e.g. one that knows the search tool's "no match" shape), used in
             place of py2mcp's generic one when logging is on.
+        app_dir: the connector's directory name under the platform's ``apps/``
+            and ``connectors/`` (defaults to *name*). A host that names the app
+            ``<name>_mcp`` sets it so the rendered paths exist (#15).
+        environment_files: ``EnvironmentFile=`` values for the unit, in order —
+            how a host scopes provider secrets into the process without writing
+            them into the unit. A leading ``-`` makes one optional, as in systemd.
+        exec_start_pre: ``ExecStartPre=`` commands, in order (e.g. extracting the
+            scoped secrets an ``environment_files`` entry then reads).
+        uvicorn_args: extra arguments appended to the ``uvicorn`` command line
+            (e.g. ``--no-access-log`` for a connector that serves signed links).
+        service_directives: any other ``(key, value)`` lines for the unit's
+            ``[Service]`` section, in order (e.g. ``("RuntimeDirectory", ...)``).
+
+        The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /
+        ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.
+        Unlike *env*, a ``%`` in them is written as-is, so systemd specifiers
+        (``%t``, ``%n``) work there; write ``%%`` for a literal one.
     """
 
     name: str
@@ -81,6 +98,16 @@ class ConnectorSpec:
     stateless_http: bool = True
     version: str | None = None
     usage_outcome: str | None = None
+    app_dir: str | None = None
+    environment_files: list[str] = field(default_factory=list)
+    exec_start_pre: list[str] = field(default_factory=list)
+    uvicorn_args: list[str] = field(default_factory=list)
+    service_directives: list[tuple[str, str]] = field(default_factory=list)
+
+    @property
+    def dir_name(self) -> str:
+        """The directory name under ``apps/`` and ``connectors/`` (see *app_dir*)."""
+        return self.app_dir or self.name
 
     @property
     def server_name(self) -> str:
