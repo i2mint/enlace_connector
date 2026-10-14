@@ -76,6 +76,20 @@ class ConnectorSpec:
             (e.g. ``--no-access-log`` for a connector that serves signed links).
         service_directives: any other ``(key, value)`` lines for the unit's
             ``[Service]`` section, in order (e.g. ``("RuntimeDirectory", ...)``).
+        icon: the server icon clients show next to the connector (sent in the MCP
+            ``serverInfo``): a ``src`` URL or ``data:`` URI, or a dict of
+            ``mcp.types.Icon`` fields (``src``, ``mimeType``, ``sizes``).
+        instructions: the server's model-facing description, surfaced to the
+            connecting client as the MCP ``instructions``.
+        middleware: ``"module:attr"`` refs to extra FastMCP middleware, in order
+            (e.g. a metering gate). Each names a middleware, a list of them, or a
+            zero-argument factory returning either; they run before the usage
+            logger. A host can also pass ``middleware=`` to
+            :func:`make_connector_app`; that runs first.
+        server_hooks: ``"module:function"`` refs, each called with the built
+            FastMCP server before it is served — the seam for tools that are not
+            importable ``"module:function"`` refs (closures bound to a project, a
+            store, a per-caller context): ``server.tool(fn)`` inside the hook.
 
         The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /
         ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.
@@ -103,6 +117,10 @@ class ConnectorSpec:
     exec_start_pre: list[str] = field(default_factory=list)
     uvicorn_args: list[str] = field(default_factory=list)
     service_directives: list[tuple[str, str]] = field(default_factory=list)
+    icon: Any = None
+    instructions: str | None = None
+    middleware: list[str] = field(default_factory=list)
+    server_hooks: list[str] = field(default_factory=list)
 
     @property
     def dir_name(self) -> str:
@@ -134,11 +152,61 @@ def make_stdio_server(spec: ConnectorSpec):
     """Build a FastMCP server for *spec*, for local stdio serving (no auth).
 
     Use for ``server.run()`` in Claude Desktop / Claude Code while developing the
-    tools; the hosted path uses :func:`make_connector_app`.
+    tools; the hosted path uses :func:`make_connector_app`. The spec's ``icon``,
+    ``instructions`` and ``server_hooks`` apply; its ``middleware`` does not (it
+    is the hosted path's metering and gating).
     """
+    return _build_server(spec)
+
+
+def _resolve_ref(ref: str) -> Any:
+    from py2mcp.util import import_object
+
+    return import_object(ref)
+
+
+def _spec_middleware(spec: ConnectorSpec) -> list:
+    """The middleware *spec* names, resolved in order (see ``ConnectorSpec.middleware``)."""
+    from fastmcp.server.middleware import Middleware
+
+    out: list = []
+    for ref in spec.middleware:
+        obj = _resolve_ref(ref)
+        if not isinstance(obj, (Middleware, list, tuple)) and callable(obj):
+            try:
+                obj = obj()  # a factory
+            except TypeError as exc:
+                raise TypeError(
+                    f"{ref!r} is called with no arguments as a middleware factory and "
+                    f"failed ({exc}); name a constructed middleware or a zero-argument "
+                    "factory that builds one"
+                ) from exc
+        items = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+        for item in items:
+            if not isinstance(item, Middleware):
+                raise TypeError(
+                    f"{ref!r} gave {type(item).__name__}, not a FastMCP Middleware "
+                    "(name a middleware, a list of them, or a zero-argument factory)"
+                )
+        out += items
+    return out
+
+
+def _build_server(spec: ConnectorSpec, *, auth: Any = None, middleware: Any = None):
+    """The FastMCP server for *spec*: its tools, icon, instructions and hooks."""
     from py2mcp import mk_mcp_from_refs
 
-    return mk_mcp_from_refs(spec.tools, name=spec.server_name)
+    optional: dict[str, Any] = {}
+    if spec.icon:  # the renderer's rule too: an empty icon is no icon
+        optional["icons"] = spec.icon
+    if spec.instructions:
+        optional["instructions"] = spec.instructions
+    server = mk_mcp_from_refs(
+        spec.tools, name=spec.server_name, auth=auth, middleware=middleware, **optional
+    )
+    for ref in spec.server_hooks:
+        _resolve_ref(ref)(server)
+    return server
 
 
 def make_connector_app(
@@ -155,7 +223,9 @@ def make_connector_app(
     ``auth="enlace"`` provide *issuer* (the platform origin) and *audience* (this
     connector's public URL); if *audience* is omitted it is derived from *issuer* +
     the spec's route. Returns an ASGI app to run under any ASGI server (or mount in
-    enlace).
+    enlace). The spec's ``icon``, ``instructions``, ``middleware`` and
+    ``server_hooks`` are applied, so a connector that needs them is still built
+    here rather than by hand (#3).
 
     Per-call usage logging is attached when the host's *settings* (``os.environ``
     by default) set ``CONNECTOR_USAGE_LOG_DIR`` — see :mod:`enlace_connector.usage`;
@@ -168,8 +238,8 @@ def make_connector_app(
         audience = spec.default_audience(issuer)
     auth = resolve_auth(spec.auth, issuer=issuer, audience=audience)
 
-    from py2mcp import mk_http_app
     from py2mcp.base import normalize_middleware
+    from py2mcp.http import DFLT_TRANSPORT, mk_auth_provider
 
     from .usage import usage_middleware
 
@@ -179,11 +249,8 @@ def make_connector_app(
             "run before the usage logger, and a set loses that order."
         )
     extra = normalize_middleware(middleware) or []
-    stack = extra + usage_middleware(spec, settings=settings)
-    return mk_http_app(
-        spec.tools,
-        name=spec.server_name,
-        auth=auth,
-        stateless_http=spec.stateless_http,
-        middleware=stack or None,
-    )
+    stack = extra + _spec_middleware(spec) + usage_middleware(spec, settings=settings)
+    # py2mcp's mk_http_app, opened up so the spec's server_hooks can reach the
+    # server between building it and serving it.
+    server = _build_server(spec, auth=mk_auth_provider(auth), middleware=stack or None)
+    return server.http_app(transport=DFLT_TRANSPORT, stateless_http=spec.stateless_http)
