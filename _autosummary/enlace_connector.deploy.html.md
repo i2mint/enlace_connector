@@ -33,16 +33,18 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 
 ### Functions
 
-| [`resource_url`](#enlace_connector.deploy.resource_url)(spec, \*[, issuer])                  | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).   |
-|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| [`render_systemd_unit`](#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...]) | Render the systemd unit that runs the connector in its own venv.             |
-| [`render_provision_script`](#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])  | Render the idempotent, run-as-root provisioning script for the connector.    |
-| [`render_allowlist_toml`](#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])         | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
-| [`allowlist_users`](#enlace_connector.deploy.allowlist_users)(spec)                             | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
-| [`render_display_names_toml`](#enlace_connector.deploy.render_display_names_toml)(spec, \*[, issuer])     | Render the `[auth.oauth_server.resource_display_names]` fragment.            |
-| [`render_oauth_server_toml`](#enlace_connector.deploy.render_oauth_server_toml)(spec, \*[, issuer, ...]) | Render the `[auth.oauth_server]` fragment that keeps sessions alive.         |
-| [`render_runbook`](#enlace_connector.deploy.render_runbook)(spec, \*[, remote_base, issuer])   | Render the human deploy checklist (ship, provision, deploy, **verify**).     |
-| [`generate_deploy_bundle`](#enlace_connector.deploy.generate_deploy_bundle)(spec, dest, \*[, ...])     | Write the full deploy bundle for *spec* under *dest*.                        |
+| [`resource_url`](#enlace_connector.deploy.resource_url)(spec, \*[, issuer])                   | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).   |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`render_systemd_unit`](#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.             |
+| [`diff_unit`](#enlace_connector.deploy.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not. |
+| [`check_distinct_ports`](#enlace_connector.deploy.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                          |
+| [`render_provision_script`](#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.    |
+| [`render_allowlist_toml`](#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
+| [`allowlist_users`](#enlace_connector.deploy.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
+| [`render_display_names_toml`](#enlace_connector.deploy.render_display_names_toml)(spec, \*[, issuer])      | Render the `[auth.oauth_server.resource_display_names]` fragment.            |
+| [`render_oauth_server_toml`](#enlace_connector.deploy.render_oauth_server_toml)(spec, \*[, issuer, ...])  | Render the `[auth.oauth_server]` fragment that keeps sessions alive.         |
+| [`render_runbook`](#enlace_connector.deploy.render_runbook)(spec, \*[, remote_base, issuer])    | Render the human deploy checklist (ship, provision, deploy, **verify**).     |
+| [`generate_deploy_bundle`](#enlace_connector.deploy.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                        |
 
 ### enlace_connector.deploy.ANY_ACCOUNT *= '\*'*
 
@@ -79,6 +81,50 @@ an explicit `["*"]`.
 Traceback (most recent call last):
 ...
 ValueError: Connector 'x' has no allowed_users...
+```
+
+### enlace_connector.deploy.check_distinct_ports(specs)
+
+Refuse *specs* that would bind the same local port.
+
+`port` has a default, so two specs that both omit it render units that
+collide on one box, and the second connector never starts (#15). Run this
+over every connector a host deploys.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[]),
+...                       ConnectorSpec(name="b", tools=[])])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a port: 8030 (a, b)
+```
+
+### enlace_connector.deploy.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
+
+How the *installed* unit text differs from what *spec* renders; `[]` if not.
+
+For a host that keeps its own unit files: run it per connector at deploy time
+and report the lines, so a unit and its spec cannot drift apart unnoticed
+(#15). The comparison is semantic: comments, blank lines, line order across
+directives, whitespace runs and `Environment=` quoting do not count; the
+order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
+`(section, key)` pairs left out (the `Description=` prose, by default).
+Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> spec = ConnectorSpec(name="x", tools=[], port=8040)
+>>> diff_unit(spec, render_systemd_unit(spec))
+[]
+>>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
+'[Service] ExecStart: '
 ```
 
 ### enlace_connector.deploy.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
@@ -186,6 +232,12 @@ in plain words and gives the exact command that detects it.
 ### enlace_connector.deploy.render_systemd_unit(spec, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com')
 
 Render the systemd unit that runs the connector in its own venv.
+
+A host that hand-maintains its units can treat this as the reference: run
+[`diff_unit()`](#enlace_connector.deploy.diff_unit) against each installed unit, so the two cannot drift apart
+silently (#15). The spec carries what such units need: an `app_dir` name,
+`environment_files` and `exec_start_pre` for scoped secrets,
+`uvicorn_args`, and other `service_directives`.
 
 `CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
 that renders the allowlist key, and `render_server_py()` passes it through

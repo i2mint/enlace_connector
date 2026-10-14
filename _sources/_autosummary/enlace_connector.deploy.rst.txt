@@ -18,6 +18,8 @@ enlace\_connector.deploy
    
       resource_url
       render_systemd_unit
+      diff_unit
+      check_distinct_ports
       render_provision_script
       render_allowlist_toml
       allowlist_users

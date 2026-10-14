@@ -465,6 +465,19 @@ authenticated platform account, and has to be written out:</p></li>
 </div>
 <p>Platform specifics (paths, origin) are parameters with tw_platform defaults; the
 package stays connector-type-agnostic (it knows nothing of <code class="docutils literal notranslate"><span class="pre">ir</span></code>).</p>
+<section id="hosts-that-keep-their-own-unit-files">
+<h3>Hosts that keep their own unit files<a class="headerlink" href="#hosts-that-keep-their-own-unit-files" title="Link to this heading">#</a></h3>
+<p>A host may hand-maintain its units rather than install the rendered one. The spec can still describe such a unit: <code class="docutils literal notranslate"><span class="pre">app_dir</span></code> names the directory under <code class="docutils literal notranslate"><span class="pre">apps/</span></code> and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;acme_mcp&quot;</span></code>, when it is not the spec’s <code class="docutils literal notranslate"><span class="pre">name</span></code>), <code class="docutils literal notranslate"><span class="pre">environment_files</span></code> and <code class="docutils literal notranslate"><span class="pre">exec_start_pre</span></code> scope provider secrets into the process, <code class="docutils literal notranslate"><span class="pre">uvicorn_args</span></code> adds flags such as <code class="docutils literal notranslate"><span class="pre">--no-access-log</span></code>, and <code class="docutils literal notranslate"><span class="pre">service_directives</span></code> carries any other <code class="docutils literal notranslate"><span class="pre">[Service]</span></code> line (<code class="docutils literal notranslate"><span class="pre">RuntimeDirectory=</span></code>, …). Then make drift visible instead of silent:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_distinct_ports</span><span class="p">,</span> <span class="n">diff_unit</span>
+
+<span class="n">check_distinct_ports</span><span class="p">(</span><span class="n">specs</span><span class="p">)</span>          <span class="c1"># `port` has a default: two specs that omit it collide</span>
+<span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">diff_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">installed_unit_text</span><span class="p">(</span><span class="n">spec</span><span class="p">)):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>       <span class="c1"># e.g. "[Service] Environment CONNECTOR_AUDIENCE: installed lacks it"</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">diff_unit</span></code> compares semantically (comments, directive order, whitespace and <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> quoting do not count; the order of repeated <code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code> lines does) and ignores <code class="docutils literal notranslate"><span class="pre">Description=</span></code>. It reads the main unit file only, not drop-ins.</p>
+</section>
 </section>
 <section id="verify-before-you-call-it-deployed">
 <h2>Verify before you call it deployed<a class="headerlink" href="#verify-before-you-call-it-deployed" title="Link to this heading">#</a></h2>
@@ -517,7 +530,7 @@ directly (to attach a server icon, custom tools, etc.) is also supported — see
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-13 23:29 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/50026bb4aae08195e323cd639b3abbeeaf3e0488">50026bb</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-14 01:06 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/0b2f5707e3a0ad638f54b74bdefbfd1d12576eec">0b2f570</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
@@ -559,7 +572,10 @@ directly (to attach a server icon, custom tools, etc.) is also supported — see
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#why-a-separate-venv-mode-process">Why a separate venv (<code class="docutils literal notranslate"><span class="pre">mode="process"</span></code>)</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#auth-is-pluggable">Auth is pluggable</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#usage-logging-is-a-switch-not-code">Usage logging is a switch, not code</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deploy-the-whole-bundle">Deploy the whole bundle</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#deploy-the-whole-bundle">Deploy the whole bundle</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hosts-that-keep-their-own-unit-files">Hosts that keep their own unit files</a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-before-you-call-it-deployed">Verify before you call it deployed</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cost-llm-note">Cost / LLM note</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#status">Status</a></li>

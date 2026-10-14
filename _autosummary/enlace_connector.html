@@ -454,6 +454,12 @@ in seconds instead of when a user complains a day later.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_systemd_unit" title="enlace_connector.render_systemd_unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_systemd_unit</span></code></a>(spec, *[, remote_base, ...])</p></td>
 <td><p>Render the systemd unit that runs the connector in its own venv.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.diff_unit" title="enlace_connector.diff_unit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">diff_unit</span></code></a>(spec, installed, *[, remote_base, ...])</p></td>
+<td><p>How the <em>installed</em> unit text differs from what <em>spec</em> renders; <code class="docutils literal notranslate"><span class="pre">[]</span></code> if not.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.check_distinct_ports" title="enlace_connector.check_distinct_ports"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_distinct_ports</span></code></a>(specs)</p></td>
+<td><p>Refuse <em>specs</em> that would bind the same local port.</p></td>
+</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_provision_script" title="enlace_connector.render_provision_script"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_provision_script</span></code></a>(spec, *[, remote_base])</p></td>
 <td><p>Render the idempotent, run-as-root provisioning script for the connector.</p></td>
 </tr>
@@ -562,7 +568,7 @@ in seconds instead of when a user complains a day later.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">ConnectorSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tools</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extras</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_installs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8030</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_install</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateless_http</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage_outcome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">ConnectorSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tools</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extras</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_installs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8030</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_install</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateless_http</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage_outcome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">app_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exec_start_pre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvicorn_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_directives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A declarative connector definition (see the module docstring).</p>
 <dl class="field-list simple">
@@ -676,6 +682,63 @@ when logging is on (see <a class="reference internal" href="enlace_connector.usa
 place of py2mcp’s generic one when logging is on.</p>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.app_dir">
+<span class="sig-name descname"><span class="pre">app_dir</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.app_dir" title="Link to this definition">#</a></dt>
+<dd><p>the connector’s directory name under the platform’s <code class="docutils literal notranslate"><span class="pre">apps/</span></code>
+and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (defaults to <em>name</em>). A host that names the app
+<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;_mcp</span></code> sets it so the rendered paths exist (#15).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.environment_files">
+<span class="sig-name descname"><span class="pre">environment_files</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.environment_files" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">EnvironmentFile=</span></code> values for the unit, in order —
+how a host scopes provider secrets into the process without writing
+them into the unit. A leading <code class="docutils literal notranslate"><span class="pre">-</span></code> makes one optional, as in systemd.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.exec_start_pre">
+<span class="sig-name descname"><span class="pre">exec_start_pre</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.exec_start_pre" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code> commands, in order (e.g. extracting the
+scoped secrets an <code class="docutils literal notranslate"><span class="pre">environment_files</span></code> entry then reads).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.uvicorn_args">
+<span class="sig-name descname"><span class="pre">uvicorn_args</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.uvicorn_args" title="Link to this definition">#</a></dt>
+<dd><p>extra arguments appended to the <code class="docutils literal notranslate"><span class="pre">uvicorn</span></code> command line
+(e.g. <code class="docutils literal notranslate"><span class="pre">--no-access-log</span></code> for a connector that serves signed links).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.service_directives">
+<span class="sig-name descname"><span class="pre">service_directives</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.service_directives" title="Link to this definition">#</a></dt>
+<dd><p>any other <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">value)</span></code> lines for the unit’s
+<code class="docutils literal notranslate"><span class="pre">[Service]</span></code> section, in order (e.g. <code class="docutils literal notranslate"><span class="pre">(&quot;RuntimeDirectory&quot;,</span> <span class="pre">...)</span></code>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">The</span> <span class="pre">last</span> <span class="pre">four</span> <span class="pre">take</span> <span class="pre">the</span> <span class="pre">same</span> <span class="pre">``{base}``</span> <span class="pre">/</span> <span class="pre">``{venv}``</span> <span class="pre">/</span> <span class="pre">``{app_dir}``</span> <span class="pre">/</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">``{remote_base}``</span> <span class="pre">/</span> <span class="pre">``{name}``</span> <span class="pre">/</span> <span class="pre">``{port}``</span> <span class="pre">placeholders</span> <span class="pre">as</span> <span class="pre">*env*.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Unlike</span> <span class="pre">*env*,</span> <span class="pre">a</span> <span class="pre">``%``</span> <span class="pre">in</span> <span class="pre">them</span> <span class="pre">is</span> <span class="pre">written</span> <span class="pre">as-is,</span> <span class="pre">so</span> <span class="pre">systemd</span> <span class="pre">specifiers</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">(``%t``,</span> <span class="pre">``%n``)</span> <span class="pre">work</span> <span class="pre">there;</span> <span class="pre">write</span> <span class="pre">``%%``</span> <span class="pre">for</span> <span class="pre">a</span> <span class="pre">literal</span> <span class="pre">one.</span></span></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.default_audience">
 <span class="sig-name descname"><span class="pre">default_audience</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">platform_origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec.default_audience"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec.default_audience" title="Link to this definition">#</a></dt>
@@ -685,6 +748,12 @@ place of py2mcp’s generic one when logging is on.</p>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.dir_name">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">dir_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.dir_name" title="Link to this definition">#</a></dt>
+<dd><p>The directory name under <code class="docutils literal notranslate"><span class="pre">apps/</span></code> and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (see <em>app_dir</em>).</p>
 </dd></dl>
 
 <dl class="py property">
@@ -789,6 +858,29 @@ an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.check_distinct_ports">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">check_distinct_ports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#check_distinct_ports"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.check_distinct_ports" title="Link to this definition">#</a></dt>
+<dd><p>Refuse <em>specs</em> that would bind the same local port.</p>
+<p><code class="docutils literal notranslate"><span class="pre">port</span></code> has a default, so two specs that both omit it render units that
+collide on one box, and the second connector never starts (#15). Run this
+over every connector a host deploys.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_ports</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
+<span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_ports</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[]),</span>
+<span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[])])</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">  </span><span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">connectors share a port: 8030 (a, b)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="enlace_connector.check_jwks_uri_matches_convention">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">check_jwks_uri_matches_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#check_jwks_uri_matches_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.check_jwks_uri_matches_convention" title="Link to this definition">#</a></dt>
 <dd><p>For <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> connectors: the AS’s <code class="docutils literal notranslate"><span class="pre">jwks_uri</span></code> is the one we validate against.</p>
@@ -812,6 +904,31 @@ expire into a dead end, which is invisible from the connector’s own health.</p
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a></span></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.diff_unit">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">diff_unit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">installed</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">frozenset({('Unit',</span> <span class="pre">'Description')})</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#diff_unit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.diff_unit" title="Link to this definition">#</a></dt>
+<dd><p>How the <em>installed</em> unit text differs from what <em>spec</em> renders; <code class="docutils literal notranslate"><span class="pre">[]</span></code> if not.</p>
+<p>For a host that keeps its own unit files: run it per connector at deploy time
+and report the lines, so a unit and its spec cannot drift apart unnoticed
+(#15). The comparison is semantic: comments, blank lines, line order across
+directives, whitespace runs and <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> quoting do not count; the
+order of repeated directives (<code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code>) does. <em>ignore</em> is a set of
+<code class="docutils literal notranslate"><span class="pre">(section,</span> <span class="pre">key)</span></code> pairs left out (the <code class="docutils literal notranslate"><span class="pre">Description=</span></code> prose, by default).
+Drop-ins (<code class="docutils literal notranslate"><span class="pre">&lt;unit&gt;.d/*.conf</span></code>) are not read: pass the main unit file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8040</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diff_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">render_systemd_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
+<span class="go">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diff_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">render_systemd_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"8040"</span><span class="p">,</span> <span class="s2">"8041"</span><span class="p">))[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">21</span><span class="p">]</span>
+<span class="go">'[Service] ExecStart: '</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1050,6 +1167,11 @@ omitted: they are consumed by the provisioning bundle, not by the process.</p>
 <dt class="sig sig-object py" id="enlace_connector.render_systemd_unit">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">render_systemd_unit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#render_systemd_unit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.render_systemd_unit" title="Link to this definition">#</a></dt>
 <dd><p>Render the systemd unit that runs the connector in its own venv.</p>
+<p>A host that hand-maintains its units can treat this as the reference: run
+<a class="reference internal" href="#enlace_connector.diff_unit" title="enlace_connector.diff_unit"><code class="xref py py-func docutils literal notranslate"><span class="pre">diff_unit()</span></code></a> against each installed unit, so the two cannot drift apart
+silently (#15). The spec carries what such units need: an <code class="docutils literal notranslate"><span class="pre">app_dir</span></code> name,
+<code class="docutils literal notranslate"><span class="pre">environment_files</span></code> and <code class="docutils literal notranslate"><span class="pre">exec_start_pre</span></code> for scoped secrets,
+<code class="docutils literal notranslate"><span class="pre">uvicorn_args</span></code>, and other <code class="docutils literal notranslate"><span class="pre">service_directives</span></code>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">CONNECTOR_AUDIENCE</span></code> is rendered next to <code class="docutils literal notranslate"><span class="pre">CONNECTOR_ISSUER</span></code> by the same code
 that renders the allowlist key, and <a class="reference internal" href="#enlace_connector.render_server_py" title="enlace_connector.render_server_py"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_server_py()</span></code></a> passes it through
 explicitly, so the runtime never re-derives it: a connector venv holding an older
@@ -1275,7 +1397,13 @@ platform is one the connector cannot observe about itself.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.stateless_http"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.stateless_http</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.version"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.version</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.usage_outcome"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.usage_outcome</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.app_dir"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.app_dir</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.environment_files"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.environment_files</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.exec_start_pre"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.exec_start_pre</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.uvicorn_args"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.uvicorn_args</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.service_directives"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.service_directives</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.default_audience"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.default_audience()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.dir_name"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.dir_name</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.ConnectorSpec.mount_route"><code class="docutils literal notranslate"><span class="pre">ConnectorSpec.mount_route</span></code></a></li>
 </ul>
 </li>
@@ -1290,8 +1418,10 @@ platform is one the connector cannot observe about itself.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightError"><code class="docutils literal notranslate"><span class="pre">PreflightError</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.allowlist_users"><code class="docutils literal notranslate"><span class="pre">allowlist_users()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.authorization_server_metadata"><code class="docutils literal notranslate"><span class="pre">authorization_server_metadata()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_distinct_ports"><code class="docutils literal notranslate"><span class="pre">check_distinct_ports()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_jwks_uri_matches_convention"><code class="docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_refresh_grant_supported"><code class="docutils literal notranslate"><span class="pre">check_refresh_grant_supported()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.diff_unit"><code class="docutils literal notranslate"><span class="pre">diff_unit()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.enlace_resource"><code class="docutils literal notranslate"><span class="pre">enlace_resource()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.format_report"><code class="docutils literal notranslate"><span class="pre">format_report()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.generate_deploy_bundle"><code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle()</span></code></a></li>

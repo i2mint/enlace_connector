@@ -1,4 +1,4 @@
-> built 2026-10-13 23:29 UTC from 50026bb (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-10-14 01:06 UTC from 0b2f570 (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -109,6 +109,21 @@ generate_deploy_bundle(spec, "apps/acme_mcp")   # → app dir + deploy/{unit,pro
 
 Platform specifics (paths, origin) are parameters with tw_platform defaults; the
 package stays connector-type-agnostic (it knows nothing of `ir`).
+
+### Hosts that keep their own unit files
+
+A host may hand-maintain its units rather than install the rendered one. The spec can still describe such a unit: `app_dir` names the directory under `apps/` and `connectors/` (e.g. `"acme_mcp"`, when it is not the spec’s `name`), `environment_files` and `exec_start_pre` scope provider secrets into the process, `uvicorn_args` adds flags such as `--no-access-log`, and `service_directives` carries any other `[Service]` line (`RuntimeDirectory=`, …). Then make drift visible instead of silent:
+
+```python
+from enlace_connector import check_distinct_ports, diff_unit
+
+check_distinct_ports(specs)          # `port` has a default: two specs that omit it collide
+for spec in specs:
+    for line in diff_unit(spec, installed_unit_text(spec)):
+        print(spec.name, line)       # e.g. "[Service] Environment CONNECTOR_AUDIENCE: installed lacks it"
+```
+
+`diff_unit` compares semantically (comments, directive order, whitespace and `Environment=` quoting do not count; the order of repeated `ExecStartPre=` lines does) and ignores `Description=`. It reads the main unit file only, not drop-ins.
 
 ## Verify before you call it deployed
 
@@ -291,7 +306,7 @@ process that actually serves them.
 | [`ConnectorSpec`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None)
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -376,12 +391,51 @@ a `"module:function"` ref to this connector’s own
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.
 
+#### app_dir
+
+the connector’s directory name under the platform’s `apps/`
+and `connectors/` (defaults to *name*). A host that names the app
+`<name>_mcp` sets it so the rendered paths exist (#15).
+
+#### environment_files
+
+`EnvironmentFile=` values for the unit, in order —
+how a host scopes provider secrets into the process without writing
+them into the unit. A leading `-` makes one optional, as in systemd.
+
+#### exec_start_pre
+
+`ExecStartPre=` commands, in order (e.g. extracting the
+scoped secrets an `environment_files` entry then reads).
+
+#### uvicorn_args
+
+extra arguments appended to the `uvicorn` command line
+(e.g. `--no-access-log` for a connector that serves signed links).
+
+#### service_directives
+
+any other `(key, value)` lines for the unit’s
+`[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
+
+### \`\`{remote_base}\`\` / \`\`{name}\`\` / \`\`{port}\`\` placeholders as \*env\*.
+
+### Unlike \*env\*, a \`\`%\`\` in them is written as-is, so systemd specifiers
+
+### (\`\`%t\`\`, \`\`%n\`\`) work there; write \`\`%%\`\` for a literal one.
+
 #### default_audience(platform_origin)
 
 This connector’s public URL under *platform_origin* (the token audience).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### *property* dir_name *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The directory name under `apps/` and `connectors/` (see *app_dir*).
 
 #### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
@@ -456,16 +510,18 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 
 ### Functions
 
-| [`resource_url`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.resource_url)(spec, \*[, issuer])                  | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).   |
-|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| [`render_systemd_unit`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...]) | Render the systemd unit that runs the connector in its own venv.             |
-| [`render_provision_script`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])  | Render the idempotent, run-as-root provisioning script for the connector.    |
-| [`render_allowlist_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])         | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
-| [`allowlist_users`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.allowlist_users)(spec)                             | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
-| [`render_display_names_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_display_names_toml)(spec, \*[, issuer])     | Render the `[auth.oauth_server.resource_display_names]` fragment.            |
-| [`render_oauth_server_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_oauth_server_toml)(spec, \*[, issuer, ...]) | Render the `[auth.oauth_server]` fragment that keeps sessions alive.         |
-| [`render_runbook`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_runbook)(spec, \*[, remote_base, issuer])   | Render the human deploy checklist (ship, provision, deploy, **verify**).     |
-| [`generate_deploy_bundle`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.generate_deploy_bundle)(spec, dest, \*[, ...])     | Write the full deploy bundle for *spec* under *dest*.                        |
+| [`resource_url`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.resource_url)(spec, \*[, issuer])                   | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).   |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`render_systemd_unit`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.             |
+| [`diff_unit`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not. |
+| [`check_distinct_ports`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                          |
+| [`render_provision_script`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.    |
+| [`render_allowlist_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
+| [`allowlist_users`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
+| [`render_display_names_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_display_names_toml)(spec, \*[, issuer])      | Render the `[auth.oauth_server.resource_display_names]` fragment.            |
+| [`render_oauth_server_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_oauth_server_toml)(spec, \*[, issuer, ...])  | Render the `[auth.oauth_server]` fragment that keeps sessions alive.         |
+| [`render_runbook`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_runbook)(spec, \*[, remote_base, issuer])    | Render the human deploy checklist (ship, provision, deploy, **verify**).     |
+| [`generate_deploy_bundle`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                        |
 
 ### enlace_connector.deploy.ANY_ACCOUNT *= '\*'*
 
@@ -502,6 +558,50 @@ an explicit `["*"]`.
 Traceback (most recent call last):
 ...
 ValueError: Connector 'x' has no allowed_users...
+```
+
+### enlace_connector.deploy.check_distinct_ports(specs)
+
+Refuse *specs* that would bind the same local port.
+
+`port` has a default, so two specs that both omit it render units that
+collide on one box, and the second connector never starts (#15). Run this
+over every connector a host deploys.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[]),
+...                       ConnectorSpec(name="b", tools=[])])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a port: 8030 (a, b)
+```
+
+### enlace_connector.deploy.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
+
+How the *installed* unit text differs from what *spec* renders; `[]` if not.
+
+For a host that keeps its own unit files: run it per connector at deploy time
+and report the lines, so a unit and its spec cannot drift apart unnoticed
+(#15). The comparison is semantic: comments, blank lines, line order across
+directives, whitespace runs and `Environment=` quoting do not count; the
+order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
+`(section, key)` pairs left out (the `Description=` prose, by default).
+Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> spec = ConnectorSpec(name="x", tools=[], port=8040)
+>>> diff_unit(spec, render_systemd_unit(spec))
+[]
+>>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
+'[Service] ExecStart: '
 ```
 
 ### enlace_connector.deploy.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
@@ -610,6 +710,12 @@ in plain words and gives the exact command that detects it.
 
 Render the systemd unit that runs the connector in its own venv.
 
+A host that hand-maintains its units can treat this as the reference: run
+[`diff_unit()`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.diff_unit) against each installed unit, so the two cannot drift apart
+silently (#15). The spec carries what such units need: an `app_dir` name,
+`environment_files` and `exec_start_pre` for scoped secrets,
+`uvicorn_args`, and other `service_directives`.
+
 `CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
 that renders the allowlist key, and `render_server_py()` passes it through
 explicitly, so the runtime never re-derives it: a connector venv holding an older
@@ -701,6 +807,8 @@ in seconds instead of when a user complains a day later.
 | [`scaffold_app`](_autosummary/enlace_connector.html.md#enlace_connector.scaffold_app)(spec, dest_dir, \*, port[, command])  | Write `app.toml` and `server.py` for *spec* into *dest_dir*.                        |
 | [`generate_deploy_bundle`](_autosummary/enlace_connector.html.md#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                               |
 | [`render_systemd_unit`](_autosummary/enlace_connector.html.md#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                    |
+| [`diff_unit`](_autosummary/enlace_connector.html.md#enlace_connector.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not.        |
+| [`check_distinct_ports`](_autosummary/enlace_connector.html.md#enlace_connector.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                                 |
 | [`render_provision_script`](_autosummary/enlace_connector.html.md#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.           |
 | [`render_allowlist_toml`](_autosummary/enlace_connector.html.md#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                       |
 | [`allowlist_users`](_autosummary/enlace_connector.html.md#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                 |
@@ -753,7 +861,7 @@ one line stating what was (or was not) observed.
 
 what to do about it — empty when `ok`.
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None)
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -838,12 +946,51 @@ a `"module:function"` ref to this connector’s own
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.
 
+#### app_dir
+
+the connector’s directory name under the platform’s `apps/`
+and `connectors/` (defaults to *name*). A host that names the app
+`<name>_mcp` sets it so the rendered paths exist (#15).
+
+#### environment_files
+
+`EnvironmentFile=` values for the unit, in order —
+how a host scopes provider secrets into the process without writing
+them into the unit. A leading `-` makes one optional, as in systemd.
+
+#### exec_start_pre
+
+`ExecStartPre=` commands, in order (e.g. extracting the
+scoped secrets an `environment_files` entry then reads).
+
+#### uvicorn_args
+
+extra arguments appended to the `uvicorn` command line
+(e.g. `--no-access-log` for a connector that serves signed links).
+
+#### service_directives
+
+any other `(key, value)` lines for the unit’s
+`[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
+
+### \`\`{remote_base}\`\` / \`\`{name}\`\` / \`\`{port}\`\` placeholders as \*env\*.
+
+### Unlike \*env\*, a \`\`%\`\` in them is written as-is, so systemd specifiers
+
+### (\`\`%t\`\`, \`\`%n\`\`) work there; write \`\`%%\`\` for a literal one.
+
 #### default_audience(platform_origin)
 
 This connector’s public URL under *platform_origin* (the token audience).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### *property* dir_name *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The directory name under `apps/` and `connectors/` (see *app_dir*).
 
 #### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
@@ -921,6 +1068,27 @@ Fetch the RFC 8414 discovery document advertised by *issuer*.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
+### enlace_connector.check_distinct_ports(specs)
+
+Refuse *specs* that would bind the same local port.
+
+`port` has a default, so two specs that both omit it render units that
+collide on one box, and the second connector never starts (#15). Run this
+over every connector a host deploys.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[]),
+...                       ConnectorSpec(name="b", tools=[])])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a port: 8030 (a, b)
+```
+
 ### enlace_connector.check_jwks_uri_matches_convention(ctx)
 
 For `auth="enlace"` connectors: the AS’s `jwks_uri` is the one we validate against.
@@ -940,6 +1108,29 @@ expire into a dead end, which is invisible from the connector’s own health.
 
 * **Return type:**
   [`CheckResult`](_autosummary/enlace_connector.preflight.html.md#enlace_connector.preflight.CheckResult)
+
+### enlace_connector.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
+
+How the *installed* unit text differs from what *spec* renders; `[]` if not.
+
+For a host that keeps its own unit files: run it per connector at deploy time
+and report the lines, so a unit and its spec cannot drift apart unnoticed
+(#15). The comparison is semantic: comments, blank lines, line order across
+directives, whitespace runs and `Environment=` quoting do not count; the
+order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
+`(section, key)` pairs left out (the `Description=` prose, by default).
+Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> spec = ConnectorSpec(name="x", tools=[], port=8040)
+>>> diff_unit(spec, render_systemd_unit(spec))
+[]
+>>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
+'[Service] ExecStart: '
+```
 
 ### enlace_connector.enlace_resource(, issuer, audience, scopes=('mcp:read',), mcp_path='/mcp')
 
@@ -1137,6 +1328,12 @@ omitted: they are consumed by the provisioning bundle, not by the process.
 ### enlace_connector.render_systemd_unit(spec, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com')
 
 Render the systemd unit that runs the connector in its own venv.
+
+A host that hand-maintains its units can treat this as the reference: run
+[`diff_unit()`](_autosummary/enlace_connector.html.md#enlace_connector.diff_unit) against each installed unit, so the two cannot drift apart
+silently (#15). The spec carries what such units need: an `app_dir` name,
+`environment_files` and `exec_start_pre` for scoped secrets,
+`uvicorn_args`, and other `service_directives`.
 
 `CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
 that renders the allowlist key, and [`render_server_py()`](_autosummary/enlace_connector.html.md#enlace_connector.render_server_py) passes it through
@@ -1674,7 +1871,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-13 23:29 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/50026bb4aae08195e323cd639b3abbeeaf3e0488"><code>50026bb</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 01:06 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/0b2f5707e3a0ad638f54b74bdefbfd1d12576eec"><code>0b2f570</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1683,7 +1880,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/50026bb4aae08195e323cd639b3abbeeaf3e0488"><code>50026bb4aae08195e323cd639b3abbeeaf3e0488</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/0b2f5707e3a0ad638f54b74bdefbfd1d12576eec"><code>0b2f5707e3a0ad638f54b74bdefbfd1d12576eec</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -1694,9 +1891,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38484427938">38484427938</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38493709121">38493709121</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>50026bb4aae08195e323cd639b3abbeeaf3e0488</code> (in the history of the built commit)    |
+| Event commit | <code>0b2f5707e3a0ad638f54b74bdefbfd1d12576eec</code> (in the history of the built commit)    |
 
 ## Tools
 
@@ -1727,7 +1924,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 50026bb4aae08195e323cd639b3abbeeaf3e0488
+git checkout 0b2f5707e3a0ad638f54b74bdefbfd1d12576eec
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

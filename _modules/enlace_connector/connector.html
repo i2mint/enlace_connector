@@ -779,6 +779,23 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            ``(tool_name, result) -&gt; label | mapping`` usage-outcome classifier</span>
 <span class="sd">            (e.g. one that knows the search tool's "no match" shape), used in</span>
 <span class="sd">            place of py2mcp's generic one when logging is on.</span>
+<span class="sd">        app_dir: the connector's directory name under the platform's ``apps/``</span>
+<span class="sd">            and ``connectors/`` (defaults to *name*). A host that names the app</span>
+<span class="sd">            ``&lt;name&gt;_mcp`` sets it so the rendered paths exist (#15).</span>
+<span class="sd">        environment_files: ``EnvironmentFile=`` values for the unit, in order —</span>
+<span class="sd">            how a host scopes provider secrets into the process without writing</span>
+<span class="sd">            them into the unit. A leading ``-`` makes one optional, as in systemd.</span>
+<span class="sd">        exec_start_pre: ``ExecStartPre=`` commands, in order (e.g. extracting the</span>
+<span class="sd">            scoped secrets an ``environment_files`` entry then reads).</span>
+<span class="sd">        uvicorn_args: extra arguments appended to the ``uvicorn`` command line</span>
+<span class="sd">            (e.g. ``--no-access-log`` for a connector that serves signed links).</span>
+<span class="sd">        service_directives: any other ``(key, value)`` lines for the unit's</span>
+<span class="sd">            ``[Service]`` section, in order (e.g. ``("RuntimeDirectory", ...)``).</span>
+
+<span class="sd">        The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /</span>
+<span class="sd">        ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.</span>
+<span class="sd">        Unlike *env*, a ``%`` in them is written as-is, so systemd specifiers</span>
+<span class="sd">        (``%t``, ``%n``) work there; write ``%%`` for a literal one.</span>
 <span class="sd">    """</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
@@ -796,6 +813,16 @@ window.runMermaid = runMermaid;</script>
     <span class="n">stateless_http</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">usage_outcome</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">app_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">environment_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">exec_start_pre</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">uvicorn_args</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">service_directives</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dir_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""The directory name under ``apps/`` and ``connectors/`` (see *app_dir*)."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_dir</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">server_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

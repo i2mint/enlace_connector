@@ -58,6 +58,8 @@ in seconds instead of when a user complains a day later.
 | [`scaffold_app`](#enlace_connector.scaffold_app)(spec, dest_dir, \*, port[, command])  | Write `app.toml` and `server.py` for *spec* into *dest_dir*.                        |
 | [`generate_deploy_bundle`](#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                               |
 | [`render_systemd_unit`](#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                    |
+| [`diff_unit`](#enlace_connector.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not.        |
+| [`check_distinct_ports`](#enlace_connector.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                                 |
 | [`render_provision_script`](#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.           |
 | [`render_allowlist_toml`](#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                       |
 | [`allowlist_users`](#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                 |
@@ -110,7 +112,7 @@ one line stating what was (or was not) observed.
 
 what to do about it — empty when `ok`.
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None)
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -195,12 +197,51 @@ a `"module:function"` ref to this connector’s own
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.
 
+#### app_dir
+
+the connector’s directory name under the platform’s `apps/`
+and `connectors/` (defaults to *name*). A host that names the app
+`<name>_mcp` sets it so the rendered paths exist (#15).
+
+#### environment_files
+
+`EnvironmentFile=` values for the unit, in order —
+how a host scopes provider secrets into the process without writing
+them into the unit. A leading `-` makes one optional, as in systemd.
+
+#### exec_start_pre
+
+`ExecStartPre=` commands, in order (e.g. extracting the
+scoped secrets an `environment_files` entry then reads).
+
+#### uvicorn_args
+
+extra arguments appended to the `uvicorn` command line
+(e.g. `--no-access-log` for a connector that serves signed links).
+
+#### service_directives
+
+any other `(key, value)` lines for the unit’s
+`[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
+
+### \`\`{remote_base}\`\` / \`\`{name}\`\` / \`\`{port}\`\` placeholders as \*env\*.
+
+### Unlike \*env\*, a \`\`%\`\` in them is written as-is, so systemd specifiers
+
+### (\`\`%t\`\`, \`\`%n\`\`) work there; write \`\`%%\`\` for a literal one.
+
 #### default_audience(platform_origin)
 
 This connector’s public URL under *platform_origin* (the token audience).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+#### *property* dir_name *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The directory name under `apps/` and `connectors/` (see *app_dir*).
 
 #### *property* mount_route *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
 
@@ -278,6 +319,27 @@ Fetch the RFC 8414 discovery document advertised by *issuer*.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
+### enlace_connector.check_distinct_ports(specs)
+
+Refuse *specs* that would bind the same local port.
+
+`port` has a default, so two specs that both omit it render units that
+collide on one box, and the second connector never starts (#15). Run this
+over every connector a host deploys.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_ports([ConnectorSpec(name="a", tools=[]),
+...                       ConnectorSpec(name="b", tools=[])])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a port: 8030 (a, b)
+```
+
 ### enlace_connector.check_jwks_uri_matches_convention(ctx)
 
 For `auth="enlace"` connectors: the AS’s `jwks_uri` is the one we validate against.
@@ -297,6 +359,29 @@ expire into a dead end, which is invisible from the connector’s own health.
 
 * **Return type:**
   [`CheckResult`](enlace_connector.preflight.html.md#enlace_connector.preflight.CheckResult)
+
+### enlace_connector.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
+
+How the *installed* unit text differs from what *spec* renders; `[]` if not.
+
+For a host that keeps its own unit files: run it per connector at deploy time
+and report the lines, so a unit and its spec cannot drift apart unnoticed
+(#15). The comparison is semantic: comments, blank lines, line order across
+directives, whitespace runs and `Environment=` quoting do not count; the
+order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
+`(section, key)` pairs left out (the `Description=` prose, by default).
+Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> spec = ConnectorSpec(name="x", tools=[], port=8040)
+>>> diff_unit(spec, render_systemd_unit(spec))
+[]
+>>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
+'[Service] ExecStart: '
+```
 
 ### enlace_connector.enlace_resource(, issuer, audience, scopes=('mcp:read',), mcp_path='/mcp')
 
@@ -494,6 +579,12 @@ omitted: they are consumed by the provisioning bundle, not by the process.
 ### enlace_connector.render_systemd_unit(spec, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com')
 
 Render the systemd unit that runs the connector in its own venv.
+
+A host that hand-maintains its units can treat this as the reference: run
+[`diff_unit()`](#enlace_connector.diff_unit) against each installed unit, so the two cannot drift apart
+silently (#15). The spec carries what such units need: an `app_dir` name,
+`environment_files` and `exec_start_pre` for scoped secrets,
+`uvicorn_args`, and other `service_directives`.
 
 `CONNECTOR_AUDIENCE` is rendered next to `CONNECTOR_ISSUER` by the same code
 that renders the allowlist key, and [`render_server_py()`](#enlace_connector.render_server_py) passes it through

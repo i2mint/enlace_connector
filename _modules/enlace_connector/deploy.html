@@ -754,6 +754,8 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"DFLT_REFRESH_TOKEN_TTL_SECONDS"</span><span class="p">,</span>
     <span class="s2">"resource_url"</span><span class="p">,</span>
     <span class="s2">"render_systemd_unit"</span><span class="p">,</span>
+    <span class="s2">"diff_unit"</span><span class="p">,</span>
+    <span class="s2">"check_distinct_ports"</span><span class="p">,</span>
     <span class="s2">"render_provision_script"</span><span class="p">,</span>
     <span class="s2">"render_allowlist_toml"</span><span class="p">,</span>
     <span class="s2">"allowlist_users"</span><span class="p">,</span>
@@ -821,13 +823,18 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-    <span class="n">base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/connectors/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">app_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9._-]*"</span><span class="p">,</span> <span class="n">spec</span><span class="o">.</span><span class="n">app_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"app_dir </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">app_dir</span><span class="si">!r}</span><span class="s2">: one directory name (letters, digits, '.', '_', "</span>
+            <span class="s2">"'-'), not a path"</span>
+        <span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/connectors/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">dir_name</span><span class="si">}</span><span class="s2">"</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"name"</span><span class="p">:</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="s2">"remote_base"</span><span class="p">:</span> <span class="n">remote_base</span><span class="p">,</span>
         <span class="s2">"base"</span><span class="p">:</span> <span class="n">base</span><span class="p">,</span>
         <span class="s2">"venv"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">/venv"</span><span class="p">,</span>
-        <span class="s2">"app_dir"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+        <span class="s2">"app_dir"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">remote_base</span><span class="si">}</span><span class="s2">/apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">dir_name</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
         <span class="s2">"unit"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">-mcp.service"</span><span class="p">,</span>
         <span class="s2">"port"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">),</span>
     <span class="p">}</span>
@@ -936,6 +943,68 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="c1">#: ``[Service]`` directives the renderer writes itself, each from its own spec</span>
+<span class="c1">#: field; a ``service_directives`` entry may not repeat or override one.</span>
+<span class="n">_OWNED_DIRECTIVES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"Type"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">"User"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">"WorkingDirectory"</span><span class="p">:</span> <span class="s2">"app_dir"</span><span class="p">,</span>
+    <span class="s2">"Environment"</span><span class="p">:</span> <span class="s2">"env"</span><span class="p">,</span>
+    <span class="s2">"EnvironmentFile"</span><span class="p">:</span> <span class="s2">"environment_files"</span><span class="p">,</span>
+    <span class="s2">"ExecStartPre"</span><span class="p">:</span> <span class="s2">"exec_start_pre"</span><span class="p">,</span>
+    <span class="s2">"ExecStart"</span><span class="p">:</span> <span class="s2">"uvicorn_args"</span><span class="p">,</span>
+    <span class="s2">"Restart"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">"RestartSec"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unit_value</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""*value*, checked for a ``key=`` line of a unit file, which it cannot span."""</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(X-)?[A-Za-z][A-Za-z0-9]*"</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"not a systemd directive name: </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">bad</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">value</span> <span class="k">if</span> <span class="n">unicodedata</span><span class="o">.</span><span class="n">category</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"Cc"</span><span class="p">,</span> <span class="s2">"Cs"</span><span class="p">,</span> <span class="s2">"Zl"</span><span class="p">,</span> <span class="s2">"Zp"</span><span class="p">)),</span>
+        <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">bad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: control character U+</span><span class="si">{</span><span class="nb">ord</span><span class="p">(</span><span class="n">bad</span><span class="p">)</span><span class="si">:</span><span class="s2">04X</span><span class="si">}</span><span class="s2"> cannot go in a unit file line"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">):</span>
+        <span class="c1"># A trailing backslash continues the line: the next directive (ExecStart=,</span>
+        <span class="c1"># say) would become part of this value.</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: a value cannot end in a backslash: </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_service_directive</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_OWNED_DIRECTIVES</span><span class="p">:</span>
+        <span class="n">field</span> <span class="o">=</span> <span class="n">_OWNED_DIRECTIVES</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">hint</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"; use the spec's </span><span class="si">{</span><span class="n">field</span><span class="si">!r}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">field</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"service_directives cannot set </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">=: the renderer writes it</span><span class="si">{</span><span class="n">hint</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_unit_value</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_exec_start</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The ``uvicorn`` command line that runs the connector in its own venv."""</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">uvicorn_args</span><span class="p">:</span>
+        <span class="c1"># Each is one token of ExecStart=, where whitespace splits, quotes group</span>
+        <span class="c1"># and "%" is a specifier: refuse rather than mis-render.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">arg</span> <span class="ow">or</span> <span class="n">arg</span> <span class="o">==</span> <span class="s2">";"</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">isspace</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"</span><span class="se">\"</span><span class="s2">'%</span><span class="se">\\</span><span class="s2">"</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">arg</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"uvicorn argument </span><span class="si">{</span><span class="n">arg</span><span class="si">!r}</span><span class="s2">: must be one non-empty token without "</span>
+                <span class="s2">"whitespace, quotes, backslashes or '%', and not ';'"</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'venv'</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="o">*</span><span class="p">(</span><span class="n">_unit_value</span><span class="p">(</span><span class="s2">"ExecStart"</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">uvicorn_args</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+
 <div class="viewcode-block" id="render_systemd_unit">
 <a class="viewcode-back" href="../../_autosummary/enlace_connector.deploy.html#enlace_connector.render_systemd_unit">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">render_systemd_unit</span><span class="p">(</span>
@@ -945,6 +1014,12 @@ window.runMermaid = runMermaid;</script>
     <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Render the systemd unit that runs the connector in its own venv.</span>
+
+<span class="sd">    A host that hand-maintains its units can treat this as the reference: run</span>
+<span class="sd">    :func:`diff_unit` against each installed unit, so the two cannot drift apart</span>
+<span class="sd">    silently (#15). The spec carries what such units need: an ``app_dir`` name,</span>
+<span class="sd">    ``environment_files`` and ``exec_start_pre`` for scoped secrets,</span>
+<span class="sd">    ``uvicorn_args``, and other ``service_directives``.</span>
 
 <span class="sd">    ``CONNECTOR_AUDIENCE`` is rendered next to ``CONNECTOR_ISSUER`` by the same code</span>
 <span class="sd">    that renders the allowlist key, and :func:`render_server_py` passes it through</span>
@@ -968,8 +1043,22 @@ window.runMermaid = runMermaid;</script>
     <span class="n">env_lines</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">_systemd_environment_line</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">_subst</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">)</span>
-    <span class="n">exec_start</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'venv'</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">exec_start</span> <span class="o">=</span> <span class="n">_exec_start</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">service_lines</span> <span class="o">=</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="o">*</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">_service_directive</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">_subst</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">))</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">service_directives</span>
+            <span class="p">),</span>
+            <span class="o">*</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"ExecStartPre=</span><span class="si">{</span><span class="n">_unit_value</span><span class="p">(</span><span class="s1">'ExecStartPre'</span><span class="p">,</span><span class="w"> </span><span class="n">_subst</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">))</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">exec_start_pre</span>
+            <span class="p">),</span>
+            <span class="o">*</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"EnvironmentFile=</span><span class="si">{</span><span class="n">_unit_value</span><span class="p">(</span><span class="s1">'EnvironmentFile'</span><span class="p">,</span><span class="w"> </span><span class="n">_subst</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">p</span><span class="p">))</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">environment_files</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
     <span class="p">)</span>
     <span class="n">description</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="si">}</span><span class="s2"> MCP connector (mode=process :</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">)"</span>
     <span class="n">description</span> <span class="o">=</span> <span class="n">description</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"%"</span><span class="p">,</span> <span class="s2">"</span><span class="si">%%</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># a specifier otherwise</span>
@@ -977,7 +1066,7 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"CONNECTOR_USAGE_LOG_DIR"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'base'</span><span class="p">]</span><span class="si">}</span><span class="s2">/data/usage"</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">"# </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector — the production process for apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"# </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> connector — the production process for apps/</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">dir_name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"# (a mode=process enlace app). enlace only reverse-proxies the route to</span><span class="se">\n</span><span class="s2">"</span>
         <span class="sa">f</span><span class="s2">"# this unit on 127.0.0.1:</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">; provisioned via the runbook.</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"[Unit]</span><span class="se">\n</span><span class="s2">"</span>
@@ -994,6 +1083,7 @@ window.runMermaid = runMermaid;</script>
         <span class="s2">"# switch it on only after telling them. Files are pruned to 90 days by default</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"# (CONNECTOR_USAGE_LOG_RETENTION_DAYS); CONNECTOR_USAGE_LOG_REDACT masks fields.</span><span class="se">\n</span><span class="s2">"</span>
         <span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="n">usage_log_line</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">service_lines</span><span class="si">}</span><span class="s2">"</span>
         <span class="sa">f</span><span class="s2">"ExecStart=</span><span class="si">{</span><span class="n">exec_start</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"Restart=on-failure</span><span class="se">\n</span><span class="s2">"</span>
         <span class="s2">"RestartSec=3</span><span class="se">\n\n</span><span class="s2">"</span>
@@ -1327,7 +1417,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">dest</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest</span><span class="p">)</span>
     <span class="p">(</span><span class="n">dest</span> <span class="o">/</span> <span class="s2">"deploy"</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">_paths</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="p">)</span>
-    <span class="n">command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="s1">'venv'</span><span class="p">]</span><span class="si">}</span><span class="s2">/bin/uvicorn server:app --host 127.0.0.1 --port </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">"</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="n">_exec_start</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
     <span class="n">written</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -1361,6 +1451,143 @@ window.runMermaid = runMermaid;</script>
         <span class="n">render_runbook</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="o">=</span><span class="n">remote_base</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">written</span></div>
+
+
+
+<div class="viewcode-block" id="check_distinct_ports">
+<a class="viewcode-back" href="../../_autosummary/enlace_connector.deploy.html#enlace_connector.check_distinct_ports">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">check_distinct_ports</span><span class="p">(</span><span class="n">specs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Refuse *specs* that would bind the same local port.</span>
+
+<span class="sd">    ``port`` has a default, so two specs that both omit it render units that</span>
+<span class="sd">    collide on one box, and the second connector never starts (#15). Run this</span>
+<span class="sd">    over every connector a host deploys.</span>
+
+<span class="sd">    &gt;&gt;&gt; check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),</span>
+<span class="sd">    ...                       ConnectorSpec(name="b", tools=[], port=8032)])</span>
+<span class="sd">    &gt;&gt;&gt; check_distinct_ports([ConnectorSpec(name="a", tools=[]),</span>
+<span class="sd">    ...                       ConnectorSpec(name="b", tools=[])])</span>
+<span class="sd">    Traceback (most recent call last):</span>
+<span class="sd">      ...</span>
+<span class="sd">    ValueError: connectors share a port: 8030 (a, b)</span>
+<span class="sd">    """</span>
+    <span class="n">by_port</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span><span class="p">:</span>
+        <span class="n">by_port</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">port</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">clashes</span> <span class="o">=</span> <span class="p">{</span><span class="n">port</span><span class="p">:</span> <span class="n">names</span> <span class="k">for</span> <span class="n">port</span><span class="p">,</span> <span class="n">names</span> <span class="ow">in</span> <span class="n">by_port</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">clashes</span><span class="p">:</span>
+        <span class="n">listed</span> <span class="o">=</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">names</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span> <span class="k">for</span> <span class="n">port</span><span class="p">,</span> <span class="n">names</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">clashes</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"connectors share a port: </span><span class="si">{</span><span class="n">listed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+
+
+
+<span class="c1">#: Unit lines :func:`diff_unit` ignores by default: prose, not behaviour.</span>
+<span class="n">DFLT_DIFF_IGNORE</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({(</span><span class="s2">"Unit"</span><span class="p">,</span> <span class="s2">"Description"</span><span class="p">)})</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_unit</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""``(section, key) -&gt; values`` of a unit file, in order, comments dropped.</span>
+
+<span class="sd">    ``Environment=`` is split into one ``NAME=value`` entry per assignment, with</span>
+<span class="sd">    systemd's quoting and ``%%`` undone, so two spellings of the same environment</span>
+<span class="sd">    compare equal. Other values are compared with whitespace runs collapsed.</span>
+<span class="sd">    """</span>
+    <span class="n">lines</span><span class="p">,</span> <span class="n">pending</span> <span class="o">=</span> <span class="p">[],</span> <span class="s2">""</span>
+    <span class="k">for</span> <span class="n">raw</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pending</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">line</span> <span class="ow">or</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="s2">"#;"</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">):</span>
+            <span class="n">pending</span> <span class="o">+=</span> <span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">" "</span>
+            <span class="k">continue</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pending</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span>
+        <span class="n">pending</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="n">pending</span><span class="p">:</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pending</span><span class="p">)</span>
+
+    <span class="n">parsed</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">section</span> <span class="o">=</span> <span class="s2">""</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"["</span><span class="p">)</span> <span class="ow">and</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"]"</span><span class="p">):</span>
+            <span class="n">section</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">continue</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">sep</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"="</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sep</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"Environment"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="c1"># An empty assignment resets the list, as in systemd.</span>
+            <span class="n">parsed</span><span class="p">[(</span><span class="n">section</span><span class="p">,</span> <span class="n">key</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"Environment"</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"</span><span class="si">%%</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"%"</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">value</span><span class="p">)]</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># unbalanced quotes: compare it as written</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">())]</span>
+        <span class="n">parsed</span><span class="o">.</span><span class="n">setdefault</span><span class="p">((</span><span class="n">section</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="p">[])</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parsed</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_environment</span><span class="p">(</span><span class="n">assignments</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="n">env</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">assignment</span> <span class="ow">in</span> <span class="n">assignments</span><span class="p">:</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">assignment</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"="</span><span class="p">)</span>
+        <span class="n">env</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>  <span class="c1"># a later assignment wins, as in systemd</span>
+    <span class="k">return</span> <span class="n">env</span>
+
+
+<div class="viewcode-block" id="diff_unit">
+<a class="viewcode-back" href="../../_autosummary/enlace_connector.deploy.html#enlace_connector.diff_unit">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">diff_unit</span><span class="p">(</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span>
+    <span class="n">installed</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">remote_base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_REMOTE_BASE</span><span class="p">,</span>
+    <span class="n">issuer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DFLT_ISSUER</span><span class="p">,</span>
+    <span class="n">ignore</span><span class="o">=</span><span class="n">DFLT_DIFF_IGNORE</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""How the *installed* unit text differs from what *spec* renders; ``[]`` if not.</span>
+
+<span class="sd">    For a host that keeps its own unit files: run it per connector at deploy time</span>
+<span class="sd">    and report the lines, so a unit and its spec cannot drift apart unnoticed</span>
+<span class="sd">    (#15). The comparison is semantic: comments, blank lines, line order across</span>
+<span class="sd">    directives, whitespace runs and ``Environment=`` quoting do not count; the</span>
+<span class="sd">    order of repeated directives (``ExecStartPre=``) does. *ignore* is a set of</span>
+<span class="sd">    ``(section, key)`` pairs left out (the ``Description=`` prose, by default).</span>
+<span class="sd">    Drop-ins (``&lt;unit&gt;.d/*.conf``) are not read: pass the main unit file.</span>
+
+<span class="sd">    &gt;&gt;&gt; spec = ConnectorSpec(name="x", tools=[], port=8040)</span>
+<span class="sd">    &gt;&gt;&gt; diff_unit(spec, render_systemd_unit(spec))</span>
+<span class="sd">    []</span>
+<span class="sd">    &gt;&gt;&gt; diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]</span>
+<span class="sd">    '[Service] ExecStart: '</span>
+<span class="sd">    """</span>
+    <span class="n">want</span> <span class="o">=</span> <span class="n">_parse_unit</span><span class="p">(</span><span class="n">render_systemd_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">remote_base</span><span class="o">=</span><span class="n">remote_base</span><span class="p">,</span> <span class="n">issuer</span><span class="o">=</span><span class="n">issuer</span><span class="p">))</span>
+    <span class="n">have</span> <span class="o">=</span> <span class="n">_parse_unit</span><span class="p">(</span><span class="n">installed</span><span class="p">)</span>
+    <span class="n">diffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">section</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">want</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">|</span> <span class="n">have</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">want</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">section</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="p">[]),</span> <span class="n">have</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">section</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"Environment"</span><span class="p">:</span>
+            <span class="n">we</span><span class="p">,</span> <span class="n">he</span> <span class="o">=</span> <span class="n">_environment</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">_environment</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">we</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">|</span> <span class="n">he</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">he</span><span class="p">:</span>
+                    <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">section</span><span class="si">}</span><span class="s2">] Environment </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: installed lacks it"</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">we</span><span class="p">:</span>
+                    <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">section</span><span class="si">}</span><span class="s2">] Environment </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: not in the spec"</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">we</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">he</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                    <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">section</span><span class="si">}</span><span class="s2">] Environment </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: rendered </span><span class="si">{</span><span class="n">we</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="si">!r}</span><span class="s2">, "</span>
+                        <span class="sa">f</span><span class="s2">"installed </span><span class="si">{</span><span class="n">he</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="si">!r}</span><span class="s2">"</span>
+                    <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">w</span> <span class="o">!=</span> <span class="n">h</span><span class="p">:</span>
+            <span class="n">diffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">section</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: rendered </span><span class="si">{</span><span class="n">w</span><span class="si">!r}</span><span class="s2">, installed </span><span class="si">{</span><span class="n">h</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">diffs</span></div>
 
 </pre></div>
 
