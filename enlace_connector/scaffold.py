@@ -44,12 +44,26 @@ def render_app_toml(
     )
 
 
+#: Serve-time fields written into the rendered ``SPEC`` only when set, so a spec
+#: that does not use them renders exactly as before they existed.
+_OPTIONAL_SERVE_FIELDS = ("icon", "instructions", "middleware", "server_hooks")
+
+
+def _optional_spec_fields(spec: ConnectorSpec) -> str:
+    return "".join(
+        f"    {name}={getattr(spec, name)!r},\n"
+        for name in _OPTIONAL_SERVE_FIELDS
+        if getattr(spec, name)
+    )
+
+
 def render_server_py(spec: ConnectorSpec) -> str:
     """Render the ``server.py`` that exposes ``app`` for enlace's process runner.
 
     The embedded ``SPEC`` carries every field :func:`~enlace_connector.connector.
-    make_connector_app` reads at serve time — tools, auth, name/title, route and
-    ``stateless_http``. Deploy-time-only fields (``extras``, ``git_installs``,
+    make_connector_app` reads at serve time — tools, auth, name/title, route,
+    ``stateless_http``, and (when set) ``icon``, ``instructions``, ``middleware``
+    and ``server_hooks``. Deploy-time-only fields (``extras``, ``git_installs``,
     ``data``, ``env``, ``post_install``, ``allowed_users``) are deliberately
     omitted: they are consumed by the provisioning bundle, not by the process.
     """
@@ -68,7 +82,8 @@ def render_server_py(spec: ConnectorSpec) -> str:
         f"    title={spec.title!r},\n"
         f"    route={spec.route!r},\n"
         f"    stateless_http={spec.stateless_http!r},\n"
-        ")\n\n"
+        + _optional_spec_fields(spec)
+        + ")\n\n"
         f"_issuer = os.environ.get('CONNECTOR_ISSUER', {DFLT_PLATFORM_ORIGIN!r})\n"
         "app = make_connector_app(\n"
         "    SPEC, issuer=_issuer, audience=os.environ.get('CONNECTOR_AUDIENCE') or None\n"
