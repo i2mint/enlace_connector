@@ -110,6 +110,11 @@ def _toml_string(value: str) -> str:
 
 
 def _paths(spec: ConnectorSpec, remote_base: str) -> dict[str, str]:
+    if spec.app_dir is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", spec.app_dir):
+        raise ValueError(
+            f"app_dir {spec.app_dir!r}: one directory name (letters, digits, '.', '_', "
+            "'-'), not a path"
+        )
     base = f"{remote_base}/connectors/{spec.dir_name}"
     return {
         "name": spec.name,
@@ -222,16 +227,48 @@ def resource_url(spec: ConnectorSpec, *, issuer: str = DFLT_ISSUER) -> str:
     return url
 
 
+#: ``[Service]`` directives the renderer writes itself, each from its own spec
+#: field; a ``service_directives`` entry may not repeat or override one.
+_OWNED_DIRECTIVES = {
+    "Type": None,
+    "User": None,
+    "WorkingDirectory": "app_dir",
+    "Environment": "env",
+    "EnvironmentFile": "environment_files",
+    "ExecStartPre": "exec_start_pre",
+    "ExecStart": "uvicorn_args",
+    "Restart": None,
+    "RestartSec": None,
+}
+
+
 def _unit_value(key: str, value: str) -> str:
     """*value*, checked for a ``key=`` line of a unit file, which it cannot span."""
-    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9]*", key):
+    if not re.fullmatch(r"(X-)?[A-Za-z][A-Za-z0-9]*", key):
         raise ValueError(f"not a systemd directive name: {key!r}")
-    bad = next((c for c in value if unicodedata.category(c) in ("Cc", "Cs")), None)
+    bad = next(
+        (c for c in value if unicodedata.category(c) in ("Cc", "Cs", "Zl", "Zp")),
+        None,
+    )
     if bad is not None:
         raise ValueError(
             f"{key}: control character U+{ord(bad):04X} cannot go in a unit file line"
         )
+    if value.endswith("\\"):
+        # A trailing backslash continues the line: the next directive (ExecStart=,
+        # say) would become part of this value.
+        raise ValueError(f"{key}: a value cannot end in a backslash: {value!r}")
     return value
+
+
+def _service_directive(key: str, value: str) -> str:
+    if key in _OWNED_DIRECTIVES:
+        field = _OWNED_DIRECTIVES[key]
+        hint = f"; use the spec's {field!r}" if field else ""
+        raise ValueError(
+            f"service_directives cannot set {key}=: the renderer writes it{hint}"
+        )
+    return _unit_value(key, value)
 
 
 def _exec_start(spec: ConnectorSpec, p: dict[str, str]) -> str:
@@ -239,10 +276,10 @@ def _exec_start(spec: ConnectorSpec, p: dict[str, str]) -> str:
     for arg in spec.uvicorn_args:
         # Each is one token of ExecStart=, where whitespace splits, quotes group
         # and "%" is a specifier: refuse rather than mis-render.
-        if not arg or any(c.isspace() or c in "\"'%\\" for c in arg):
+        if not arg or arg == ";" or any(c.isspace() or c in "\"'%\\" for c in arg):
             raise ValueError(
                 f"uvicorn argument {arg!r}: must be one non-empty token without "
-                "whitespace, quotes, backslashes or '%'"
+                "whitespace, quotes, backslashes or '%', and not ';'"
             )
     return " ".join(
         [
@@ -290,11 +327,19 @@ def render_systemd_unit(
     )
     exec_start = _exec_start(spec, p)
     service_lines = "".join(
-        f"{key}={_unit_value(key, _subst(value, p))}\n"
-        for key, value in [
-            *spec.service_directives,
-            *(("ExecStartPre", cmd) for cmd in spec.exec_start_pre),
-            *(("EnvironmentFile", path) for path in spec.environment_files),
+        [
+            *(
+                f"{key}={_service_directive(key, _subst(value, p))}\n"
+                for key, value in spec.service_directives
+            ),
+            *(
+                f"ExecStartPre={_unit_value('ExecStartPre', _subst(cmd, p))}\n"
+                for cmd in spec.exec_start_pre
+            ),
+            *(
+                f"EnvironmentFile={_unit_value('EnvironmentFile', _subst(f, p))}\n"
+                for f in spec.environment_files
+            ),
         ]
     )
     description = f"{spec.server_name} MCP connector (mode=process :{spec.port})"
@@ -729,6 +774,10 @@ def _parse_unit(text: str) -> dict[tuple[str, str], list[str]]:
         if not sep:
             continue
         key, value = key.strip(), value.strip()
+        if key == "Environment" and not value:
+            # An empty assignment resets the list, as in systemd.
+            parsed[(section, key)] = []
+            continue
         if key == "Environment":
             try:
                 values = [a.replace("%%", "%") for a in shlex.split(value)]

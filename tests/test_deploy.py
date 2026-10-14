@@ -594,3 +594,45 @@ def test_the_order_of_repeated_exec_start_pre_lines_counts():
         "[Service] ExecStartPre: rendered ['/bin/a', '/bin/b'], "
         "installed ['/bin/b', '/bin/a']"
     ]
+
+
+# Found by the adversarial review of #17.
+
+
+@pytest.mark.parametrize(
+    "field", ["exec_start_pre", "environment_files", "service_directives"]
+)
+def test_a_trailing_backslash_cannot_swallow_the_next_line(field):
+    value = ("RuntimeDirectory", "foo\\") if field == "service_directives" else "foo\\"
+    with pytest.raises(ValueError, match="backslash"):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], **{field: [value]}))
+
+
+@pytest.mark.parametrize(
+    "key", ["ExecStart", "Type", "User", "WorkingDirectory", "Environment", "Restart"]
+)
+def test_service_directives_cannot_override_what_the_renderer_owns(key):
+    spec = ConnectorSpec(name="x", tools=[], service_directives=[(key, "/bin/true")])
+    with pytest.raises(ValueError, match=f"cannot set {key}="):
+        render_systemd_unit(spec)
+
+
+def test_a_lone_semicolon_is_not_a_uvicorn_arg():
+    """systemd reads it as a command separator; app.toml would pass it to uvicorn."""
+    with pytest.raises(ValueError):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], uvicorn_args=[";", "/bin/true"]))
+
+
+def test_an_empty_environment_line_resets_what_came_before():
+    spec = ConnectorSpec(name="x", tools=[], env={"FOO": "1"})
+    installed = render_systemd_unit(spec).replace(
+        "Environment=FOO=1\n", "Environment=FOO=1\nEnvironment=\n"
+    )
+    drift = diff_unit(spec, installed)
+    assert "[Service] Environment FOO: installed lacks it" in drift
+
+
+@pytest.mark.parametrize("app_dir", ["../evil", "x/y", ".", ""])
+def test_app_dir_is_one_directory_name(app_dir):
+    with pytest.raises(ValueError, match="app_dir"):
+        render_systemd_unit(ConnectorSpec(name="x", tools=[], app_dir=app_dir))

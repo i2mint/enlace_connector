@@ -79,6 +79,8 @@ class ConnectorSpec:
 
         The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /
         ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.
+        Unlike *env*, a ``%`` in them is written as-is, so systemd specifiers
+        (``%t``, ``%n``) work there; write ``%%`` for a literal one.
     """
 
     name: str
