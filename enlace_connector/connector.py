@@ -173,7 +173,14 @@ def _spec_middleware(spec: ConnectorSpec) -> list:
     for ref in spec.middleware:
         obj = _resolve_ref(ref)
         if not isinstance(obj, (Middleware, list, tuple)) and callable(obj):
-            obj = obj()  # a factory
+            try:
+                obj = obj()  # a factory
+            except TypeError as exc:
+                raise TypeError(
+                    f"{ref!r} is called with no arguments as a middleware factory and "
+                    f"failed ({exc}); name a constructed middleware or a zero-argument "
+                    "factory that builds one"
+                ) from exc
         items = list(obj) if isinstance(obj, (list, tuple)) else [obj]
         for item in items:
             if not isinstance(item, Middleware):
@@ -190,7 +197,7 @@ def _build_server(spec: ConnectorSpec, *, auth: Any = None, middleware: Any = No
     from py2mcp import mk_mcp_from_refs
 
     optional: dict[str, Any] = {}
-    if spec.icon is not None:  # only when set: older py2mcp has no icons=
+    if spec.icon:  # the renderer's rule too: an empty icon is no icon
         optional["icons"] = spec.icon
     if spec.instructions:
         optional["instructions"] = spec.instructions

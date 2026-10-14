@@ -114,7 +114,29 @@ def test_rendered_server_carries_the_new_fields_only_when_set():
     for line in (f"icon={ICON!r}", "instructions='Use me.'", "middleware=['m:gate']",
                  "server_hooks=['m:hook']"):
         assert line in full
-    compile(full, "server.py", "exec")
+
+
+def test_rendered_server_runs_with_an_icon_object(hooks_module, monkeypatch):
+    """An mcp.types.Icon renders as a literal and the server.py actually executes."""
+    from mcp.types import Icon
+
+    monkeypatch.delenv("CONNECTOR_AUDIENCE", raising=False)
+    spec = ConnectorSpec(
+        name="x", tools=TOOLS, auth="none", icon=Icon(src=ICON, mimeType="image/png"),
+        instructions="Use me.", middleware=["_ec_seams:gate"],
+        server_hooks=["_ec_seams:add_closure_tool"],
+    )
+    namespace: dict = {}
+    exec(compile(render_server_py(spec), "server.py", "exec"), namespace)
+    assert callable(namespace["app"])
+    assert namespace["SPEC"].icon == {"src": ICON, "mimeType": "image/png"}
+
+
+def test_a_factory_needing_arguments_says_so(hooks_module):
+    hooks_module.needs_args = lambda ledger: _Tag("x")
+    spec = ConnectorSpec(name="x", tools=TOOLS, auth="none", middleware=["_ec_seams:needs_args"])
+    with pytest.raises(TypeError, match="zero-argument factory"):
+        make_connector_app(spec, settings={})
 
 
 def _bundle_text(out) -> str:

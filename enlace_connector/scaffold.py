@@ -49,9 +49,17 @@ def render_app_toml(
 _OPTIONAL_SERVE_FIELDS = ("icon", "instructions", "middleware", "server_hooks")
 
 
+def _literal(value):
+    """*value* as something whose ``repr`` is a Python literal: a pydantic model (an
+    ``mcp.types.Icon``) becomes the dict of its set fields, which the factory accepts
+    the same way, so the rendered ``server.py`` needs no extra import."""
+    dump = getattr(value, "model_dump", None)
+    return dump(exclude_none=True) if callable(dump) else value
+
+
 def _optional_spec_fields(spec: ConnectorSpec) -> str:
     return "".join(
-        f"    {name}={getattr(spec, name)!r},\n"
+        f"    {name}={_literal(getattr(spec, name))!r},\n"
         for name in _OPTIONAL_SERVE_FIELDS
         if getattr(spec, name)
     )
