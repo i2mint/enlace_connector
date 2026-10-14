@@ -1,4 +1,4 @@
-> built 2026-10-14 01:06 UTC from 0b2f570 (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-10-14 04:59 UTC from 051119e (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -306,7 +306,7 @@ process that actually serves them.
 | [`ConnectorSpec`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>)
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>, icon=None, instructions=None, middleware=<factory>, server_hooks=<factory>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -418,6 +418,32 @@ extra arguments appended to the `uvicorn` command line
 any other `(key, value)` lines for the unit’s
 `[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
 
+#### icon
+
+the server icon clients show next to the connector (sent in the MCP
+`serverInfo`): a `src` URL or `data:` URI, or a dict of
+`mcp.types.Icon` fields (`src`, `mimeType`, `sizes`).
+
+#### instructions
+
+the server’s model-facing description, surfaced to the
+connecting client as the MCP `instructions`.
+
+#### middleware
+
+`"module:attr"` refs to extra FastMCP middleware, in order
+(e.g. a metering gate). Each names a middleware, a list of them, or a
+zero-argument factory returning either; they run before the usage
+logger. A host can also pass `middleware=` to
+[`make_connector_app()`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.make_connector_app); that runs first.
+
+#### server_hooks
+
+`"module:function"` refs, each called with the built
+FastMCP server before it is served — the seam for tools that are not
+importable `"module:function"` refs (closures bound to a project, a
+store, a per-caller context): `server.tool(fn)` inside the hook.
+
 ### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
 
 ### \`\`{remote_base}\`\` / \`\`{name}\`\` / \`\`{port}\`\` placeholders as \*env\*.
@@ -456,7 +482,9 @@ Resolves the spec’s `auth` into a py2mcp resource-server config. For
 `auth="enlace"` provide *issuer* (the platform origin) and *audience* (this
 connector’s public URL); if *audience* is omitted it is derived from *issuer* +
 the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
-enlace).
+enlace). The spec’s `icon`, `instructions`, `middleware` and
+`server_hooks` are applied, so a connector that needs them is still built
+here rather than by hand (#3).
 
 Per-call usage logging is attached when the host’s *settings* (`os.environ`
 by default) set `CONNECTOR_USAGE_LOG_DIR` — see [`enlace_connector.usage`](_autosummary/enlace_connector.usage.html.md#module-enlace_connector.usage);
@@ -470,7 +498,9 @@ second `usage_middleware(...)` there: every call would be recorded twice.
 Build a FastMCP server for *spec*, for local stdio serving (no auth).
 
 Use for `server.run()` in Claude Desktop / Claude Code while developing the
-tools; the hosted path uses [`make_connector_app()`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.make_connector_app).
+tools; the hosted path uses [`make_connector_app()`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.make_connector_app). The spec’s `icon`,
+`instructions` and `server_hooks` apply; its `middleware` does not (it
+is the hosted path’s metering and gating).
 
 
 # _autosummary/enlace_connector.deploy.html.md
@@ -861,7 +891,7 @@ one line stating what was (or was not) observed.
 
 what to do about it — empty when `ok`.
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>)
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>, icon=None, instructions=None, middleware=<factory>, server_hooks=<factory>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -972,6 +1002,32 @@ extra arguments appended to the `uvicorn` command line
 
 any other `(key, value)` lines for the unit’s
 `[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+#### icon
+
+the server icon clients show next to the connector (sent in the MCP
+`serverInfo`): a `src` URL or `data:` URI, or a dict of
+`mcp.types.Icon` fields (`src`, `mimeType`, `sizes`).
+
+#### instructions
+
+the server’s model-facing description, surfaced to the
+connecting client as the MCP `instructions`.
+
+#### middleware
+
+`"module:attr"` refs to extra FastMCP middleware, in order
+(e.g. a metering gate). Each names a middleware, a list of them, or a
+zero-argument factory returning either; they run before the usage
+logger. A host can also pass `middleware=` to
+[`make_connector_app()`](_autosummary/enlace_connector.html.md#enlace_connector.make_connector_app); that runs first.
+
+#### server_hooks
+
+`"module:function"` refs, each called with the built
+FastMCP server before it is served — the seam for tools that are not
+importable `"module:function"` refs (closures bound to a project, a
+store, a per-caller context): `server.tool(fn)` inside the hook.
 
 ### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
 
@@ -1204,7 +1260,9 @@ Resolves the spec’s `auth` into a py2mcp resource-server config. For
 `auth="enlace"` provide *issuer* (the platform origin) and *audience* (this
 connector’s public URL); if *audience* is omitted it is derived from *issuer* +
 the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
-enlace).
+enlace). The spec’s `icon`, `instructions`, `middleware` and
+`server_hooks` are applied, so a connector that needs them is still built
+here rather than by hand (#3).
 
 Per-call usage logging is attached when the host’s *settings* (`os.environ`
 by default) set `CONNECTOR_USAGE_LOG_DIR` — see [`enlace_connector.usage`](_autosummary/enlace_connector.usage.html.md#module-enlace_connector.usage);
@@ -1218,7 +1276,9 @@ second `usage_middleware(...)` there: every call would be recorded twice.
 Build a FastMCP server for *spec*, for local stdio serving (no auth).
 
 Use for `server.run()` in Claude Desktop / Claude Code while developing the
-tools; the hosted path uses [`make_connector_app()`](_autosummary/enlace_connector.html.md#enlace_connector.make_connector_app).
+tools; the hosted path uses [`make_connector_app()`](_autosummary/enlace_connector.html.md#enlace_connector.make_connector_app). The spec’s `icon`,
+`instructions` and `server_hooks` apply; its `middleware` does not (it
+is the hosted path’s metering and gating).
 
 ### enlace_connector.render_allowlist_toml(spec, , issuer='https://apps.thorwhalen.com')
 
@@ -1317,8 +1377,9 @@ in plain words and gives the exact command that detects it.
 Render the `server.py` that exposes `app` for enlace’s process runner.
 
 The embedded `SPEC` carries every field `
-make_connector_app()` reads at serve time — tools, auth, name/title, route and
-`stateless_http`. Deploy-time-only fields (`extras`, `git_installs`,
+make_connector_app()` reads at serve time — tools, auth, name/title, route,
+`stateless_http`, and (when set) `icon`, `instructions`, `middleware`
+and `server_hooks`. Deploy-time-only fields (`extras`, `git_installs`,
 `data`, `env`, `post_install`, `allowed_users`) are deliberately
 omitted: they are consumed by the provisioning bundle, not by the process.
 
@@ -1747,8 +1808,9 @@ Render the enlace `app.toml` for *spec* as a `mode="process"` app.
 Render the `server.py` that exposes `app` for enlace’s process runner.
 
 The embedded `SPEC` carries every field `
-make_connector_app()` reads at serve time — tools, auth, name/title, route and
-`stateless_http`. Deploy-time-only fields (`extras`, `git_installs`,
+make_connector_app()` reads at serve time — tools, auth, name/title, route,
+`stateless_http`, and (when set) `icon`, `instructions`, `middleware`
+and `server_hooks`. Deploy-time-only fields (`extras`, `git_installs`,
 `data`, `env`, `post_install`, `allowed_users`) are deliberately
 omitted: they are consumed by the provisioning bundle, not by the process.
 
@@ -1871,7 +1933,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-14 01:06 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/0b2f5707e3a0ad638f54b74bdefbfd1d12576eec"><code>0b2f570</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 04:59 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/051119e88de4ec15b476ecfd01a01afe6509c679"><code>051119e</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1880,7 +1942,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/0b2f5707e3a0ad638f54b74bdefbfd1d12576eec"><code>0b2f5707e3a0ad638f54b74bdefbfd1d12576eec</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/051119e88de4ec15b476ecfd01a01afe6509c679"><code>051119e88de4ec15b476ecfd01a01afe6509c679</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -1891,9 +1953,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38493709121">38493709121</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38514090314">38514090314</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>0b2f5707e3a0ad638f54b74bdefbfd1d12576eec</code> (in the history of the built commit)    |
+| Event commit | <code>051119e88de4ec15b476ecfd01a01afe6509c679</code> (in the history of the built commit)    |
 
 ## Tools
 
@@ -1924,7 +1986,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 0b2f5707e3a0ad638f54b74bdefbfd1d12576eec
+git checkout 051119e88de4ec15b476ecfd01a01afe6509c679
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

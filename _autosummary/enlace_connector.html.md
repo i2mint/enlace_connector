@@ -112,7 +112,7 @@ one line stating what was (or was not) observed.
 
 what to do about it — empty when `ok`.
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>)
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>, icon=None, instructions=None, middleware=<factory>, server_hooks=<factory>)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -223,6 +223,32 @@ extra arguments appended to the `uvicorn` command line
 
 any other `(key, value)` lines for the unit’s
 `[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+#### icon
+
+the server icon clients show next to the connector (sent in the MCP
+`serverInfo`): a `src` URL or `data:` URI, or a dict of
+`mcp.types.Icon` fields (`src`, `mimeType`, `sizes`).
+
+#### instructions
+
+the server’s model-facing description, surfaced to the
+connecting client as the MCP `instructions`.
+
+#### middleware
+
+`"module:attr"` refs to extra FastMCP middleware, in order
+(e.g. a metering gate). Each names a middleware, a list of them, or a
+zero-argument factory returning either; they run before the usage
+logger. A host can also pass `middleware=` to
+[`make_connector_app()`](#enlace_connector.make_connector_app); that runs first.
+
+#### server_hooks
+
+`"module:function"` refs, each called with the built
+FastMCP server before it is served — the seam for tools that are not
+importable `"module:function"` refs (closures bound to a project, a
+store, a per-caller context): `server.tool(fn)` inside the hook.
 
 ### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
 
@@ -455,7 +481,9 @@ Resolves the spec’s `auth` into a py2mcp resource-server config. For
 `auth="enlace"` provide *issuer* (the platform origin) and *audience* (this
 connector’s public URL); if *audience* is omitted it is derived from *issuer* +
 the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
-enlace).
+enlace). The spec’s `icon`, `instructions`, `middleware` and
+`server_hooks` are applied, so a connector that needs them is still built
+here rather than by hand (#3).
 
 Per-call usage logging is attached when the host’s *settings* (`os.environ`
 by default) set `CONNECTOR_USAGE_LOG_DIR` — see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage);
@@ -469,7 +497,9 @@ second `usage_middleware(...)` there: every call would be recorded twice.
 Build a FastMCP server for *spec*, for local stdio serving (no auth).
 
 Use for `server.run()` in Claude Desktop / Claude Code while developing the
-tools; the hosted path uses [`make_connector_app()`](#enlace_connector.make_connector_app).
+tools; the hosted path uses [`make_connector_app()`](#enlace_connector.make_connector_app). The spec’s `icon`,
+`instructions` and `server_hooks` apply; its `middleware` does not (it
+is the hosted path’s metering and gating).
 
 ### enlace_connector.render_allowlist_toml(spec, , issuer='https://apps.thorwhalen.com')
 
@@ -568,8 +598,9 @@ in plain words and gives the exact command that detects it.
 Render the `server.py` that exposes `app` for enlace’s process runner.
 
 The embedded `SPEC` carries every field `
-make_connector_app()` reads at serve time — tools, auth, name/title, route and
-`stateless_http`. Deploy-time-only fields (`extras`, `git_installs`,
+make_connector_app()` reads at serve time — tools, auth, name/title, route,
+`stateless_http`, and (when set) `icon`, `instructions`, `middleware`
+and `server_hooks`. Deploy-time-only fields (`extras`, `git_installs`,
 `data`, `env`, `post_install`, `allowed_users`) are deliberately
 omitted: they are consumed by the provisioning bundle, not by the process.
 

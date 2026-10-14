@@ -31,8 +31,9 @@ Render the enlace `app.toml` for *spec* as a `mode="process"` app.
 Render the `server.py` that exposes `app` for enlace’s process runner.
 
 The embedded `SPEC` carries every field `
-make_connector_app()` reads at serve time — tools, auth, name/title, route and
-`stateless_http`. Deploy-time-only fields (`extras`, `git_installs`,
+make_connector_app()` reads at serve time — tools, auth, name/title, route,
+`stateless_http`, and (when set) `icon`, `instructions`, `middleware`
+and `server_hooks`. Deploy-time-only fields (`extras`, `git_installs`,
 `data`, `env`, `post_install`, `allowed_users`) are deliberately
 omitted: they are consumed by the provisioning bundle, not by the process.
 
