@@ -51,6 +51,7 @@ _OPTIONAL_SERVE_FIELDS = (
     "instructions",
     "middleware",
     "server_hooks",
+    "app_wrappers",
     "version",
     "version_dist",
     "usage_outcome",
@@ -79,7 +80,8 @@ def render_server_py(spec: ConnectorSpec) -> str:
     The embedded ``SPEC`` carries every field :func:`~enlace_connector.connector.
     make_connector_app` reads at serve time — tools, auth, name/title, route,
     ``stateless_http``, and (when set) ``icon``, ``instructions``, ``middleware``,
-    ``server_hooks``, ``version``, ``version_dist`` and ``usage_outcome``.
+    ``server_hooks``, ``app_wrappers``, ``version``, ``version_dist`` and
+    ``usage_outcome``.
     A ``"module:ATTR"`` ``instructions`` or ``version`` is rendered as the ref,
     not its value, so it is read from the installed package at serve time.
 

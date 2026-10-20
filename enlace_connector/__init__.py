@@ -53,6 +53,7 @@ from .auth import (
 )
 from .connector import (
     ConnectorSpec,
+    chain_lifespan,
     make_connector_app,
     make_stdio_server,
     spec_instructions,
@@ -99,6 +100,7 @@ __all__ = [
     "ConnectorSpec",
     "make_connector_app",
     "make_stdio_server",
+    "chain_lifespan",
     "resolve_auth",
     "enlace_resource",
     "idp_resource",

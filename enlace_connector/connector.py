@@ -13,14 +13,49 @@ wants:
 Tools are given as ``"module:function"`` reference strings (py2mcp's form), so the
 spec is import-light and serializable — the heavy tool modules load only in the
 process that actually serves them.
+
+Serving order
+-------------
+
+This is the one place the order is written down; every other docstring points here.
+:func:`make_connector_app` builds a connector in these steps:
+
+1. **Server.** The FastMCP server is built from the spec's ``tools``, ``icon`` and
+   ``instructions``, with the middleware stack of step 3.
+2. **Server hooks.** Each ``server_hooks`` ref is called as ``hook(server)``, in
+   order. A hook may add tools, and it may **return** middleware (one, or a
+   list): that middleware is the builder's own (an authorization gate bound to a
+   project) and goes to the front of the stack. Returning ``None`` adds none.
+3. **Middleware**, outermost (runs first on a call) to innermost:
+
+   a. what the server hooks returned, in hook order (authorization);
+   b. the host's ``middleware=`` argument to :func:`make_connector_app`;
+   c. the spec's ``middleware`` refs, in order (e.g. a metering gate);
+   d. the usage logger, when the host switched it on (:mod:`.usage`).
+
+   So a call is authorized before it is metered, and metered before it is logged
+   as usage: a refused call is never counted or logged. Middleware a hook adds
+   itself with ``server.add_middleware`` lands after all of these.
+4. **ASGI app.** ``server.http_app(...)`` gives the Starlette app; its lifespan
+   runs FastMCP's session manager.
+5. **App wrappers.** Each ``app_wrappers`` ref is called as
+   ``wrapper(app, server) -> app``, in order, each on the previous one's result
+   (an extra mount, CORS, ...). A wrapper with startup/shutdown work of its own
+   chains it onto the app's lifespan with :func:`chain_lifespan`, never in place
+   of it: replacing it stops the session manager and the MCP endpoint fails.
+
+:func:`make_stdio_server` runs steps 1 and 2 only: there is no stack (the
+middleware is the hosted path's gating and metering) and no ASGI app, so what a
+hook returns is ignored there.
 """
 
 from __future__ import annotations
 
 import logging
 import re
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from .auth import resolve_auth
 
@@ -28,6 +63,7 @@ __all__ = [
     "ConnectorSpec",
     "make_stdio_server",
     "make_connector_app",
+    "chain_lifespan",
     "spec_instructions",
     "spec_version",
 ]
@@ -105,13 +141,19 @@ class ConnectorSpec:
             lives in one place and cannot drift from a copy in the spec.
         middleware: ``"module:attr"`` refs to extra FastMCP middleware, in order
             (e.g. a metering gate). Each names a middleware, a list of them, or a
-            zero-argument factory returning either; they run before the usage
-            logger. A host can also pass ``middleware=`` to
-            :func:`make_connector_app`; that runs first.
+            zero-argument factory returning either. Where they sit among the
+            other middleware: "Serving order" in this module's docstring.
         server_hooks: ``"module:function"`` refs, each called with the built
             FastMCP server before it is served — the seam for tools that are not
             importable ``"module:function"`` refs (closures bound to a project, a
             store, a per-caller context): ``server.tool(fn)`` inside the hook.
+            A hook may return middleware it owns (an authorization gate), which
+            runs before every other middleware ("Serving order").
+        app_wrappers: ``"module:function"`` refs, each called as
+            ``wrapper(app, server) -> app`` on the hosted ASGI app, in order —
+            the seam for an extra route next to the MCP endpoint (a mount for
+            signed downloads) and its own startup/shutdown work, which goes
+            through :func:`chain_lifespan`. Hosted path only.
 
         The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /
         ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.
@@ -144,6 +186,7 @@ class ConnectorSpec:
     instructions: str | None = None
     middleware: list[str] = field(default_factory=list)
     server_hooks: list[str] = field(default_factory=list)
+    app_wrappers: list[str] = field(default_factory=list)
 
     @property
     def dir_name(self) -> str:
@@ -176,8 +219,10 @@ def make_stdio_server(spec: ConnectorSpec):
 
     Use for ``server.run()`` in Claude Desktop / Claude Code while developing the
     tools; the hosted path uses :func:`make_connector_app`. The spec's ``icon``,
-    ``instructions`` and ``server_hooks`` apply; its ``middleware`` does not (it
-    is the hosted path's metering and gating).
+    ``instructions`` and ``server_hooks`` apply; its ``middleware``, the
+    middleware its hooks return, and its ``app_wrappers`` do not (they are the
+    hosted path's gating, metering and routes; see "Serving order" in the module
+    docstring).
     """
     return _build_server(spec)
 
@@ -252,6 +297,20 @@ def spec_version(spec: ConnectorSpec) -> str | None:
     return None
 
 
+def _as_middleware_list(obj: Any, *, source: str) -> list:
+    """*obj* (a middleware, or a list/tuple of them) as a list, else ``TypeError``."""
+    from fastmcp.server.middleware import Middleware
+
+    items = list(obj) if isinstance(obj, (list, tuple)) else [obj]
+    for item in items:
+        if not isinstance(item, Middleware):
+            raise TypeError(
+                f"{source} gave {type(item).__name__}, not a FastMCP Middleware "
+                "(name a middleware, a list of them, or a zero-argument factory)"
+            )
+    return items
+
+
 def _spec_middleware(spec: ConnectorSpec) -> list:
     """The middleware *spec* names, resolved in order (see ``ConnectorSpec.middleware``)."""
     from fastmcp.server.middleware import Middleware
@@ -268,19 +327,22 @@ def _spec_middleware(spec: ConnectorSpec) -> list:
                     f"failed ({exc}); name a constructed middleware or a zero-argument "
                     "factory that builds one"
                 ) from exc
-        items = list(obj) if isinstance(obj, (list, tuple)) else [obj]
-        for item in items:
-            if not isinstance(item, Middleware):
-                raise TypeError(
-                    f"{ref!r} gave {type(item).__name__}, not a FastMCP Middleware "
-                    "(name a middleware, a list of them, or a zero-argument factory)"
-                )
-        out += items
+        out += _as_middleware_list(obj, source=repr(ref))
     return out
 
 
-def _build_server(spec: ConnectorSpec, *, auth: Any = None, middleware: Any = None):
-    """The FastMCP server for *spec*: its tools, icon, instructions and hooks."""
+def _build_server(
+    spec: ConnectorSpec,
+    *,
+    auth: Any = None,
+    middleware: Any = None,
+    hook_middleware: bool = False,
+):
+    """The FastMCP server for *spec*: its tools, icon, instructions and hooks
+    (steps 1-2 of "Serving order"). With *hook_middleware*, what the hooks return
+    goes to the front of the server's middleware, in hook order (step 3a);
+    otherwise it is ignored.
+    """
     from py2mcp import mk_mcp_from_refs
 
     optional: dict[str, Any] = {}
@@ -292,9 +354,70 @@ def _build_server(spec: ConnectorSpec, *, auth: Any = None, middleware: Any = No
     server = mk_mcp_from_refs(
         spec.tools, name=spec.server_name, auth=auth, middleware=middleware, **optional
     )
+    returned: list = []
     for ref in spec.server_hooks:
-        _resolve_ref(ref)(server)
+        obj = _resolve_ref(ref)(server)
+        if obj is not None:
+            returned += _as_middleware_list(obj, source=f"server hook {ref!r}")
+    if hook_middleware and returned:
+        server.middleware[:0] = returned  # the builder's own gate runs first
     return server
+
+
+def chain_lifespan(app: Any, extra_lifespan: Callable[[Any], Any]) -> Any:
+    """Run *extra_lifespan* inside *app*'s own lifespan, and return *app*.
+
+    *app* is a Starlette app (what ``server.http_app(...)`` returns); its own
+    lifespan runs FastMCP's session manager, so an app wrapper that needs
+    startup/shutdown work must add to it, not replace it (see "Serving order" in
+    the module docstring). *extra_lifespan* is a Starlette lifespan: a callable
+    taking the app and returning an async context manager (an
+    ``@asynccontextmanager`` function). It starts after the app's own lifespan
+    and stops before it, so the MCP endpoint is up for as long as the extra work
+    is. If both yield a state mapping, they are merged (the extra one wins on a
+    shared key) into the request ``scope["state"]``.
+
+    >>> from contextlib import asynccontextmanager
+    >>> from starlette.applications import Starlette
+    >>> @asynccontextmanager
+    ... async def downloads(app):
+    ...     yield {"signer": "ready"}
+    >>> app = chain_lifespan(Starlette(), downloads)
+    """
+    router = getattr(app, "router", None)
+    inner = getattr(router, "lifespan_context", None)
+    if inner is None:
+        raise TypeError(
+            f"chain_lifespan needs a Starlette app (with .router.lifespan_context), "
+            f"not {type(app).__name__}; chain onto the app http_app() returned "
+            "before wrapping it in anything else"
+        )
+
+    @asynccontextmanager
+    async def chained(a):
+        async with inner(a) as inner_state:
+            async with extra_lifespan(a) as extra_state:
+                if inner_state is None and extra_state is None:
+                    yield None
+                else:
+                    yield {**(inner_state or {}), **(extra_state or {})}
+
+    router.lifespan_context = chained
+    return app
+
+
+def _wrap_app(app: Any, server: Any, spec: ConnectorSpec) -> Any:
+    """*app* passed through the spec's ``app_wrappers``, in order (step 5)."""
+    for ref in spec.app_wrappers:
+        wrapped = _resolve_ref(ref)(app, server)
+        if not callable(wrapped):
+            raise TypeError(
+                f"app wrapper {ref!r} returned {type(wrapped).__name__}, not an ASGI "
+                "app; a wrapper is fn(app, server) -> app and must return the app "
+                "(the one it was given, or one that wraps it)"
+            )
+        app = wrapped
+    return app
 
 
 def make_connector_app(
@@ -311,16 +434,18 @@ def make_connector_app(
     ``auth="enlace"`` provide *issuer* (the platform origin) and *audience* (this
     connector's public URL); if *audience* is omitted it is derived from *issuer* +
     the spec's route. Returns an ASGI app to run under any ASGI server (or mount in
-    enlace). The spec's ``icon``, ``instructions``, ``middleware`` and
-    ``server_hooks`` are applied, so a connector that needs them is still built
-    here rather than by hand (#3).
+    enlace). The spec's ``icon``, ``instructions``, ``middleware``,
+    ``server_hooks`` and ``app_wrappers`` are applied, so a connector that needs
+    them is still built here rather than by hand (#3, #22). The order they are
+    applied in is "Serving order" in the module docstring.
 
     Per-call usage logging is attached when the host's *settings* (``os.environ``
     by default) set ``CONNECTOR_USAGE_LOG_DIR`` — see :mod:`enlace_connector.usage`;
     it is off otherwise; the spec's ``version`` and ``usage_outcome`` feed it. Any
-    extra *middleware* (one or an ordered iterable) runs before it, so a gate (e.g.
-    ``enlace_metering``) refuses a call before it is logged as usage. Do not add a
-    second ``usage_middleware(...)`` there: every call would be recorded twice.
+    extra *middleware* (one or an ordered iterable) runs before the spec's and the
+    logger, so a gate (e.g. ``enlace_metering``) refuses a call before it is logged
+    as usage. Do not add a second ``usage_middleware(...)`` there: every call would
+    be recorded twice.
     """
     if audience is None and issuer is not None:
         audience = spec.default_audience(issuer)
@@ -339,6 +464,12 @@ def make_connector_app(
     extra = normalize_middleware(middleware) or []
     stack = extra + _spec_middleware(spec) + usage_middleware(spec, settings=settings)
     # py2mcp's mk_http_app, opened up so the spec's server_hooks can reach the
-    # server between building it and serving it.
-    server = _build_server(spec, auth=mk_auth_provider(auth), middleware=stack or None)
-    return server.http_app(transport=DFLT_TRANSPORT, stateless_http=spec.stateless_http)
+    # server between building it and serving it, and its app_wrappers the app.
+    server = _build_server(
+        spec,
+        auth=mk_auth_provider(auth),
+        middleware=stack or None,
+        hook_middleware=True,
+    )
+    app = server.http_app(transport=DFLT_TRANSPORT, stateless_http=spec.stateless_http)
+    return _wrap_app(app, server, spec)
