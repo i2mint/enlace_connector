@@ -34,6 +34,7 @@ import asyncio
 import functools
 import inspect
 import logging
+import threading
 import typing
 from typing import Any, Callable, Optional
 
@@ -62,21 +63,45 @@ class SamplingUnavailable(RuntimeError):
     """The client cannot (or did not) answer a sampling request."""
 
 
+class _SamplingFailed(SamplingUnavailable):
+    """Raised by :func:`sampling_llm` only, so that :func:`llm_tool` reruns ``fn``
+    for a failed sampling request and not for a ``SamplingUnavailable`` of the
+    tool's own."""
+
+
+_stateless_noted = False
+
+
 def client_supports_sampling(ctx: Any) -> bool:
     """Whether the client behind *ctx* (a ``fastmcp.Context``) advertises sampling.
 
     ``False`` when it cannot be told (no session, an older SDK): the safe answer,
     since the tool then runs on its fallback.
+
+    **Sampling needs a stateful session.** A connector served with
+    ``stateless_http=True`` (the ``ConnectorSpec`` default) builds a fresh
+    session per request that never saw the client's ``initialize``, so this is
+    always ``False`` there; set ``stateless_http=False`` on the spec for sampling.
+    That case is logged once, at info level, so it is not invisible.
     """
+    global _stateless_noted
     try:
         from mcp.types import ClientCapabilities, SamplingCapability
 
+        session = ctx.session
+        if getattr(session, "_client_params", True) is None and not _stateless_noted:
+            _stateless_noted = True
+            logger.info(
+                "MCP session without client parameters (stateless_http=True?): "
+                "sampling is unavailable; tools run on their fallback or offline"
+            )
         return bool(
-            ctx.session.check_client_capability(
+            session.check_client_capability(
                 ClientCapabilities(sampling=SamplingCapability())
             )
         )
-    except Exception:  # no session or no capability API: treat as unsupported
+    except (RuntimeError, AttributeError, ImportError):  # no session or API
+        logger.debug("cannot tell whether the client samples", exc_info=True)
         return False
 
 
@@ -88,6 +113,7 @@ def sampling_llm(
     max_tokens: int = DFLT_MAX_TOKENS,
     temperature: Optional[float] = None,
     timeout: float = DFLT_SAMPLING_TIMEOUT_S,
+    cancelled: Optional[threading.Event] = None,
 ) -> LLMCallable:
     """A sync ``prompt -> str`` that asks the client's model through ``ctx.sample``.
 
@@ -96,7 +122,9 @@ def sampling_llm(
     request on *loop* and waits for the answer. Calling it on the loop's own
     thread would deadlock, so that raises ``RuntimeError``. Any failure of the
     request (the client does not sample, it refused, it timed out) raises
-    :class:`SamplingUnavailable`.
+    :class:`SamplingUnavailable`. Once *cancelled* (an event the caller sets when
+    the request is abandoned) is set, every call raises at once, so a worker
+    thread left behind by a cancelled request stops at its next LLM call.
     """
     loop = loop or asyncio.get_running_loop()
 
@@ -105,6 +133,8 @@ def sampling_llm(
             running = asyncio.get_running_loop()
         except RuntimeError:
             running = None
+        if cancelled is not None and cancelled.is_set():
+            raise _SamplingFailed("the request was cancelled")
         if running is loop:
             raise RuntimeError(
                 "sampling_llm was called on the event loop's thread; call it from "
@@ -121,10 +151,10 @@ def sampling_llm(
             result = future.result(timeout)
         except Exception as exc:
             future.cancel()
-            raise SamplingUnavailable(f"sampling failed: {exc}") from exc
+            raise _SamplingFailed(f"sampling failed: {exc}") from exc
         text = getattr(result, "text", result)
         if not isinstance(text, str):
-            raise SamplingUnavailable(f"sampling returned no text ({type(text).__name__})")
+            raise _SamplingFailed(f"sampling returned no text ({type(text).__name__})")
         return text
 
     return llm
@@ -162,6 +192,12 @@ def llm_tool(
     answers either way. ``fn`` runs in a worker thread, so a slow search does not
     block the server.
 
+    The rerun starts ``fn`` from the beginning, so ``fn`` must be safe to run
+    twice up to its first LLM call (a search is; a tool that writes before
+    asking the LLM is not). Only a failed sampling request triggers it, not a
+    :class:`SamplingUnavailable` that ``fn`` raises itself. A cancelled request
+    cannot stop the worker thread, but its next LLM call raises at once.
+
     The tool's signature is ``fn``'s minus *llm_param*, plus ``ctx`` (which
     FastMCP injects and hides from the client); name and docstring are ``fn``'s.
     ``sampling_kwargs`` go to :func:`sampling_llm` (``system_prompt``,
@@ -181,6 +217,8 @@ def llm_tool(
     sig = inspect.signature(fn)
     if llm_param not in sig.parameters:
         raise TypeError(f"{fn.__name__} takes no {llm_param!r} parameter to inject")
+    if sig.parameters[llm_param].kind is inspect.Parameter.POSITIONAL_ONLY:
+        raise TypeError(f"{fn.__name__}'s {llm_param!r} is positional-only; it is passed by name")
     if "ctx" in sig.parameters:
         raise TypeError(f"{fn.__name__} already has a 'ctx' parameter")
     fallback_llm = _resolve_fallback(fallback)
@@ -192,10 +230,14 @@ def llm_tool(
             return fn(*args, **{**kwargs, llm_param: llm})
 
         if use_sampling and client_supports_sampling(ctx):
-            llm = sampling_llm(ctx, **sampling_kwargs)
+            cancelled = threading.Event()
+            llm = sampling_llm(ctx, cancelled=cancelled, **sampling_kwargs)
             try:
                 return await asyncio.to_thread(run, llm)
-            except SamplingUnavailable as exc:
+            except asyncio.CancelledError:
+                cancelled.set()  # the thread runs on; its next llm() call stops it
+                raise
+            except _SamplingFailed as exc:
                 logger.warning(
                     "%s: %s; running on the %s", fn.__name__, exc,
                     "fallback LLM" if fallback_llm else "offline path",
@@ -203,7 +245,7 @@ def llm_tool(
         return await asyncio.to_thread(run, fallback_llm)
 
     try:  # resolved here: string annotations would not resolve in this module
-        hints = typing.get_type_hints(fn)
+        hints = typing.get_type_hints(fn, include_extras=True)
     except Exception:
         hints = dict(getattr(fn, "__annotations__", {}))
     hints.pop(llm_param, None)

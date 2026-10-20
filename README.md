@@ -170,8 +170,11 @@ The LLM is the **client's model via MCP sampling** when the client advertises it
 (`ctx.sample`, so no metered key), else the `fallback` (a key-backed callable, or
 `coact.resolve_llm()` on a developer machine), else `None` and the tool runs offline.
 A sampling request that fails mid-call reruns the tool on the fallback, so the
-connector never hard-fails for want of an LLM. Reference the wrapped function in the
-spec's `tools` as usual.
+connector never hard-fails for want of an LLM (the rerun starts the tool over, so it
+must be safe to run twice up to its first LLM call). Reference the wrapped function in
+the spec's `tools` as usual. Sampling needs a stateful session: set
+`stateless_http=False` on the spec, since a stateless request never sees the client's
+capabilities.
 
 **Client support, checked 2026-10:** Claude's MCP client (claude.ai, Desktop, mobile,
 Cowork, Claude Code) lists sampling among the MCP features it does not yet support

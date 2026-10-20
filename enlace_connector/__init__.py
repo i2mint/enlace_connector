@@ -51,12 +51,6 @@ from .auth import (
     idp_resource,
     resolve_auth,
 )
-from .sampling import (
-    SamplingUnavailable,
-    client_supports_sampling,
-    llm_tool,
-    sampling_llm,
-)
 from .connector import (
     ConnectorSpec,
     make_connector_app,
@@ -89,6 +83,12 @@ from .preflight import (
     check_refresh_grant_supported,
     format_report,
     verify_deployment,
+)
+from .sampling import (
+    SamplingUnavailable,
+    client_supports_sampling,
+    llm_tool,
+    sampling_llm,
 )
 from .scaffold import render_app_toml, render_server_py, scaffold_app
 from .usage import usage_middleware

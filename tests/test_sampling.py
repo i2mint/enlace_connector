@@ -131,3 +131,78 @@ def test_sampling_llm_refuses_the_loop_thread_and_reports_failures():
             await asyncio.to_thread(llm, "x")
 
     asyncio.run(go())
+
+
+def test_parameter_descriptions_survive_the_wrap():
+    from typing import Annotated
+
+    from pydantic import Field
+
+    def find(query: Annotated[str, Field(description="the query")], *, llm=None) -> str:
+        return query
+
+    tools, _ = _call(llm_tool(find), {"query": "x"})
+    assert tools[0].inputSchema["properties"]["query"]["description"] == "the query"
+
+
+def test_a_failed_sampling_request_reruns_fn_from_the_start():
+    calls = []
+
+    def find(query: str, *, llm=None) -> str:
+        calls.append(llm is None)
+        return llm(query) if llm else query
+
+    def broken(messages, params, context):
+        raise RuntimeError("no")
+
+    _, out = _call(llm_tool(find), {"query": "q"}, sampling_handler=broken)
+    assert out == "q" and calls == [False, True]  # sampled try, then offline rerun
+
+
+def test_a_sampling_unavailable_of_the_tool_itself_is_not_retried():
+    def find(query: str, *, llm=None) -> str:
+        raise SamplingUnavailable("my own")
+
+    with pytest.raises(Exception, match="my own"):
+        _call(llm_tool(find), {"query": "q"}, sampling_handler=_sampler())
+
+
+def test_a_positional_only_llm_is_refused():
+    def find(query, llm=None, /):
+        return query
+
+    with pytest.raises(TypeError, match="positional-only"):
+        llm_tool(find)
+
+
+def test_a_cancelled_request_stops_the_next_llm_call():
+    import threading
+
+    class Ctx:
+        async def sample(self, prompt, **kw):
+            return "never"
+
+    async def go():
+        cancelled = threading.Event()
+        llm = sampling_llm(Ctx(), cancelled=cancelled)
+        cancelled.set()
+        with pytest.raises(SamplingUnavailable, match="cancelled"):
+            await asyncio.to_thread(llm, "x")
+
+    asyncio.run(go())
+
+
+def test_a_stateless_server_does_not_sample():
+    """ConnectorSpec's default: each request's session never saw initialize."""
+    class Session:
+        _client_params = None
+
+        def check_client_capability(self, capability):
+            return False
+
+    class Ctx:
+        session = Session()
+
+    from enlace_connector.sampling import client_supports_sampling
+
+    assert client_supports_sampling(Ctx()) is False
