@@ -36,6 +36,9 @@
       format_report
       spec_instructions
       spec_version
+      llm_tool
+      sampling_llm
+      client_supports_sampling
    
    .. rubric:: Classes
 
@@ -50,6 +53,7 @@
    .. autosummary::
    
       PreflightError
+      SamplingUnavailable
    
 .. rubric:: Modules
 
@@ -61,5 +65,6 @@
    connector
    deploy
    preflight
+   sampling
    scaffold
    usage

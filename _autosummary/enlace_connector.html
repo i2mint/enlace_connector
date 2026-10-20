@@ -324,6 +324,7 @@
 <li class="toctree-l2"><a class="reference internal" href="enlace_connector.connector.html">enlace_connector.connector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_connector.deploy.html">enlace_connector.deploy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_connector.preflight.html">enlace_connector.preflight</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enlace_connector.sampling.html">enlace_connector.sampling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_connector.scaffold.html">enlace_connector.scaffold</a></li>
 <li class="toctree-l2"><a class="reference internal" href="enlace_connector.usage.html">enlace_connector.usage</a></li>
 </ul>
@@ -515,6 +516,15 @@ in seconds instead of when a user complains a day later.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.spec_version" title="enlace_connector.spec_version"><code class="xref py py-obj docutils literal notranslate"><span class="pre">spec_version</span></code></a>(spec)</p></td>
 <td><p><em>spec</em>'s version: <code class="docutils literal notranslate"><span class="pre">version</span></code> (a <code class="docutils literal notranslate"><span class="pre">&quot;module:ATTR&quot;</span></code> ref resolved), else the installed version of <code class="docutils literal notranslate"><span class="pre">version_dist</span></code>, else <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.llm_tool" title="enlace_connector.llm_tool"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llm_tool</span></code></a>([fn, llm_param, fallback, use_sampling])</p></td>
+<td><p>Wrap a sync <code class="docutils literal notranslate"><span class="pre">fn(...,</span> <span class="pre">llm=None)</span></code> into an async MCP tool that brings its LLM.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.sampling_llm" title="enlace_connector.sampling_llm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sampling_llm</span></code></a>(ctx, *[, loop, system_prompt, ...])</p></td>
+<td><p>A sync <code class="docutils literal notranslate"><span class="pre">prompt</span> <span class="pre">-&gt;</span> <span class="pre">str</span></code> that asks the client's model through <code class="docutils literal notranslate"><span class="pre">ctx.sample</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.client_supports_sampling" title="enlace_connector.client_supports_sampling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">client_supports_sampling</span></code></a>(ctx)</p></td>
+<td><p>Whether the client behind <em>ctx</em> (a <code class="docutils literal notranslate"><span class="pre">fastmcp.Context</span></code>) advertises sampling.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -538,6 +548,9 @@ in seconds instead of when a user complains a day later.</p>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.PreflightError" title="enlace_connector.PreflightError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PreflightError</span></code></a></p></td>
 <td><p>Raised by <a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_deployment()</span></code></a> in <code class="docutils literal notranslate"><span class="pre">strict</span></code> mode when a check fails.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.SamplingUnavailable" title="enlace_connector.SamplingUnavailable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SamplingUnavailable</span></code></a></p></td>
+<td><p>The client cannot (or did not) answer a sampling request.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1037,6 +1050,13 @@ your own to test offline, to add auth headers, or to use <code class="docutils l
 <p>Raised by <a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-func docutils literal notranslate"><span class="pre">verify_deployment()</span></code></a> in <code class="docutils literal notranslate"><span class="pre">strict</span></code> mode when a check fails.</p>
 </dd></dl>
 
+<dl class="py exception">
+<dt class="sig sig-object py" id="enlace_connector.SamplingUnavailable">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">SamplingUnavailable</span></span><a class="reference internal" href="../_modules/enlace_connector/sampling.html#SamplingUnavailable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.SamplingUnavailable" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></p>
+<p>The client cannot (or did not) answer a sampling request.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="enlace_connector.allowlist_users">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">allowlist_users</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#allowlist_users"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.allowlist_users" title="Link to this definition">#</a></dt>
@@ -1149,6 +1169,24 @@ expire into a dead end, which is invisible from the connector’s own health.</p
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.client_supports_sampling">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">client_supports_sampling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/sampling.html#client_supports_sampling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.client_supports_sampling" title="Link to this definition">#</a></dt>
+<dd><p>Whether the client behind <em>ctx</em> (a <code class="docutils literal notranslate"><span class="pre">fastmcp.Context</span></code>) advertises sampling.</p>
+<p><code class="docutils literal notranslate"><span class="pre">False</span></code> when it cannot be told (no session, an older SDK): the safe answer,
+since the tool then runs on its fallback.</p>
+<p><strong>Sampling needs a stateful session.</strong> A connector served with
+<code class="docutils literal notranslate"><span class="pre">stateless_http=True</span></code> (the <code class="docutils literal notranslate"><span class="pre">ConnectorSpec</span></code> default) builds a fresh
+session per request that never saw the client’s <code class="docutils literal notranslate"><span class="pre">initialize</span></code>, so this is
+always <code class="docutils literal notranslate"><span class="pre">False</span></code> there; set <code class="docutils literal notranslate"><span class="pre">stateless_http=False</span></code> on the spec for sampling.
+That case is logged once, at info level, so it is not invisible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="enlace_connector.diff_unit">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">diff_unit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">installed</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/opt/tw_platform'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">issuer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://apps.thorwhalen.com'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">frozenset({('Unit',</span> <span class="pre">'Description')})</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#diff_unit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.diff_unit" title="Link to this definition">#</a></dt>
 <dd><p>How the <em>installed</em> unit text differs from what <em>spec</em> renders; <code class="docutils literal notranslate"><span class="pre">[]</span></code> if not.</p>
@@ -1249,6 +1287,31 @@ own <code class="docutils literal notranslate"><span class="pre">jwks_uri</span>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
 </dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.llm_tool">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">llm_tool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">llm_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'llm'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sampling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">sampling_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/sampling.html#llm_tool"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.llm_tool" title="Link to this definition">#</a></dt>
+<dd><p>Wrap a sync <code class="docutils literal notranslate"><span class="pre">fn(...,</span> <span class="pre">llm=None)</span></code> into an async MCP tool that brings its LLM.</p>
+<p>Per request, the LLM is: a <a class="reference internal" href="#enlace_connector.sampling_llm" title="enlace_connector.sampling_llm"><code class="xref py py-func docutils literal notranslate"><span class="pre">sampling_llm()</span></code></a> when <em>use_sampling</em> and the
+client advertises sampling; else <em>fallback</em> (a <code class="docutils literal notranslate"><span class="pre">prompt</span> <span class="pre">-&gt;</span> <span class="pre">str</span></code>, or a
+<code class="docutils literal notranslate"><span class="pre">&quot;module:attr&quot;</span></code> ref to one, resolved once, at wrap time); else <code class="docutils literal notranslate"><span class="pre">None</span></code>,
+which <code class="docutils literal notranslate"><span class="pre">fn</span></code> must treat as “run offline”. If a sampling request fails while
+<code class="docutils literal notranslate"><span class="pre">fn</span></code> runs, <code class="docutils literal notranslate"><span class="pre">fn</span></code> runs again with the fallback (or offline): the tool
+answers either way. <code class="docutils literal notranslate"><span class="pre">fn</span></code> runs in a worker thread, so a slow search does not
+block the server.</p>
+<p>The rerun starts <code class="docutils literal notranslate"><span class="pre">fn</span></code> from the beginning, so <code class="docutils literal notranslate"><span class="pre">fn</span></code> must be safe to run
+twice up to its first LLM call (a search is; a tool that writes before
+asking the LLM is not). Only a failed sampling request triggers it, not a
+<a class="reference internal" href="#enlace_connector.SamplingUnavailable" title="enlace_connector.SamplingUnavailable"><code class="xref py py-class docutils literal notranslate"><span class="pre">SamplingUnavailable</span></code></a> that <code class="docutils literal notranslate"><span class="pre">fn</span></code> raises itself. A cancelled request
+cannot stop the worker thread, but its next LLM call raises at once.</p>
+<p>The tool’s signature is <code class="docutils literal notranslate"><span class="pre">fn</span></code>’s minus <em>llm_param</em>, plus <code class="docutils literal notranslate"><span class="pre">ctx</span></code> (which
+FastMCP injects and hides from the client); name and docstring are <code class="docutils literal notranslate"><span class="pre">fn</span></code>’s.
+<code class="docutils literal notranslate"><span class="pre">sampling_kwargs</span></code> go to <a class="reference internal" href="#enlace_connector.sampling_llm" title="enlace_connector.sampling_llm"><code class="xref py py-func docutils literal notranslate"><span class="pre">sampling_llm()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">system_prompt</span></code>,
+<code class="docutils literal notranslate"><span class="pre">max_tokens</span></code>, <code class="docutils literal notranslate"><span class="pre">temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">timeout</span></code>). Usable bare or with arguments:
+<code class="docutils literal notranslate"><span class="pre">&#64;llm_tool</span></code> or <code class="docutils literal notranslate"><span class="pre">&#64;llm_tool(fallback=&quot;mypkg.llm:chat&quot;)</span></code>.</p>
+<dl class="field-list simple">
 </dl>
 </dd></dl>
 
@@ -1475,6 +1538,25 @@ rather than lowercased, because the same issuer is the connector’s runtime
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.sampling_llm">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">sampling_llm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_tokens</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">60.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cancelled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/sampling.html#sampling_llm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.sampling_llm" title="Link to this definition">#</a></dt>
+<dd><p>A sync <code class="docutils literal notranslate"><span class="pre">prompt</span> <span class="pre">-&gt;</span> <span class="pre">str</span></code> that asks the client’s model through <code class="docutils literal notranslate"><span class="pre">ctx.sample</span></code>.</p>
+<p>Create it inside the async tool (so <em>loop</em> defaults to the running one) and
+call it from a worker thread, as <a class="reference internal" href="#enlace_connector.llm_tool" title="enlace_connector.llm_tool"><code class="xref py py-func docutils literal notranslate"><span class="pre">llm_tool()</span></code></a> does: it schedules the
+request on <em>loop</em> and waits for the answer. Calling it on the loop’s own
+thread would deadlock, so that raises <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>. Any failure of the
+request (the client does not sample, it refused, it timed out) raises
+<a class="reference internal" href="#enlace_connector.SamplingUnavailable" title="enlace_connector.SamplingUnavailable"><code class="xref py py-class docutils literal notranslate"><span class="pre">SamplingUnavailable</span></code></a>. Once <em>cancelled</em> (an event the caller sets when
+the request is abandoned) is set, every call raises at once, so a worker
+thread left behind by a cancelled request stops at its next LLM call.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="enlace_connector.scaffold_app">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">scaffold_app</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_dir</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/scaffold.html#scaffold_app"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.scaffold_app" title="Link to this definition">#</a></dt>
 <dd><p>Write <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> and <code class="docutils literal notranslate"><span class="pre">server.py</span></code> for <em>spec</em> into <em>dest_dir</em>.</p>
@@ -1605,10 +1687,13 @@ platform is one the connector cannot observe about itself.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="enlace_connector.preflight.html#module-enlace_connector.preflight" title="enlace_connector.preflight"><code class="xref py py-obj docutils literal notranslate"><span class="pre">preflight</span></code></a></p></td>
 <td><p>Preflight/verify checks — is the target platform able to keep a connector <em>alive</em>?</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="enlace_connector.scaffold.html#module-enlace_connector.scaffold" title="enlace_connector.scaffold"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scaffold</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_connector.sampling.html#module-enlace_connector.sampling" title="enlace_connector.sampling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sampling</span></code></a></p></td>
+<td><p>Run a connector tool's LLM on the client's model (MCP sampling), offline otherwise.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="enlace_connector.scaffold.html#module-enlace_connector.scaffold" title="enlace_connector.scaffold"><code class="xref py py-obj docutils literal notranslate"><span class="pre">scaffold</span></code></a></p></td>
 <td><p>Generate the enlace app directory that serves a connector.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="enlace_connector.usage.html#module-enlace_connector.usage" title="enlace_connector.usage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">usage</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="enlace_connector.usage.html#module-enlace_connector.usage" title="enlace_connector.usage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">usage</span></code></a></p></td>
 <td><p>Switch a connector's per-call usage log on by configuration alone.</p></td>
 </tr>
 </tbody>
@@ -1710,17 +1795,20 @@ platform is one the connector cannot observe about itself.</p>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.PreflightError"><code class="docutils literal notranslate"><span class="pre">PreflightError</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.SamplingUnavailable"><code class="docutils literal notranslate"><span class="pre">SamplingUnavailable</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.allowlist_users"><code class="docutils literal notranslate"><span class="pre">allowlist_users()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.authorization_server_metadata"><code class="docutils literal notranslate"><span class="pre">authorization_server_metadata()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_distinct_ports"><code class="docutils literal notranslate"><span class="pre">check_distinct_ports()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_distinct_specs"><code class="docutils literal notranslate"><span class="pre">check_distinct_specs()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_jwks_uri_matches_convention"><code class="docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_refresh_grant_supported"><code class="docutils literal notranslate"><span class="pre">check_refresh_grant_supported()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.client_supports_sampling"><code class="docutils literal notranslate"><span class="pre">client_supports_sampling()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.diff_unit"><code class="docutils literal notranslate"><span class="pre">diff_unit()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.enlace_resource"><code class="docutils literal notranslate"><span class="pre">enlace_resource()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.format_report"><code class="docutils literal notranslate"><span class="pre">format_report()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.generate_deploy_bundle"><code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.idp_resource"><code class="docutils literal notranslate"><span class="pre">idp_resource()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.llm_tool"><code class="docutils literal notranslate"><span class="pre">llm_tool()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.make_connector_app"><code class="docutils literal notranslate"><span class="pre">make_connector_app()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.make_stdio_server"><code class="docutils literal notranslate"><span class="pre">make_stdio_server()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_allowlist_toml"><code class="docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a></li>
@@ -1733,6 +1821,7 @@ platform is one the connector cannot observe about itself.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.render_systemd_unit"><code class="docutils literal notranslate"><span class="pre">render_systemd_unit()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.resolve_auth"><code class="docutils literal notranslate"><span class="pre">resolve_auth()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.resource_url"><code class="docutils literal notranslate"><span class="pre">resource_url()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.sampling_llm"><code class="docutils literal notranslate"><span class="pre">sampling_llm()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.scaffold_app"><code class="docutils literal notranslate"><span class="pre">scaffold_app()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.spec_instructions"><code class="docutils literal notranslate"><span class="pre">spec_instructions()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.spec_version"><code class="docutils literal notranslate"><span class="pre">spec_version()</span></code></a></li>

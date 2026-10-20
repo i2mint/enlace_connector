@@ -10,6 +10,7 @@
 - [enlace_connector.connector](enlace_connector.connector.html.md): Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).
 - [enlace_connector.deploy](enlace_connector.deploy.html.md): Generate everything needed to deploy a connector on an enlace platform.
 - [enlace_connector.preflight](enlace_connector.preflight.html.md): Preflight/verify checks — is the target platform able to keep a connector &#42;alive&#42;?
+- [enlace_connector.sampling](enlace_connector.sampling.html.md): Run a connector tool’s LLM on the client’s model (MCP sampling), offline otherwise.
 - [enlace_connector.scaffold](enlace_connector.scaffold.html.md): Generate the enlace app directory that serves a connector.
 - [enlace_connector.usage](enlace_connector.usage.html.md): Switch a connector’s per-call usage log on by configuration alone.
 

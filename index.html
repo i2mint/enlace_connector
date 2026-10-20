@@ -510,11 +510,31 @@ the grant), so a <strong>new</strong> platform doesn’t inherit a stranding def
 </section>
 <section id="cost-llm-note">
 <h2>Cost / LLM note<a class="headerlink" href="#cost-llm-note" title="Link to this heading">#</a></h2>
-<p>A connector over <code class="docutils literal notranslate"><span class="pre">ir</span></code>’s core search is <strong>offline and free</strong> — no LLM, no tokens.
-An <em>agentic</em> connector (query reformulation, LLM-selection, synopsis) needs an LLM;
-that LLM is an injected callable and can ride the <strong>client’s Claude subscription</strong> via
-MCP sampling (where the client supports it) instead of a metered key — see <code class="docutils literal notranslate"><span class="pre">ir</span></code>’s
-<code class="docutils literal notranslate"><span class="pre">ir_10</span></code> note and issue #1 here.</p>
+<p>A connector over <code class="docutils literal notranslate"><span class="pre">ir</span></code>’s core search is <strong>offline and free</strong>: no LLM, no tokens.
+An <em>agentic</em> connector (query reformulation, LLM selection, synopsis) needs an LLM,
+which is an injected <code class="docutils literal notranslate"><span class="pre">prompt</span> <span class="pre">-&gt;</span> <span class="pre">str</span></code> callable. <code class="docutils literal notranslate"><span class="pre">llm_tool</span></code> wraps such a tool so it
+brings its own, per request:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">llm_tool</span>
+
+<span class="nd">@llm_tool</span><span class="p">(</span><span class="n">fallback</span><span class="o">=</span><span class="s2">"mypkg.llm:chat"</span><span class="p">)</span>      <span class="c1"># optional: a prompt -&gt; str to use instead</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">llm</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+    <span class="o">...</span>                                    <span class="c1"># llm is None: run the offline search</span>
+</pre></div>
+</div>
+<p>The LLM is the <strong>client’s model via MCP sampling</strong> when the client advertises it
+(<code class="docutils literal notranslate"><span class="pre">ctx.sample</span></code>, so no metered key), else the <code class="docutils literal notranslate"><span class="pre">fallback</span></code> (a key-backed callable, or
+<code class="docutils literal notranslate"><span class="pre">coact.resolve_llm()</span></code> on a developer machine), else <code class="docutils literal notranslate"><span class="pre">None</span></code> and the tool runs offline.
+A sampling request that fails mid-call reruns the tool on the fallback, so the
+connector never hard-fails for want of an LLM (the rerun starts the tool over, so it
+must be safe to run twice up to its first LLM call). Reference the wrapped function in
+the spec’s <code class="docutils literal notranslate"><span class="pre">tools</span></code> as usual. Sampling needs a stateful session: set
+<code class="docutils literal notranslate"><span class="pre">stateless_http=False</span></code> on the spec, since a stateless request never sees the client’s
+capabilities.</p>
+<p><strong>Client support, checked 2026-10:</strong> Claude’s MCP client (claude.ai, Desktop, mobile,
+Cowork, Claude Code) lists sampling among the MCP features it does not yet support
+(<a class="reference external" href="https://claude.com/docs/connectors/building/index">Build an MCP server for Claude</a>),
+so under Claude a wrapped tool runs on its fallback or offline today. Clients that do
+sample get it with no change. See <code class="docutils literal notranslate"><span class="pre">ir</span></code>’s <code class="docutils literal notranslate"><span class="pre">ir_10</span></code> note.</p>
 </section>
 <section id="status">
 <h2>Status<a class="headerlink" href="#status" title="Link to this heading">#</a></h2>
@@ -535,7 +555,7 @@ possible — see the <code class="docutils literal notranslate"><span class="pre
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 14:36 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/a61241e78e4e61672c60cb878e93345fdd38533a">a61241e</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 14:43 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/c4ad50d6632391d3258dae925258ddfea438557c">c4ad50d</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

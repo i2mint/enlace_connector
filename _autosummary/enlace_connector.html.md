@@ -78,6 +78,9 @@ in seconds instead of when a user complains a day later.
 | [`format_report`](#enlace_connector.format_report)(results)                             | Render check results as a human-readable report (used by the CLI and errors).                                            |
 | [`spec_instructions`](#enlace_connector.spec_instructions)(spec)                            | *spec*'s instructions, a `"module:ATTR"` ref resolved to its text.                                                       |
 | [`spec_version`](#enlace_connector.spec_version)(spec)                                 | *spec*'s version: `version` (a `"module:ATTR"` ref resolved), else the installed version of `version_dist`, else `None`. |
+| [`llm_tool`](#enlace_connector.llm_tool)([fn, llm_param, fallback, use_sampling])  | Wrap a sync `fn(..., llm=None)` into an async MCP tool that brings its LLM.                                              |
+| [`sampling_llm`](#enlace_connector.sampling_llm)(ctx, \*[, loop, system_prompt, ...])  | A sync `prompt -> str` that asks the client's model through `ctx.sample`.                                                |
+| [`client_supports_sampling`](#enlace_connector.client_supports_sampling)(ctx)                      | Whether the client behind *ctx* (a `fastmcp.Context`) advertises sampling.                                               |
 
 ### Classes
 
@@ -88,8 +91,9 @@ in seconds instead of when a user complains a day later.
 
 ### Exceptions
 
-| [`PreflightError`](#enlace_connector.PreflightError)   | Raised by [`verify_deployment()`](#enlace_connector.verify_deployment) in `strict` mode when a check fails.   |
-|-------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| [`PreflightError`](#enlace_connector.PreflightError)      | Raised by [`verify_deployment()`](#enlace_connector.verify_deployment) in `strict` mode when a check fails.   |
+|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| [`SamplingUnavailable`](#enlace_connector.SamplingUnavailable) | The client cannot (or did not) answer a sampling request.                                                             |
 
 ### *class* enlace_connector.CheckResult(name, ok, summary, remedy='')
 
@@ -424,6 +428,12 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 Raised by [`verify_deployment()`](#enlace_connector.verify_deployment) in `strict` mode when a check fails.
 
+### *exception* enlace_connector.SamplingUnavailable
+
+Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
+
+The client cannot (or did not) answer a sampling request.
+
 ### enlace_connector.allowlist_users(spec)
 
 `spec.allowed_users`, refused when it cannot mean what it seems to.
@@ -519,6 +529,22 @@ expire into a dead end, which is invisible from the connector’s own health.
 * **Return type:**
   [`CheckResult`](enlace_connector.preflight.html.md#enlace_connector.preflight.CheckResult)
 
+### enlace_connector.client_supports_sampling(ctx)
+
+Whether the client behind *ctx* (a `fastmcp.Context`) advertises sampling.
+
+`False` when it cannot be told (no session, an older SDK): the safe answer,
+since the tool then runs on its fallback.
+
+**Sampling needs a stateful session.** A connector served with
+`stateless_http=True` (the `ConnectorSpec` default) builds a fresh
+session per request that never saw the client’s `initialize`, so this is
+always `False` there; set `stateless_http=False` on the spec for sampling.
+That case is logged once, at info level, so it is not invisible.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 ### enlace_connector.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
 
 How the *installed* unit text differs from what *spec* renders; `[]` if not.
@@ -605,6 +631,30 @@ own `jwks_uri` / `issuer`. `authorization_servers` defaults to
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
+### enlace_connector.llm_tool(fn=None, , llm_param='llm', fallback=None, use_sampling=True, \*\*sampling_kwargs)
+
+Wrap a sync `fn(..., llm=None)` into an async MCP tool that brings its LLM.
+
+Per request, the LLM is: a [`sampling_llm()`](#enlace_connector.sampling_llm) when *use_sampling* and the
+client advertises sampling; else *fallback* (a `prompt -> str`, or a
+`"module:attr"` ref to one, resolved once, at wrap time); else `None`,
+which `fn` must treat as “run offline”. If a sampling request fails while
+`fn` runs, `fn` runs again with the fallback (or offline): the tool
+answers either way. `fn` runs in a worker thread, so a slow search does not
+block the server.
+
+The rerun starts `fn` from the beginning, so `fn` must be safe to run
+twice up to its first LLM call (a search is; a tool that writes before
+asking the LLM is not). Only a failed sampling request triggers it, not a
+[`SamplingUnavailable`](#enlace_connector.SamplingUnavailable) that `fn` raises itself. A cancelled request
+cannot stop the worker thread, but its next LLM call raises at once.
+
+The tool’s signature is `fn`’s minus *llm_param*, plus `ctx` (which
+FastMCP injects and hides from the client); name and docstring are `fn`’s.
+`sampling_kwargs` go to [`sampling_llm()`](#enlace_connector.sampling_llm) (`system_prompt`,
+`max_tokens`, `temperature`, `timeout`). Usable bare or with arguments:
+`@llm_tool` or `@llm_tool(fallback="mypkg.llm:chat")`.
 
 ### enlace_connector.make_connector_app(spec, , issuer=None, audience=None, settings=None, middleware=None)
 
@@ -797,6 +847,22 @@ rather than lowercased, because the same issuer is the connector’s runtime
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+### enlace_connector.sampling_llm(ctx, , loop=None, system_prompt=None, max_tokens=1024, temperature=None, timeout=60.0, cancelled=None)
+
+A sync `prompt -> str` that asks the client’s model through `ctx.sample`.
+
+Create it inside the async tool (so *loop* defaults to the running one) and
+call it from a worker thread, as [`llm_tool()`](#enlace_connector.llm_tool) does: it schedules the
+request on *loop* and waits for the answer. Calling it on the loop’s own
+thread would deadlock, so that raises `RuntimeError`. Any failure of the
+request (the client does not sample, it refused, it timed out) raises
+[`SamplingUnavailable`](#enlace_connector.SamplingUnavailable). Once *cancelled* (an event the caller sets when
+the request is abandoned) is set, every call raises at once, so a worker
+thread left behind by a cancelled request stops at its next LLM call.
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### enlace_connector.scaffold_app(spec, dest_dir, , port, command=None)
 
 Write `app.toml` and `server.py` for *spec* into *dest_dir*.
@@ -892,10 +958,11 @@ platform is one the connector cannot observe about itself.
 
 ### Modules
 
-| [`auth`](enlace_connector.auth.html.md#module-enlace_connector.auth)           | Auth configuration for connectors — the resource-server side of MCP OAuth.         |
-|----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| [`connector`](enlace_connector.connector.html.md#module-enlace_connector.connector) | Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).         |
-| [`deploy`](enlace_connector.deploy.html.md#module-enlace_connector.deploy)       | Generate everything needed to deploy a connector on an enlace platform.            |
-| [`preflight`](enlace_connector.preflight.html.md#module-enlace_connector.preflight) | Preflight/verify checks — is the target platform able to keep a connector *alive*? |
-| [`scaffold`](enlace_connector.scaffold.html.md#module-enlace_connector.scaffold)   | Generate the enlace app directory that serves a connector.                         |
-| [`usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)         | Switch a connector's per-call usage log on by configuration alone.                 |
+| [`auth`](enlace_connector.auth.html.md#module-enlace_connector.auth)           | Auth configuration for connectors — the resource-server side of MCP OAuth.          |
+|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| [`connector`](enlace_connector.connector.html.md#module-enlace_connector.connector) | Define a connector once, run it anywhere — stdio (local) or HTTP (hosted).          |
+| [`deploy`](enlace_connector.deploy.html.md#module-enlace_connector.deploy)       | Generate everything needed to deploy a connector on an enlace platform.             |
+| [`preflight`](enlace_connector.preflight.html.md#module-enlace_connector.preflight) | Preflight/verify checks — is the target platform able to keep a connector *alive*?  |
+| [`sampling`](enlace_connector.sampling.html.md#module-enlace_connector.sampling)   | Run a connector tool's LLM on the client's model (MCP sampling), offline otherwise. |
+| [`scaffold`](enlace_connector.scaffold.html.md#module-enlace_connector.scaffold)   | Generate the enlace app directory that serves a connector.                          |
+| [`usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)         | Switch a connector's per-call usage log on by configuration alone.                  |

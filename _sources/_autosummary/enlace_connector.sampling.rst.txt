@@ -1,0 +1,27 @@
+enlace\_connector.sampling
+==========================
+
+.. automodule:: enlace_connector.sampling
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DFLT_MAX_TOKENS
+      DFLT_SAMPLING_TIMEOUT_S
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      client_supports_sampling
+      sampling_llm
+      llm_tool
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      SamplingUnavailable
+   
