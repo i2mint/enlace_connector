@@ -43,6 +43,7 @@ __all__ = [
     "render_systemd_unit",
     "diff_unit",
     "check_distinct_ports",
+    "check_distinct_specs",
     "render_provision_script",
     "render_allowlist_toml",
     "allowlist_users",
@@ -714,12 +715,24 @@ def generate_deploy_bundle(
     return written
 
 
+def _clashes(specs, key, what: str) -> list[str]:
+    """``"<what>: <value> (<names>)"`` for each *key* value two or more *specs* share."""
+    by_value: dict = {}
+    for spec in specs:
+        by_value.setdefault(key(spec), []).append(spec.name)
+    return [
+        f"{what}: {value} ({', '.join(names)})"
+        for value, names in sorted(by_value.items())
+        if len(names) > 1
+    ]
+
+
 def check_distinct_ports(specs) -> None:
     """Refuse *specs* that would bind the same local port.
 
     ``port`` has a default, so two specs that both omit it render units that
-    collide on one box, and the second connector never starts (#15). Run this
-    over every connector a host deploys.
+    collide on one box, and the second connector never starts (#15). Prefer
+    :func:`check_distinct_specs`, which also checks unit names and directories.
 
     >>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
     ...                       ConnectorSpec(name="b", tools=[], port=8032)])
@@ -729,32 +742,132 @@ def check_distinct_ports(specs) -> None:
       ...
     ValueError: connectors share a port: 8030 (a, b)
     """
-    by_port: dict[int, list[str]] = {}
-    for spec in specs:
-        by_port.setdefault(spec.port, []).append(spec.name)
-    clashes = {port: names for port, names in by_port.items() if len(names) > 1}
+    clashes = _clashes(specs, lambda s: s.port, "a port")
     if clashes:
-        listed = "; ".join(
-            f"{port} ({', '.join(names)})" for port, names in sorted(clashes.items())
-        )
-        raise ValueError(f"connectors share a port: {listed}")
+        raise ValueError("connectors share " + "; ".join(clashes))
+
+
+def check_distinct_specs(specs) -> None:
+    """Refuse *specs* that would collide on one host: same port, unit or directory.
+
+    Run it over every connector a host deploys. Two specs collide when they bind
+    the same ``port`` (it has a default), share a ``name`` (one
+    ``<name>-mcp.service``, one resource URL), or share a directory under
+    ``apps/`` and ``connectors/`` (``app_dir``, else ``name``): the second
+    install would overwrite the first (#18). Every clash is listed in one error.
+
+    >>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+    ...                       ConnectorSpec(name="b", tools=[], port=8032)])
+    >>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+    ...                       ConnectorSpec(name="b", tools=[], port=8032, app_dir="a")])
+    Traceback (most recent call last):
+      ...
+    ValueError: connectors share a directory: a (a, b)
+    """
+    specs = list(specs)
+    clashes = [
+        *_clashes(specs, lambda s: s.port, "a port"),
+        *_clashes(specs, lambda s: s.name, "a unit name"),
+        *_clashes(specs, lambda s: s.dir_name, "a directory"),
+    ]
+    if clashes:
+        raise ValueError("connectors share " + "; ".join(clashes))
 
 
 #: Unit lines :func:`diff_unit` ignores by default: prose, not behaviour.
 DFLT_DIFF_IGNORE = frozenset({("Unit", "Description")})
 
 
+#: systemd's C escapes (``cunescape``) with a one-character result
+_C_ESCAPES = {
+    "a": "\a", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t",
+    "v": "\v", "\\": "\\", '"': '"', "'": "'", "s": " ",
+}
+#: ``\x``, ``\u``, ``\U`` escapes: how many hex digits follow
+_HEX_ESCAPES = {"x": 2, "u": 4, "U": 8}
+
+
+def _c_unescape(value: str, i: int) -> tuple[str, int]:
+    """The character the C escape at ``value[i]`` (just after a backslash) stands
+    for, and the index after it; ``ValueError`` where systemd's ``cunescape``
+    fails."""
+    if i >= len(value):
+        raise ValueError(f"trailing backslash in {value!r}")
+    e = value[i]
+    if e in _C_ESCAPES:
+        return _C_ESCAPES[e], i + 1
+    if e in _HEX_ESCAPES:
+        digits = value[i + 1 : i + 1 + _HEX_ESCAPES[e]]
+        if not re.fullmatch(rf"[0-9A-Fa-f]{{{_HEX_ESCAPES[e]}}}", digits):
+            raise ValueError(f"bad \\{e} escape in {value!r}")
+        code, end = int(digits, 16), i + 1 + len(digits)
+    elif re.fullmatch(r"[0-7]{3}", value[i : i + 3]):
+        code, end = int(value[i : i + 3], 8), i + 3
+    else:
+        raise ValueError(f"unknown escape \\{e} in {value!r}")
+    if code == 0 or code > 0x10FFFF:
+        raise ValueError(f"escape out of range in {value!r}")
+    return chr(code), end
+
+
+def _split_environment(value: str) -> list[str]:
+    r"""The words of an ``Environment=`` value, read as systemd reads them.
+
+    systemd splits with ``extract_first_word(..., EXTRACT_UNQUOTE |
+    EXTRACT_CUNESCAPE)``: words are separated by whitespace, ``'`` and ``"``
+    quote anywhere in a word, and a backslash starts a C escape *inside quotes
+    as well as outside* (``\n`` is a newline, ``\\`` one backslash, ``\x41``
+    an ``A``). That is not POSIX shell: ``shlex`` reads an unquoted ``a\b`` as
+    ``ab``, systemd as ``a`` + backspace + ``b``. An unknown escape makes systemd
+    reject the line; here it raises ``ValueError`` (as do unbalanced quotes).
+
+    >>> _split_environment(r'A=1 "B=two words" C=a\\b D=\x41 E="\101" F=x"y z"')
+    ['A=1', 'B=two words', 'C=a\\b', 'D=A', 'E=A', 'F=xy z']
+    """
+    words: list[str] = []
+    word: list[str] = []
+    in_word, quote, i = False, "", 0
+    while i < len(value):
+        c = value[i]
+        i += 1
+        if c == "\\":
+            ch, i = _c_unescape(value, i)
+            word.append(ch)
+            in_word = True
+        elif quote:
+            if c == quote:
+                quote = ""
+            else:
+                word.append(c)
+        elif c in "'\"":
+            quote, in_word = c, True
+        elif c.isspace():
+            if in_word:
+                words.append("".join(word))
+                word, in_word = [], False
+        else:
+            word.append(c)
+            in_word = True
+    if quote:
+        raise ValueError(f"unbalanced quotes in {value!r}")
+    if in_word:
+        words.append("".join(word))
+    return words
+
+
 def _parse_unit(text: str) -> dict[tuple[str, str], list[str]]:
     """``(section, key) -> values`` of a unit file, in order, comments dropped.
 
     ``Environment=`` is split into one ``NAME=value`` entry per assignment, with
-    systemd's quoting and ``%%`` undone, so two spellings of the same environment
-    compare equal. Other values are compared with whitespace runs collapsed.
+    systemd's quoting, C escapes and ``%%`` undone (:func:`_split_environment`),
+    so two spellings of the same environment compare equal. Other values are
+    compared with whitespace runs collapsed. As in systemd, a comment line inside
+    a backslash continuation is skipped, not joined into the value.
     """
     lines, pending = [], ""
     for raw in text.splitlines():
         line = raw.strip()
-        if not pending and (not line or line[0] in "#;"):
+        if line[:1] in ("#", ";") or (not pending and not line):
             continue
         if line.endswith("\\"):
             pending += line[:-1] + " "
@@ -780,8 +893,8 @@ def _parse_unit(text: str) -> dict[tuple[str, str], list[str]]:
             continue
         if key == "Environment":
             try:
-                values = [a.replace("%%", "%") for a in shlex.split(value)]
-            except ValueError:  # unbalanced quotes: compare it as written
+                values = [a.replace("%%", "%") for a in _split_environment(value)]
+            except ValueError:  # systemd would reject it: compare it as written
                 values = [value]
         else:
             values = [" ".join(value.split())]
