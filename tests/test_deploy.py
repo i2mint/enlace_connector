@@ -636,3 +636,75 @@ def test_an_empty_environment_line_resets_what_came_before():
 def test_app_dir_is_one_directory_name(app_dir):
     with pytest.raises(ValueError, match="app_dir"):
         render_systemd_unit(ConnectorSpec(name="x", tools=[], app_dir=app_dir))
+
+
+# --- #18: distinct names and directories; systemd's reading of a unit ---------
+
+from enlace_connector import check_distinct_specs  # noqa: E402
+from enlace_connector.deploy import _parse_unit, _split_environment  # noqa: E402
+
+
+def test_specs_that_share_a_port_a_name_or_a_directory_are_refused():
+    b = ConnectorSpec(name="b", tools=[], port=8042)
+    check_distinct_specs([HOSTED, b])
+    with pytest.raises(ValueError, match="a port: 8041 \\(audio, b\\)"):
+        check_distinct_specs([HOSTED, ConnectorSpec(name="b", tools=[], port=8041)])
+    with pytest.raises(ValueError, match="a unit name: audio \\(audio, audio\\)"):
+        check_distinct_specs([HOSTED, ConnectorSpec(name="audio", tools=[], port=8042)])
+    with pytest.raises(ValueError, match="a directory: audio_mcp \\(audio, b\\)"):
+        check_distinct_specs(
+            [HOSTED, ConnectorSpec(name="b", tools=[], port=8042, app_dir="audio_mcp")]
+        )
+    # a spec without app_dir uses its name as its directory
+    with pytest.raises(ValueError, match="a directory: b \\(b, c\\)"):
+        check_distinct_specs([b, ConnectorSpec(name="c", tools=[], port=8043, app_dir="b")])
+
+
+def test_every_clash_is_listed_in_one_error():
+    with pytest.raises(ValueError) as e:
+        check_distinct_specs([ConnectorSpec(name="a", tools=[])] * 2)
+    assert all(w in str(e.value) for w in ("a port", "a unit name", "a directory"))
+
+
+def test_check_distinct_specs_takes_an_iterator():
+    with pytest.raises(ValueError, match="a unit name"):
+        check_distinct_specs(iter([ConnectorSpec(name="a", tools=[], port=1),
+                                   ConnectorSpec(name="a", tools=[], port=2)]))
+
+
+def test_a_comment_inside_a_continuation_is_skipped_as_systemd_does():
+    unit = "[Service]\nExecStart=/bin/echo foo \\\n# a comment\n; another\n    bar\n"
+    assert _parse_unit(unit)[("Service", "ExecStart")] == ["/bin/echo foo bar"]
+
+
+@pytest.mark.parametrize(
+    "written, read",
+    [
+        (r"T=a\\b", ["T=a\\b"]),           # an escaped backslash is one backslash
+        (r'"T=a\\b"', ["T=a\\b"]),
+        (r"'T=a\\b'", ["T=a\\b"]),         # escapes apply inside single quotes too
+        (r"T=a\bc", ["T=a\x08c"]),        # \b is a backspace; shlex would read "abc"
+        (r"T=\x41\101\u00e9", ["T=AAé"]),
+        (r'T=x"y z"w U=1', ["T=xy zw", "U=1"]),
+        (r'"A=x\"y"', ['A=x"y']),
+        ('"" X=1', ["", "X=1"]),
+    ],
+)
+def test_environment_is_read_as_systemd_reads_it(written, read):
+    assert _split_environment(written) == read
+
+
+@pytest.mark.parametrize("bad", [r"T=a\q", "T=a\\", r"T=\x4", r"T=\000", "T='a"])
+def test_an_environment_systemd_would_reject_raises(bad):
+    with pytest.raises(ValueError):
+        _split_environment(bad)
+
+
+def test_drift_reads_a_backslash_in_an_installed_environment_like_systemd():
+    spec = ConnectorSpec(name="x", tools=[], port=8040, env={"T": "a\\b"})
+    rendered = render_systemd_unit(spec)
+    assert diff_unit(spec, rendered) == []
+    hand = rendered.replace('Environment="T=a\\\\b"', "Environment=T=a\\\\b")
+    assert hand != rendered and diff_unit(spec, hand) == []  # same value, other spelling
+    wrong = rendered.replace('Environment="T=a\\\\b"', "Environment=T=a\\b")
+    assert diff_unit(spec, wrong) != []  # systemd reads a backspace there, not "a\b"
