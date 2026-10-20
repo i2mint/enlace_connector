@@ -10,6 +10,8 @@ enlace\_connector.connector
    
       make_stdio_server
       make_connector_app
+      spec_instructions
+      spec_version
    
    .. rubric:: Classes
 

@@ -18,16 +18,18 @@ process that actually serves them.
 
 ### Functions
 
-| [`make_stdio_server`](#enlace_connector.connector.make_stdio_server)(spec)                     | Build a FastMCP server for *spec*, for local stdio serving (no auth).   |
-|----------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`make_connector_app`](#enlace_connector.connector.make_connector_app)(spec, \*[, issuer, ...]) | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).   |
+| [`make_stdio_server`](#enlace_connector.connector.make_stdio_server)(spec)                     | Build a FastMCP server for *spec*, for local stdio serving (no auth).                                                    |
+|----------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| [`make_connector_app`](#enlace_connector.connector.make_connector_app)(spec, \*[, issuer, ...]) | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).                                                    |
+| [`spec_instructions`](#enlace_connector.connector.spec_instructions)(spec)                     | *spec*'s instructions, a `"module:ATTR"` ref resolved to its text.                                                       |
+| [`spec_version`](#enlace_connector.connector.spec_version)(spec)                          | *spec*'s version: `version` (a `"module:ATTR"` ref resolved), else the installed version of `version_dist`, else `None`. |
 
 ### Classes
 
 | [`ConnectorSpec`](#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, version_dist=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -142,7 +144,18 @@ multi-worker server / load balancer). Defaults to True.
 #### version
 
 the connector’s version, written into every usage-log record
-when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)).
+when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)). A
+`"module:ATTR"` ref (e.g. `"mypkg:__version__"`) is imported where
+the connector is served, so the version is never a frozen copy.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### version_dist
+
+the installed distribution whose version is the
+connector’s (`importlib.metadata.version`), used when *version* is
+not set — the seam for packages without a `__version__`.
 
 * **Type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -211,7 +224,10 @@ the server icon clients show next to the connector (sent in the MCP
 #### instructions
 
 the server’s model-facing description, surfaced to the
-connecting client as the MCP `instructions`.
+connecting client as the MCP `instructions`. A `"module:ATTR"`
+ref (dotted identifiers, no spaces) names a string in the connector’s
+package instead, imported where the connector is served, so the text
+lives in one place and cannot drift from a copy in the spec.
 
 * **Type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -294,3 +310,36 @@ Use for `server.run()` in Claude Desktop / Claude Code while developing the
 tools; the hosted path uses [`make_connector_app()`](#enlace_connector.connector.make_connector_app). The spec’s `icon`,
 `instructions` and `server_hooks` apply; its `middleware` does not (it
 is the hosted path’s metering and gating).
+
+### enlace_connector.connector.spec_instructions(spec)
+
+*spec*’s instructions, a `"module:ATTR"` ref resolved to its text.
+
+```pycon
+>>> spec_instructions(ConnectorSpec(name="x", tools=[], instructions="Use me."))
+'Use me.'
+>>> spec_instructions(ConnectorSpec(name="x", tools=[],
+...                                 instructions="string:ascii_lowercase"))[:3]
+'abc'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_connector.connector.spec_version(spec)
+
+*spec*’s version: `version` (a `"module:ATTR"` ref resolved), else the
+installed version of `version_dist`, else `None`. The version is only a
+label in the usage log, so a ref that does not import is kept as written and
+an uninstalled `version_dist` gives `None`, each with a warning, rather
+than stopping the connector at boot.
+
+```pycon
+>>> spec_version(ConnectorSpec(name="x", tools=[], version="1.2.0"))
+'1.2.0'
+>>> spec_version(ConnectorSpec(name="x", tools=[], version_dist="pytest")) > "0"
+True
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)

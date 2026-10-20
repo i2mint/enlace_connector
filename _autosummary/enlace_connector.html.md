@@ -49,33 +49,35 @@ in seconds instead of when a user complains a day later.
 
 ### Functions
 
-| [`make_connector_app`](#enlace_connector.make_connector_app)(spec, \*[, issuer, ...])        | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).               |
-|-----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| [`make_stdio_server`](#enlace_connector.make_stdio_server)(spec)                            | Build a FastMCP server for *spec*, for local stdio serving (no auth).               |
-| [`resolve_auth`](#enlace_connector.resolve_auth)(auth, \*[, issuer, audience])         | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).             |
-| [`enlace_resource`](#enlace_connector.enlace_resource)(\*, issuer, audience[, ...])       | Resource-server config validating tokens from the platform's `enlace_auth` AS.      |
-| [`idp_resource`](#enlace_connector.idp_resource)(\*, jwks_uri, issuer, audience)       | Resource-server config validating tokens from an external managed IdP.              |
-| [`scaffold_app`](#enlace_connector.scaffold_app)(spec, dest_dir, \*, port[, command])  | Write `app.toml` and `server.py` for *spec* into *dest_dir*.                        |
-| [`generate_deploy_bundle`](#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                               |
-| [`render_systemd_unit`](#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                    |
-| [`diff_unit`](#enlace_connector.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not.        |
-| [`check_distinct_ports`](#enlace_connector.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                                 |
-| [`check_distinct_specs`](#enlace_connector.check_distinct_specs)(specs)                        | Refuse *specs* that would collide on one host: same port, unit or directory.        |
-| [`render_provision_script`](#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.           |
-| [`render_allowlist_toml`](#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                       |
-| [`allowlist_users`](#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                 |
-| [`render_display_names_toml`](#enlace_connector.render_display_names_toml)(spec, \*[, issuer])      | Render the `[auth.oauth_server.resource_display_names]` fragment.                   |
-| [`render_oauth_server_toml`](#enlace_connector.render_oauth_server_toml)(spec, \*[, issuer, ...])  | Render the `[auth.oauth_server]` fragment that keeps sessions alive.                |
-| [`render_runbook`](#enlace_connector.render_runbook)(spec, \*[, remote_base, issuer])    | Render the human deploy checklist (ship, provision, deploy, **verify**).            |
-| [`resource_url`](#enlace_connector.resource_url)(spec, \*[, issuer])                   | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).          |
-| [`render_app_toml`](#enlace_connector.render_app_toml)(spec, \*, port[, command])         | Render the enlace `app.toml` for *spec* as a `mode="process"` app.                  |
-| [`render_server_py`](#enlace_connector.render_server_py)(spec)                             | Render the `server.py` that exposes `app` for enlace's process runner.              |
-| [`usage_middleware`](#enlace_connector.usage_middleware)(spec, \*[, settings, version])    | The usage-logging middleware for *spec*, or `[]` when it is switched off.           |
-| [`verify_deployment`](#enlace_connector.verify_deployment)([spec, checks, fetch, strict])   | Run the preflight checks against *issuer*; return one result per check.             |
-| [`check_refresh_grant_supported`](#enlace_connector.check_refresh_grant_supported)(ctx)                 | THE check: does the AS advertise `refresh_token` in `grant_types_supported`?        |
-| [`check_jwks_uri_matches_convention`](#enlace_connector.check_jwks_uri_matches_convention)(ctx)             | For `auth="enlace"` connectors: the AS's `jwks_uri` is the one we validate against. |
-| [`authorization_server_metadata`](#enlace_connector.authorization_server_metadata)(issuer, \*[, fetch]) | Fetch the RFC 8414 discovery document advertised by *issuer*.                       |
-| [`format_report`](#enlace_connector.format_report)(results)                             | Render check results as a human-readable report (used by the CLI and errors).       |
+| [`make_connector_app`](#enlace_connector.make_connector_app)(spec, \*[, issuer, ...])        | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).                                                    |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| [`make_stdio_server`](#enlace_connector.make_stdio_server)(spec)                            | Build a FastMCP server for *spec*, for local stdio serving (no auth).                                                    |
+| [`resolve_auth`](#enlace_connector.resolve_auth)(auth, \*[, issuer, audience])         | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).                                                  |
+| [`enlace_resource`](#enlace_connector.enlace_resource)(\*, issuer, audience[, ...])       | Resource-server config validating tokens from the platform's `enlace_auth` AS.                                           |
+| [`idp_resource`](#enlace_connector.idp_resource)(\*, jwks_uri, issuer, audience)       | Resource-server config validating tokens from an external managed IdP.                                                   |
+| [`scaffold_app`](#enlace_connector.scaffold_app)(spec, dest_dir, \*, port[, command])  | Write `app.toml` and `server.py` for *spec* into *dest_dir*.                                                             |
+| [`generate_deploy_bundle`](#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                                                                    |
+| [`render_systemd_unit`](#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                                                         |
+| [`diff_unit`](#enlace_connector.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not.                                             |
+| [`check_distinct_ports`](#enlace_connector.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                                                                      |
+| [`check_distinct_specs`](#enlace_connector.check_distinct_specs)(specs)                        | Refuse *specs* that would collide on one host: same port, unit or directory.                                             |
+| [`render_provision_script`](#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.                                                |
+| [`render_allowlist_toml`](#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                                                            |
+| [`allowlist_users`](#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                                                      |
+| [`render_display_names_toml`](#enlace_connector.render_display_names_toml)(spec, \*[, issuer])      | Render the `[auth.oauth_server.resource_display_names]` fragment.                                                        |
+| [`render_oauth_server_toml`](#enlace_connector.render_oauth_server_toml)(spec, \*[, issuer, ...])  | Render the `[auth.oauth_server]` fragment that keeps sessions alive.                                                     |
+| [`render_runbook`](#enlace_connector.render_runbook)(spec, \*[, remote_base, issuer])    | Render the human deploy checklist (ship, provision, deploy, **verify**).                                                 |
+| [`resource_url`](#enlace_connector.resource_url)(spec, \*[, issuer])                   | The connector's OAuth resource = its public MCP endpoint (`route + /mcp`).                                               |
+| [`render_app_toml`](#enlace_connector.render_app_toml)(spec, \*, port[, command])         | Render the enlace `app.toml` for *spec* as a `mode="process"` app.                                                       |
+| [`render_server_py`](#enlace_connector.render_server_py)(spec)                             | Render the `server.py` that exposes `app` for enlace's process runner.                                                   |
+| [`usage_middleware`](#enlace_connector.usage_middleware)(spec, \*[, settings, version])    | The usage-logging middleware for *spec*, or `[]` when it is switched off.                                                |
+| [`verify_deployment`](#enlace_connector.verify_deployment)([spec, checks, fetch, strict])   | Run the preflight checks against *issuer*; return one result per check.                                                  |
+| [`check_refresh_grant_supported`](#enlace_connector.check_refresh_grant_supported)(ctx)                 | THE check: does the AS advertise `refresh_token` in `grant_types_supported`?                                             |
+| [`check_jwks_uri_matches_convention`](#enlace_connector.check_jwks_uri_matches_convention)(ctx)             | For `auth="enlace"` connectors: the AS's `jwks_uri` is the one we validate against.                                      |
+| [`authorization_server_metadata`](#enlace_connector.authorization_server_metadata)(issuer, \*[, fetch]) | Fetch the RFC 8414 discovery document advertised by *issuer*.                                                            |
+| [`format_report`](#enlace_connector.format_report)(results)                             | Render check results as a human-readable report (used by the CLI and errors).                                            |
+| [`spec_instructions`](#enlace_connector.spec_instructions)(spec)                            | *spec*'s instructions, a `"module:ATTR"` ref resolved to its text.                                                       |
+| [`spec_version`](#enlace_connector.spec_version)(spec)                                 | *spec*'s version: `version` (a `"module:ATTR"` ref resolved), else the installed version of `version_dist`, else `None`. |
 
 ### Classes
 
@@ -125,7 +127,7 @@ what to do about it — empty when `ok`.
 * **Type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, version_dist=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -240,7 +242,18 @@ multi-worker server / load balancer). Defaults to True.
 #### version
 
 the connector’s version, written into every usage-log record
-when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)).
+when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)). A
+`"module:ATTR"` ref (e.g. `"mypkg:__version__"`) is imported where
+the connector is served, so the version is never a frozen copy.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### version_dist
+
+the installed distribution whose version is the
+connector’s (`importlib.metadata.version`), used when *version* is
+not set — the seam for packages without a `__version__`.
 
 * **Type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -309,7 +322,10 @@ the server icon clients show next to the connector (sent in the MCP
 #### instructions
 
 the server’s model-facing description, surfaced to the
-connecting client as the MCP `instructions`.
+connecting client as the MCP `instructions`. A `"module:ATTR"`
+ref (dotted identifiers, no spaces) names a string in the connector’s
+package instead, imported where the connector is served, so the text
+lives in one place and cannot drift from a copy in the spec.
 
 * **Type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -716,8 +732,12 @@ Render the `server.py` that exposes `app` for enlace’s process runner.
 
 The embedded `SPEC` carries every field `
 make_connector_app()` reads at serve time — tools, auth, name/title, route,
-`stateless_http`, and (when set) `icon`, `instructions`, `middleware`
-and `server_hooks`. Deploy-time-only fields (`extras`, `git_installs`,
+`stateless_http`, and (when set) `icon`, `instructions`, `middleware`,
+`server_hooks`, `version`, `version_dist` and `usage_outcome`.
+A `"module:ATTR"` `instructions` or `version` is rendered as the ref,
+not its value, so it is read from the installed package at serve time.
+
+Deploy-time-only fields (`extras`, `git_installs`,
 `data`, `env`, `post_install`, `allowed_users`) are deliberately
 omitted: they are consumed by the provisioning bundle, not by the process.
 
@@ -787,6 +807,39 @@ generated files (they are derived artifacts).
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
+
+### enlace_connector.spec_instructions(spec)
+
+*spec*’s instructions, a `"module:ATTR"` ref resolved to its text.
+
+```pycon
+>>> spec_instructions(ConnectorSpec(name="x", tools=[], instructions="Use me."))
+'Use me.'
+>>> spec_instructions(ConnectorSpec(name="x", tools=[],
+...                                 instructions="string:ascii_lowercase"))[:3]
+'abc'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_connector.spec_version(spec)
+
+*spec*’s version: `version` (a `"module:ATTR"` ref resolved), else the
+installed version of `version_dist`, else `None`. The version is only a
+label in the usage log, so a ref that does not import is kept as written and
+an uninstalled `version_dist` gives `None`, each with a warning, rather
+than stopping the connector at boot.
+
+```pycon
+>>> spec_version(ConnectorSpec(name="x", tools=[], version="1.2.0"))
+'1.2.0'
+>>> spec_version(ConnectorSpec(name="x", tools=[], version_dist="pytest")) > "0"
+True
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.usage_middleware(spec, , settings=None, version=None, \*\*logger_kwargs)
 

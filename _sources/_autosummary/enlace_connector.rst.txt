@@ -34,6 +34,8 @@
       check_jwks_uri_matches_convention
       authorization_server_metadata
       format_report
+      spec_instructions
+      spec_version
    
    .. rubric:: Classes
 

@@ -763,7 +763,15 @@ window.runMermaid = runMermaid;</script>
 
 <span class="c1">#: Serve-time fields written into the rendered ``SPEC`` only when set, so a spec</span>
 <span class="c1">#: that does not use them renders exactly as before they existed.</span>
-<span class="n">_OPTIONAL_SERVE_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"icon"</span><span class="p">,</span> <span class="s2">"instructions"</span><span class="p">,</span> <span class="s2">"middleware"</span><span class="p">,</span> <span class="s2">"server_hooks"</span><span class="p">)</span>
+<span class="n">_OPTIONAL_SERVE_FIELDS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"icon"</span><span class="p">,</span>
+    <span class="s2">"instructions"</span><span class="p">,</span>
+    <span class="s2">"middleware"</span><span class="p">,</span>
+    <span class="s2">"server_hooks"</span><span class="p">,</span>
+    <span class="s2">"version"</span><span class="p">,</span>
+    <span class="s2">"version_dist"</span><span class="p">,</span>
+    <span class="s2">"usage_outcome"</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_literal</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
@@ -789,8 +797,12 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    The embedded ``SPEC`` carries every field :func:`~enlace_connector.connector.</span>
 <span class="sd">    make_connector_app` reads at serve time — tools, auth, name/title, route,</span>
-<span class="sd">    ``stateless_http``, and (when set) ``icon``, ``instructions``, ``middleware``</span>
-<span class="sd">    and ``server_hooks``. Deploy-time-only fields (``extras``, ``git_installs``,</span>
+<span class="sd">    ``stateless_http``, and (when set) ``icon``, ``instructions``, ``middleware``,</span>
+<span class="sd">    ``server_hooks``, ``version``, ``version_dist`` and ``usage_outcome``.</span>
+<span class="sd">    A ``"module:ATTR"`` ``instructions`` or ``version`` is rendered as the ref,</span>
+<span class="sd">    not its value, so it is read from the installed package at serve time.</span>
+
+<span class="sd">    Deploy-time-only fields (``extras``, ``git_installs``,</span>
 <span class="sd">    ``data``, ``env``, ``post_install``, ``allowed_users``) are deliberately</span>
 <span class="sd">    omitted: they are consumed by the provisioning bundle, not by the process.</span>
 <span class="sd">    """</span>

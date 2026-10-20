@@ -32,8 +32,12 @@ Render the `server.py` that exposes `app` for enlace’s process runner.
 
 The embedded `SPEC` carries every field `
 make_connector_app()` reads at serve time — tools, auth, name/title, route,
-`stateless_http`, and (when set) `icon`, `instructions`, `middleware`
-and `server_hooks`. Deploy-time-only fields (`extras`, `git_installs`,
+`stateless_http`, and (when set) `icon`, `instructions`, `middleware`,
+`server_hooks`, `version`, `version_dist` and `usage_outcome`.
+A `"module:ATTR"` `instructions` or `version` is rendered as the ref,
+not its value, so it is read from the installed package at serve time.
+
+Deploy-time-only fields (`extras`, `git_installs`,
 `data`, `env`, `post_install`, `allowed_users`) are deliberately
 omitted: they are consumed by the provisioning bundle, not by the process.
 

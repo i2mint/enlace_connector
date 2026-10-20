@@ -519,9 +519,13 @@ MCP sampling (where the client supports it) instead of a metered key — see <co
 <section id="status">
 <h2>Status<a class="headerlink" href="#status" title="Link to this heading">#</a></h2>
 <p>The connector factory, auth, <strong>scaffolding, and full deploy-bundle generation</strong> are
-stable and tested; <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> is live in production. Building the connector app
-directly (to attach a server icon, custom tools, etc.) is also supported — see the
-<code class="docutils literal notranslate"><span class="pre">server_py=</span></code> override on <code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle</span></code>.</p>
+stable and tested; <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> is live in production. A spec carries what used to
+force a hand-written <code class="docutils literal notranslate"><span class="pre">server.py</span></code>: <code class="docutils literal notranslate"><span class="pre">icon</span></code>, <code class="docutils literal notranslate"><span class="pre">instructions</span></code>, <code class="docutils literal notranslate"><span class="pre">middleware</span></code> and <code class="docutils literal notranslate"><span class="pre">server_hooks</span></code>
+(tools that are not <code class="docutils literal notranslate"><span class="pre">module:function</span></code> refs). <code class="docutils literal notranslate"><span class="pre">instructions</span></code> and <code class="docutils literal notranslate"><span class="pre">version</span></code> may be
+<code class="docutils literal notranslate"><span class="pre">&quot;module:ATTR&quot;</span></code> refs (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;mypkg.prompts:INSTRUCTIONS&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mypkg:__version__&quot;</span></code>), and
+<code class="docutils literal notranslate"><span class="pre">version_dist=&quot;mypkg&quot;</span></code> reads the installed distribution’s version, so neither is a
+frozen copy that drifts from the package. Building the connector app directly is still
+possible — see the <code class="docutils literal notranslate"><span class="pre">server_py=</span></code> override on <code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>pytest<span class="w"> </span>-q
 </pre></div>
 </div>
@@ -531,7 +535,7 @@ directly (to attach a server icon, custom tools, etc.) is also supported — see
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 14:31 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/ef9fbba88c184615ef74221a8582a1e6bbfe9ff9">ef9fbba</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 14:36 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/a61241e78e4e61672c60cb878e93345fdd38533a">a61241e</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
