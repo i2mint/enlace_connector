@@ -76,9 +76,9 @@ def test_hosted_app_runs_hooks_and_orders_middleware(hooks_module, monkeypatch):
     seen = {}
     real = connector_mod._build_server
 
-    def spy(spec, *, auth=None, middleware=None):
+    def spy(spec, *, auth=None, middleware=None, **kw):
         seen["middleware"] = middleware
-        seen["server"] = real(spec, auth=auth, middleware=middleware)
+        seen["server"] = real(spec, auth=auth, middleware=middleware, **kw)
         return seen["server"]
 
     monkeypatch.setattr(connector_mod, "_build_server", spy)
