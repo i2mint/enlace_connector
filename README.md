@@ -162,9 +162,13 @@ MCP sampling (where the client supports it) instead of a metered key — see `ir
 ## Status
 
 The connector factory, auth, **scaffolding, and full deploy-bundle generation** are
-stable and tested; `auth="enlace"` is live in production. Building the connector app
-directly (to attach a server icon, custom tools, etc.) is also supported — see the
-`server_py=` override on `generate_deploy_bundle`.
+stable and tested; `auth="enlace"` is live in production. A spec carries what used to
+force a hand-written `server.py`: `icon`, `instructions`, `middleware` and `server_hooks`
+(tools that are not `module:function` refs). `instructions` and `version` may be
+`"module:ATTR"` refs (e.g. `"mypkg.prompts:INSTRUCTIONS"`, `"mypkg:__version__"`), and
+`version_dist="mypkg"` reads the installed distribution's version, so neither is a
+frozen copy that drifts from the package. Building the connector app directly is still
+possible — see the `server_py=` override on `generate_deploy_bundle`.
 ```bash
 pip install -e ".[dev]" && pytest -q
 ```
