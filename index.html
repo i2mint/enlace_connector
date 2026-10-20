@@ -34,6 +34,7 @@
 <link href="_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/epythet.css?v=a65a585f" />
   
@@ -468,15 +469,15 @@ package stays connector-type-agnostic (it knows nothing of <code class="docutils
 <section id="hosts-that-keep-their-own-unit-files">
 <h3>Hosts that keep their own unit files<a class="headerlink" href="#hosts-that-keep-their-own-unit-files" title="Link to this heading">#</a></h3>
 <p>A host may hand-maintain its units rather than install the rendered one. The spec can still describe such a unit: <code class="docutils literal notranslate"><span class="pre">app_dir</span></code> names the directory under <code class="docutils literal notranslate"><span class="pre">apps/</span></code> and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;acme_mcp&quot;</span></code>, when it is not the spec’s <code class="docutils literal notranslate"><span class="pre">name</span></code>), <code class="docutils literal notranslate"><span class="pre">environment_files</span></code> and <code class="docutils literal notranslate"><span class="pre">exec_start_pre</span></code> scope provider secrets into the process, <code class="docutils literal notranslate"><span class="pre">uvicorn_args</span></code> adds flags such as <code class="docutils literal notranslate"><span class="pre">--no-access-log</span></code>, and <code class="docutils literal notranslate"><span class="pre">service_directives</span></code> carries any other <code class="docutils literal notranslate"><span class="pre">[Service]</span></code> line (<code class="docutils literal notranslate"><span class="pre">RuntimeDirectory=</span></code>, …). Then make drift visible instead of silent:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_distinct_ports</span><span class="p">,</span> <span class="n">diff_unit</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_distinct_specs</span><span class="p">,</span> <span class="n">diff_unit</span>
 
-<span class="n">check_distinct_ports</span><span class="p">(</span><span class="n">specs</span><span class="p">)</span>          <span class="c1"># `port` has a default: two specs that omit it collide</span>
+<span class="n">check_distinct_specs</span><span class="p">(</span><span class="n">specs</span><span class="p">)</span>          <span class="c1"># same port (it has a default), unit name or directory: refused</span>
 <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">diff_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">installed_unit_text</span><span class="p">(</span><span class="n">spec</span><span class="p">)):</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>       <span class="c1"># e.g. "[Service] Environment CONNECTOR_AUDIENCE: installed lacks it"</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">diff_unit</span></code> compares semantically (comments, directive order, whitespace and <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> quoting do not count; the order of repeated <code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code> lines does) and ignores <code class="docutils literal notranslate"><span class="pre">Description=</span></code>. It reads the main unit file only, not drop-ins.</p>
+<p><code class="docutils literal notranslate"><span class="pre">diff_unit</span></code> compares semantically (comments, directive order, whitespace and <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> quoting do not count; the order of repeated <code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code> lines does) and ignores <code class="docutils literal notranslate"><span class="pre">Description=</span></code>. It reads <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> as systemd does (quotes anywhere in a word, C escapes such as <code class="docutils literal notranslate"><span class="pre">\\</span></code> and <code class="docutils literal notranslate"><span class="pre">\x41</span></code> inside quotes too) and skips comment lines inside a backslash continuation. It reads the main unit file only, not drop-ins.</p>
 </section>
 </section>
 <section id="verify-before-you-call-it-deployed">
@@ -530,7 +531,7 @@ directly (to attach a server icon, custom tools, etc.) is also supported — see
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-14 04:59 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/051119e88de4ec15b476ecfd01a01afe6509c679">051119e</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 14:31 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/ef9fbba88c184615ef74221a8582a1e6bbfe9ff9">ef9fbba</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               

@@ -18,6 +18,7 @@
       render_systemd_unit
       diff_unit
       check_distinct_ports
+      check_distinct_specs
       render_provision_script
       render_allowlist_toml
       allowlist_users

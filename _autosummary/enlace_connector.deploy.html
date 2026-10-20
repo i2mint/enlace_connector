@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=a65a585f" />
   
@@ -444,25 +445,28 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.check_distinct_ports" title="enlace_connector.deploy.check_distinct_ports"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_distinct_ports</span></code></a>(specs)</p></td>
 <td><p>Refuse <em>specs</em> that would bind the same local port.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_provision_script" title="enlace_connector.deploy.render_provision_script"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_provision_script</span></code></a>(spec, *[, remote_base])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.check_distinct_specs" title="enlace_connector.deploy.check_distinct_specs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_distinct_specs</span></code></a>(specs)</p></td>
+<td><p>Refuse <em>specs</em> that would collide on one host: same port, unit or directory.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_provision_script" title="enlace_connector.deploy.render_provision_script"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_provision_script</span></code></a>(spec, *[, remote_base])</p></td>
 <td><p>Render the idempotent, run-as-root provisioning script for the connector.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_allowlist_toml" title="enlace_connector.deploy.render_allowlist_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_allowlist_toml</span></code></a>(spec, *[, issuer])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_allowlist_toml" title="enlace_connector.deploy.render_allowlist_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_allowlist_toml</span></code></a>(spec, *[, issuer])</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> fragment.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.allowlist_users" title="enlace_connector.deploy.allowlist_users"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allowlist_users</span></code></a>(spec)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.allowlist_users" title="enlace_connector.deploy.allowlist_users"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allowlist_users</span></code></a>(spec)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">spec.allowed_users</span></code>, refused when it cannot mean what it seems to.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_display_names_toml" title="enlace_connector.deploy.render_display_names_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_display_names_toml</span></code></a>(spec, *[, issuer])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_display_names_toml" title="enlace_connector.deploy.render_display_names_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_display_names_toml</span></code></a>(spec, *[, issuer])</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_display_names]</span></code> fragment.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_oauth_server_toml" title="enlace_connector.deploy.render_oauth_server_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_oauth_server_toml</span></code></a>(spec, *[, issuer, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_oauth_server_toml" title="enlace_connector.deploy.render_oauth_server_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_oauth_server_toml</span></code></a>(spec, *[, issuer, ...])</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server]</span></code> fragment that keeps sessions alive.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_runbook" title="enlace_connector.deploy.render_runbook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_runbook</span></code></a>(spec, *[, remote_base, issuer])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.render_runbook" title="enlace_connector.deploy.render_runbook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_runbook</span></code></a>(spec, *[, remote_base, issuer])</p></td>
 <td><p>Render the human deploy checklist (ship, provision, deploy, <strong>verify</strong>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.deploy.generate_deploy_bundle" title="enlace_connector.deploy.generate_deploy_bundle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_deploy_bundle</span></code></a>(spec, dest, *[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.deploy.generate_deploy_bundle" title="enlace_connector.deploy.generate_deploy_bundle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_deploy_bundle</span></code></a>(spec, dest, *[, ...])</p></td>
 <td><p>Write the full deploy bundle for <em>spec</em> under <em>dest</em>.</p></td>
 </tr>
 </tbody>
@@ -497,11 +501,6 @@ allowlist entry (<code class="docutils literal notranslate"><span class="pre">en
 would deploy a connector that nobody can authorize, and nothing would
 error until someone tried (#8). Opening a connector to every account is
 an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;*&quot;]</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">allowlist_users</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">],</span> <span class="n">allowed_users</span><span class="o">=</span><span class="p">[</span><span class="s2">"*"</span><span class="p">]))</span>
 <span class="go">['*']</span>
@@ -511,6 +510,11 @@ an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;
 <span class="gr">ValueError</span>: <span class="n">Connector 'x' has no allowed_users...</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -518,13 +522,8 @@ an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.deploy.</span></span><span class="sig-name descname"><span class="pre">check_distinct_ports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#check_distinct_ports"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.deploy.check_distinct_ports" title="Link to this definition">#</a></dt>
 <dd><p>Refuse <em>specs</em> that would bind the same local port.</p>
 <p><code class="docutils literal notranslate"><span class="pre">port</span></code> has a default, so two specs that both omit it render units that
-collide on one box, and the second connector never starts (#15). Run this
-over every connector a host deploys.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
-</dd>
-</dl>
+collide on one box, and the second connector never starts (#15). Prefer
+<a class="reference internal" href="#enlace_connector.deploy.check_distinct_specs" title="enlace_connector.deploy.check_distinct_specs"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_distinct_specs()</span></code></a>, which also checks unit names and directories.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_ports</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
 <span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">)])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_ports</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[]),</span>
@@ -534,6 +533,36 @@ over every connector a host deploys.</p>
 <span class="gr">ValueError</span>: <span class="n">connectors share a port: 8030 (a, b)</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.deploy.check_distinct_specs">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.deploy.</span></span><span class="sig-name descname"><span class="pre">check_distinct_specs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#check_distinct_specs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.deploy.check_distinct_specs" title="Link to this definition">#</a></dt>
+<dd><p>Refuse <em>specs</em> that would collide on one host: same port, unit or directory.</p>
+<p>Run it over every connector a host deploys. Two specs collide when they bind
+the same <code class="docutils literal notranslate"><span class="pre">port</span></code> (it has a default), share a <code class="docutils literal notranslate"><span class="pre">name</span></code> (one
+<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;-mcp.service</span></code>, one resource URL), or share a directory under
+<code class="docutils literal notranslate"><span class="pre">apps/</span></code> and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (<code class="docutils literal notranslate"><span class="pre">app_dir</span></code>, else <code class="docutils literal notranslate"><span class="pre">name</span></code>): the second
+install would overwrite the first (#18). Every clash is listed in one error.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_specs</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
+<span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_specs</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
+<span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">,</span> <span class="n">app_dir</span><span class="o">=</span><span class="s2">"a"</span><span class="p">)])</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">  </span><span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">connectors share a directory: a (a, b)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -547,11 +576,6 @@ directives, whitespace runs and <code class="docutils literal notranslate"><span
 order of repeated directives (<code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code>) does. <em>ignore</em> is a set of
 <code class="docutils literal notranslate"><span class="pre">(section,</span> <span class="pre">key)</span></code> pairs left out (the <code class="docutils literal notranslate"><span class="pre">Description=</span></code> prose, by default).
 Drop-ins (<code class="docutils literal notranslate"><span class="pre">&lt;unit&gt;.d/*.conf</span></code>) are not read: pass the main unit file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8040</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">diff_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">render_systemd_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
 <span class="go">[]</span>
@@ -559,6 +583,11 @@ Drop-ins (<code class="docutils literal notranslate"><span class="pre">&lt;unit&
 <span class="go">'[Service] ExecStart: '</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -609,11 +638,6 @@ screen showed the <em>first</em> connector’s name (i2mint/enlace_auth#18).</p>
 <p>This makes <code class="xref py py-attr docutils literal notranslate"><span class="pre">ConnectorSpec.title</span></code> the single source instead — paste the
 fragment into the platform’s <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> alongside
 <a class="reference internal" href="#enlace_connector.deploy.render_allowlist_toml" title="enlace_connector.deploy.render_allowlist_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a>’s.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Acme Knowledge"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_display_names_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
@@ -621,6 +645,11 @@ fragment into the platform’s <code class="docutils literal notranslate"><span 
 <span class="go">"https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -633,11 +662,6 @@ of the parent table — so a <strong>new</strong> platform is configured for con
 sessions from the start instead of inheriting a default that issues no refresh
 tokens. Paste this block <em>before</em> the allowlist fragment (TOML requires a
 table’s own keys to precede its subtables).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_oauth_server_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
@@ -646,6 +670,11 @@ table’s own keys to precede its subtables).</p>
 <span class="go">refresh_token_ttl_seconds = 2592000</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -709,15 +738,15 @@ other spelling at config load. The route is normalized by
 host, a default port, a path segment that is empty or a dot) is refused here
 rather than lowercased, because the same issuer is the connector’s runtime
 <code class="docutils literal notranslate"><span class="pre">iss</span></code>/audience origin and must be fixed at its source (#10).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">resource_url</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">route</span><span class="o">=</span><span class="s2">"/api/x_mcp/"</span><span class="p">))</span>
+<span class="go">'https://apps.thorwhalen.com/api/x_mcp/mcp'</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">resource_url</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">route</span><span class="o">=</span><span class="s2">"/api/x_mcp/"</span><span class="p">))</span>
-<span class="go">'https://apps.thorwhalen.com/api/x_mcp/mcp'</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>
@@ -774,6 +803,7 @@ rather than lowercased, because the same issuer is the connector’s runtime
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.MCP_PATH"><code class="docutils literal notranslate"><span class="pre">MCP_PATH</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.allowlist_users"><code class="docutils literal notranslate"><span class="pre">allowlist_users()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.check_distinct_ports"><code class="docutils literal notranslate"><span class="pre">check_distinct_ports()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.check_distinct_specs"><code class="docutils literal notranslate"><span class="pre">check_distinct_specs()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.diff_unit"><code class="docutils literal notranslate"><span class="pre">diff_unit()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.generate_deploy_bundle"><code class="docutils literal notranslate"><span class="pre">generate_deploy_bundle()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.deploy.render_allowlist_toml"><code class="docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a></li>

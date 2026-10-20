@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=a65a585f" />
   
@@ -460,49 +461,52 @@ in seconds instead of when a user complains a day later.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.check_distinct_ports" title="enlace_connector.check_distinct_ports"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_distinct_ports</span></code></a>(specs)</p></td>
 <td><p>Refuse <em>specs</em> that would bind the same local port.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_provision_script" title="enlace_connector.render_provision_script"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_provision_script</span></code></a>(spec, *[, remote_base])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.check_distinct_specs" title="enlace_connector.check_distinct_specs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_distinct_specs</span></code></a>(specs)</p></td>
+<td><p>Refuse <em>specs</em> that would collide on one host: same port, unit or directory.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_provision_script" title="enlace_connector.render_provision_script"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_provision_script</span></code></a>(spec, *[, remote_base])</p></td>
 <td><p>Render the idempotent, run-as-root provisioning script for the connector.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_allowlist_toml" title="enlace_connector.render_allowlist_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_allowlist_toml</span></code></a>(spec, *[, issuer])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_allowlist_toml" title="enlace_connector.render_allowlist_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_allowlist_toml</span></code></a>(spec, *[, issuer])</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_allowlist]</span></code> fragment.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.allowlist_users" title="enlace_connector.allowlist_users"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allowlist_users</span></code></a>(spec)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.allowlist_users" title="enlace_connector.allowlist_users"><code class="xref py py-obj docutils literal notranslate"><span class="pre">allowlist_users</span></code></a>(spec)</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">spec.allowed_users</span></code>, refused when it cannot mean what it seems to.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_display_names_toml" title="enlace_connector.render_display_names_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_display_names_toml</span></code></a>(spec, *[, issuer])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_display_names_toml" title="enlace_connector.render_display_names_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_display_names_toml</span></code></a>(spec, *[, issuer])</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server.resource_display_names]</span></code> fragment.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_oauth_server_toml" title="enlace_connector.render_oauth_server_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_oauth_server_toml</span></code></a>(spec, *[, issuer, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_oauth_server_toml" title="enlace_connector.render_oauth_server_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_oauth_server_toml</span></code></a>(spec, *[, issuer, ...])</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">[auth.oauth_server]</span></code> fragment that keeps sessions alive.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_runbook" title="enlace_connector.render_runbook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_runbook</span></code></a>(spec, *[, remote_base, issuer])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_runbook" title="enlace_connector.render_runbook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_runbook</span></code></a>(spec, *[, remote_base, issuer])</p></td>
 <td><p>Render the human deploy checklist (ship, provision, deploy, <strong>verify</strong>).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.resource_url" title="enlace_connector.resource_url"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource_url</span></code></a>(spec, *[, issuer])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.resource_url" title="enlace_connector.resource_url"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource_url</span></code></a>(spec, *[, issuer])</p></td>
 <td><p>The connector's OAuth resource = its public MCP endpoint (<code class="docutils literal notranslate"><span class="pre">route</span> <span class="pre">+</span> <span class="pre">/mcp</span></code>).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_app_toml" title="enlace_connector.render_app_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_app_toml</span></code></a>(spec, *, port[, command])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_app_toml" title="enlace_connector.render_app_toml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_app_toml</span></code></a>(spec, *, port[, command])</p></td>
 <td><p>Render the enlace <code class="docutils literal notranslate"><span class="pre">app.toml</span></code> for <em>spec</em> as a <code class="docutils literal notranslate"><span class="pre">mode=&quot;process&quot;</span></code> app.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.render_server_py" title="enlace_connector.render_server_py"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_server_py</span></code></a>(spec)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.render_server_py" title="enlace_connector.render_server_py"><code class="xref py py-obj docutils literal notranslate"><span class="pre">render_server_py</span></code></a>(spec)</p></td>
 <td><p>Render the <code class="docutils literal notranslate"><span class="pre">server.py</span></code> that exposes <code class="docutils literal notranslate"><span class="pre">app</span></code> for enlace's process runner.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.usage_middleware" title="enlace_connector.usage_middleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">usage_middleware</span></code></a>(spec, *[, settings, version])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.usage_middleware" title="enlace_connector.usage_middleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">usage_middleware</span></code></a>(spec, *[, settings, version])</p></td>
 <td><p>The usage-logging middleware for <em>spec</em>, or <code class="docutils literal notranslate"><span class="pre">[]</span></code> when it is switched off.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_deployment</span></code></a>([spec, checks, fetch, strict])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.verify_deployment" title="enlace_connector.verify_deployment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_deployment</span></code></a>([spec, checks, fetch, strict])</p></td>
 <td><p>Run the preflight checks against <em>issuer</em>; return one result per check.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.check_refresh_grant_supported" title="enlace_connector.check_refresh_grant_supported"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_refresh_grant_supported</span></code></a>(ctx)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.check_refresh_grant_supported" title="enlace_connector.check_refresh_grant_supported"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_refresh_grant_supported</span></code></a>(ctx)</p></td>
 <td><p>THE check: does the AS advertise <code class="docutils literal notranslate"><span class="pre">refresh_token</span></code> in <code class="docutils literal notranslate"><span class="pre">grant_types_supported</span></code>?</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.check_jwks_uri_matches_convention" title="enlace_connector.check_jwks_uri_matches_convention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention</span></code></a>(ctx)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.check_jwks_uri_matches_convention" title="enlace_connector.check_jwks_uri_matches_convention"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention</span></code></a>(ctx)</p></td>
 <td><p>For <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> connectors: the AS's <code class="docutils literal notranslate"><span class="pre">jwks_uri</span></code> is the one we validate against.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.authorization_server_metadata" title="enlace_connector.authorization_server_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">authorization_server_metadata</span></code></a>(issuer, *[, fetch])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.authorization_server_metadata" title="enlace_connector.authorization_server_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">authorization_server_metadata</span></code></a>(issuer, *[, fetch])</p></td>
 <td><p>Fetch the RFC 8414 discovery document advertised by <em>issuer</em>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#enlace_connector.format_report" title="enlace_connector.format_report"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_report</span></code></a>(results)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#enlace_connector.format_report" title="enlace_connector.format_report"><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_report</span></code></a>(results)</p></td>
 <td><p>Render check results as a human-readable report (used by the CLI and errors).</p></td>
 </tr>
 </tbody>
@@ -544,31 +548,51 @@ in seconds instead of when a user complains a day later.</p>
 <dt class="sig sig-object py" id="enlace_connector.CheckResult.name">
 <span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#enlace_connector.CheckResult.name" title="Link to this definition">#</a></dt>
 <dd><p>stable slug for the check (usable as a CI job/report key).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.CheckResult.ok">
 <span class="sig-name descname"><span class="pre">ok</span></span><a class="headerlink" href="#enlace_connector.CheckResult.ok" title="Link to this definition">#</a></dt>
 <dd><p>whether the checked property holds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.CheckResult.summary">
 <span class="sig-name descname"><span class="pre">summary</span></span><a class="headerlink" href="#enlace_connector.CheckResult.summary" title="Link to this definition">#</a></dt>
 <dd><p>one line stating what was (or was not) observed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.CheckResult.remedy">
 <span class="sig-name descname"><span class="pre">remedy</span></span><a class="headerlink" href="#enlace_connector.CheckResult.remedy" title="Link to this definition">#</a></dt>
 <dd><p>what to do about it — empty when <code class="docutils literal notranslate"><span class="pre">ok</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">ConnectorSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tools</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extras</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_installs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8030</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_install</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateless_http</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage_outcome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">app_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exec_start_pre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvicorn_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_directives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">icon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instructions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middleware</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_hooks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">ConnectorSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tools</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">auth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'enlace'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">route</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extras</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_installs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8030</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_install</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stateless_http</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">usage_outcome</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">app_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exec_start_pre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvicorn_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_directives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">icon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instructions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middleware</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_hooks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/connector.html#ConnectorSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.ConnectorSpec" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A declarative connector definition (see the module docstring).</p>
 <dl class="field-list simple">
@@ -577,12 +601,22 @@ in seconds instead of when a user complains a day later.</p>
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.name">
 <span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.name" title="Link to this definition">#</a></dt>
 <dd><p>short identifier — the enlace app name and default route stem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.tools">
 <span class="sig-name descname"><span class="pre">tools</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.tools" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">&quot;module:function&quot;</span></code> refs exposed as MCP tools.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -590,18 +624,33 @@ in seconds instead of when a user complains a day later.</p>
 <span class="sig-name descname"><span class="pre">auth</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.auth" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">&quot;enlace&quot;</span></code> / <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> / an auth dict (e.g. from <code class="docutils literal notranslate"><span class="pre">idp_resource</span></code>).
 Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;enlace&quot;</span></code> — the platform’s own OAuth server.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.title">
 <span class="sig-name descname"><span class="pre">title</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.title" title="Link to this definition">#</a></dt>
 <dd><p>human-facing MCP server name (defaults to <em>name</em>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.ConnectorSpec.route">
 <span class="sig-name descname"><span class="pre">route</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.route" title="Link to this definition">#</a></dt>
 <dd><p>enlace mount route (defaults to <code class="docutils literal notranslate"><span class="pre">&quot;/{name}-mcp&quot;</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -609,6 +658,11 @@ Defaults to <code class="docutils literal notranslate"><span class="pre">&quot;e
 <span class="sig-name descname"><span class="pre">extras</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.extras" title="Link to this definition">#</a></dt>
 <dd><p>PyPI requirements the connector’s own runtime venv needs (e.g. the
 package owning the tools + its embedder deps).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -616,6 +670,11 @@ package owning the tools + its embedder deps).</p>
 <span class="sig-name descname"><span class="pre">git_installs</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.git_installs" title="Link to this definition">#</a></dt>
 <dd><p>non-PyPI deps as pip specs (e.g.
 <code class="docutils literal notranslate"><span class="pre">&quot;git+ssh://git&#64;github.com/org/pkg&quot;</span></code>) for private/unreleased packages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -623,6 +682,11 @@ package owning the tools + its embedder deps).</p>
 <span class="sig-name descname"><span class="pre">port</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.port" title="Link to this definition">#</a></dt>
 <dd><p>the fixed local port the connector process binds; enlace reverse-
 proxies the route to <code class="docutils literal notranslate"><span class="pre">127.0.0.1:{port}</span></code>. Must be free on the box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -631,6 +695,11 @@ proxies the route to <code class="docutils literal notranslate"><span class="pre
 <dd><p><code class="docutils literal notranslate"><span class="pre">(local_path,</span> <span class="pre">remote_path)</span></code> pairs to co-locate on the server —
 large artifacts (corpus stores, model caches) shipped <em>separately</em> from
 code (rsynced), the deploy runbook lists the copy step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -638,6 +707,11 @@ code (rsynced), the deploy runbook lists the copy step.</p>
 <span class="sig-name descname"><span class="pre">env</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.env" title="Link to this definition">#</a></dt>
 <dd><p>environment variables the connector’s systemd unit sets (e.g.
 <code class="docutils literal notranslate"><span class="pre">XDG_DATA_HOME</span></code> / <code class="docutils literal notranslate"><span class="pre">HF_HOME</span></code> pointing at the <code class="docutils literal notranslate"><span class="pre">data</span></code> dirs).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -649,6 +723,11 @@ for a deploy bundle: enlace_auth refuses every account for a resource
 it does not list (fail closed, since enlace_auth 0.1.30), so an empty
 list is an error, never “open”. <code class="docutils literal notranslate"><span class="pre">[&quot;*&quot;]</span></code> (<code class="docutils literal notranslate"><span class="pre">deploy.ANY_ACCOUNT</span></code>)
 admits every authenticated platform account, and must be written out.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -657,6 +736,11 @@ admits every authenticated platform account, and must be written out.</p>
 <dd><p>shell commands run <em>inside the connector venv</em> after deps
 install (e.g. pre-warming an embedding model so the first query
 doesn’t block). <code class="docutils literal notranslate"><span class="pre">{venv}</span></code> / <code class="docutils literal notranslate"><span class="pre">{base}</span></code> placeholders are substituted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -664,6 +748,11 @@ doesn’t block). <code class="docutils literal notranslate"><span class="pre">{
 <span class="sig-name descname"><span class="pre">stateless_http</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.stateless_http" title="Link to this definition">#</a></dt>
 <dd><p>run the MCP transport statelessly (recommended behind a
 multi-worker server / load balancer). Defaults to True.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -671,6 +760,11 @@ multi-worker server / load balancer). Defaults to True.</p>
 <span class="sig-name descname"><span class="pre">version</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.version" title="Link to this definition">#</a></dt>
 <dd><p>the connector’s version, written into every usage-log record
 when logging is on (see <a class="reference internal" href="enlace_connector.usage.html#module-enlace_connector.usage" title="enlace_connector.usage"><code class="xref py py-mod docutils literal notranslate"><span class="pre">enlace_connector.usage</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -680,6 +774,11 @@ when logging is on (see <a class="reference internal" href="enlace_connector.usa
 <code class="docutils literal notranslate"><span class="pre">(tool_name,</span> <span class="pre">result)</span> <span class="pre">-&gt;</span> <span class="pre">label</span> <span class="pre">|</span> <span class="pre">mapping</span></code> usage-outcome classifier
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -688,6 +787,11 @@ place of py2mcp’s generic one when logging is on.</p>
 <dd><p>the connector’s directory name under the platform’s <code class="docutils literal notranslate"><span class="pre">apps/</span></code>
 and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (defaults to <em>name</em>). A host that names the app
 <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;_mcp</span></code> sets it so the rendered paths exist (#15).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -696,6 +800,11 @@ and <code class="docutils literal notranslate"><span class="pre">connectors/</sp
 <dd><p><code class="docutils literal notranslate"><span class="pre">EnvironmentFile=</span></code> values for the unit, in order —
 how a host scopes provider secrets into the process without writing
 them into the unit. A leading <code class="docutils literal notranslate"><span class="pre">-</span></code> makes one optional, as in systemd.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -703,6 +812,11 @@ them into the unit. A leading <code class="docutils literal notranslate"><span c
 <span class="sig-name descname"><span class="pre">exec_start_pre</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.exec_start_pre" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code> commands, in order (e.g. extracting the
 scoped secrets an <code class="docutils literal notranslate"><span class="pre">environment_files</span></code> entry then reads).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -710,6 +824,11 @@ scoped secrets an <code class="docutils literal notranslate"><span class="pre">e
 <span class="sig-name descname"><span class="pre">uvicorn_args</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.uvicorn_args" title="Link to this definition">#</a></dt>
 <dd><p>extra arguments appended to the <code class="docutils literal notranslate"><span class="pre">uvicorn</span></code> command line
 (e.g. <code class="docutils literal notranslate"><span class="pre">--no-access-log</span></code> for a connector that serves signed links).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -717,6 +836,11 @@ scoped secrets an <code class="docutils literal notranslate"><span class="pre">e
 <span class="sig-name descname"><span class="pre">service_directives</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.service_directives" title="Link to this definition">#</a></dt>
 <dd><p>any other <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">value)</span></code> lines for the unit’s
 <code class="docutils literal notranslate"><span class="pre">[Service]</span></code> section, in order (e.g. <code class="docutils literal notranslate"><span class="pre">(&quot;RuntimeDirectory&quot;,</span> <span class="pre">...)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -725,6 +849,11 @@ scoped secrets an <code class="docutils literal notranslate"><span class="pre">e
 <dd><p>the server icon clients show next to the connector (sent in the MCP
 <code class="docutils literal notranslate"><span class="pre">serverInfo</span></code>): a <code class="docutils literal notranslate"><span class="pre">src</span></code> URL or <code class="docutils literal notranslate"><span class="pre">data:</span></code> URI, or a dict of
 <code class="docutils literal notranslate"><span class="pre">mcp.types.Icon</span></code> fields (<code class="docutils literal notranslate"><span class="pre">src</span></code>, <code class="docutils literal notranslate"><span class="pre">mimeType</span></code>, <code class="docutils literal notranslate"><span class="pre">sizes</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -732,6 +861,11 @@ scoped secrets an <code class="docutils literal notranslate"><span class="pre">e
 <span class="sig-name descname"><span class="pre">instructions</span></span><a class="headerlink" href="#enlace_connector.ConnectorSpec.instructions" title="Link to this definition">#</a></dt>
 <dd><p>the server’s model-facing description, surfaced to the
 connecting client as the MCP <code class="docutils literal notranslate"><span class="pre">instructions</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -742,6 +876,11 @@ connecting client as the MCP <code class="docutils literal notranslate"><span cl
 zero-argument factory returning either; they run before the usage
 logger. A host can also pass <code class="docutils literal notranslate"><span class="pre">middleware=</span></code> to
 <a class="reference internal" href="#enlace_connector.make_connector_app" title="enlace_connector.make_connector_app"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_connector_app()</span></code></a>; that runs first.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -751,6 +890,11 @@ logger. A host can also pass <code class="docutils literal notranslate"><span cl
 FastMCP server before it is served — the seam for tools that are not
 importable <code class="docutils literal notranslate"><span class="pre">&quot;module:function&quot;</span></code> refs (closures bound to a project, a
 store, a per-caller context): <code class="docutils literal notranslate"><span class="pre">server.tool(fn)</span></code> inside the hook.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -817,6 +961,11 @@ this, so a stray slash cannot make two of them disagree (#10).</p>
 <dt class="sig sig-object py" id="enlace_connector.PreflightContext.issuer">
 <span class="sig-name descname"><span class="pre">issuer</span></span><a class="headerlink" href="#enlace_connector.PreflightContext.issuer" title="Link to this definition">#</a></dt>
 <dd><p>the authorization server’s issuer origin (the platform origin).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -824,6 +973,11 @@ this, so a stray slash cannot make two of them disagree (#10).</p>
 <span class="sig-name descname"><span class="pre">spec</span></span><a class="headerlink" href="#enlace_connector.PreflightContext.spec" title="Link to this definition">#</a></dt>
 <dd><p>the connector being verified — optional, so the AS itself can be
 preflighted before any connector exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -831,6 +985,11 @@ preflighted before any connector exists.</p>
 <span class="sig-name descname"><span class="pre">fetch</span></span><a class="headerlink" href="#enlace_connector.PreflightContext.fetch" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">fetch(url)</span> <span class="pre">-&gt;</span> <span class="pre">parsed_json</span></code>; defaults to <code class="xref py py-func docutils literal notranslate"><span class="pre">fetch_json()</span></code>. Pass
 your own to test offline, to add auth headers, or to use <code class="docutils literal notranslate"><span class="pre">httpx</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -864,11 +1023,6 @@ your own to test offline, to add auth headers, or to use <code class="docutils l
 would deploy a connector that nobody can authorize, and nothing would
 error until someone tried (#8). Opening a connector to every account is
 an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;*&quot;]</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">allowlist_users</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">],</span> <span class="n">allowed_users</span><span class="o">=</span><span class="p">[</span><span class="s2">"*"</span><span class="p">]))</span>
 <span class="go">['*']</span>
@@ -878,6 +1032,11 @@ an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;
 <span class="gr">ValueError</span>: <span class="n">Connector 'x' has no allowed_users...</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -896,13 +1055,8 @@ an explicit <code class="docutils literal notranslate"><span class="pre">[&quot;
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">check_distinct_ports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#check_distinct_ports"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.check_distinct_ports" title="Link to this definition">#</a></dt>
 <dd><p>Refuse <em>specs</em> that would bind the same local port.</p>
 <p><code class="docutils literal notranslate"><span class="pre">port</span></code> has a default, so two specs that both omit it render units that
-collide on one box, and the second connector never starts (#15). Run this
-over every connector a host deploys.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
-</dd>
-</dl>
+collide on one box, and the second connector never starts (#15). Prefer
+<a class="reference internal" href="#enlace_connector.check_distinct_specs" title="enlace_connector.check_distinct_specs"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_distinct_specs()</span></code></a>, which also checks unit names and directories.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_ports</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
 <span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">)])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_ports</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[]),</span>
@@ -912,6 +1066,36 @@ over every connector a host deploys.</p>
 <span class="gr">ValueError</span>: <span class="n">connectors share a port: 8030 (a, b)</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="enlace_connector.check_distinct_specs">
+<span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">check_distinct_specs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">specs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/deploy.html#check_distinct_specs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.check_distinct_specs" title="Link to this definition">#</a></dt>
+<dd><p>Refuse <em>specs</em> that would collide on one host: same port, unit or directory.</p>
+<p>Run it over every connector a host deploys. Two specs collide when they bind
+the same <code class="docutils literal notranslate"><span class="pre">port</span></code> (it has a default), share a <code class="docutils literal notranslate"><span class="pre">name</span></code> (one
+<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;-mcp.service</span></code>, one resource URL), or share a directory under
+<code class="docutils literal notranslate"><span class="pre">apps/</span></code> and <code class="docutils literal notranslate"><span class="pre">connectors/</span></code> (<code class="docutils literal notranslate"><span class="pre">app_dir</span></code>, else <code class="docutils literal notranslate"><span class="pre">name</span></code>): the second
+install would overwrite the first (#18). Every clash is listed in one error.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_specs</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
+<span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_distinct_specs</span><span class="p">([</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8031</span><span class="p">),</span>
+<span class="gp">... </span>                      <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"b"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8032</span><span class="p">,</span> <span class="n">app_dir</span><span class="o">=</span><span class="s2">"a"</span><span class="p">)])</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="w">  </span><span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">connectors share a directory: a (a, b)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -951,11 +1135,6 @@ directives, whitespace runs and <code class="docutils literal notranslate"><span
 order of repeated directives (<code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code>) does. <em>ignore</em> is a set of
 <code class="docutils literal notranslate"><span class="pre">(section,</span> <span class="pre">key)</span></code> pairs left out (the <code class="docutils literal notranslate"><span class="pre">Description=</span></code> prose, by default).
 Drop-ins (<code class="docutils literal notranslate"><span class="pre">&lt;unit&gt;.d/*.conf</span></code>) are not read: pass the main unit file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">port</span><span class="o">=</span><span class="mi">8040</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">diff_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">render_systemd_unit</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
 <span class="go">[]</span>
@@ -963,6 +1142,11 @@ Drop-ins (<code class="docutils literal notranslate"><span class="pre">&lt;unit&
 <span class="go">'[Service] ExecStart: '</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -996,11 +1180,6 @@ validated <code class="docutils literal notranslate"><span class="pre">audience<
 <dt class="sig sig-object py" id="enlace_connector.format_report">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.</span></span><span class="sig-name descname"><span class="pre">format_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#format_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.format_report" title="Link to this definition">#</a></dt>
 <dd><p>Render check results as a human-readable report (used by the CLI and errors).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">format_report</span><span class="p">([</span><span class="n">CheckResult</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"fine"</span><span class="p">),</span>
 <span class="gp">... </span>                     <span class="n">CheckResult</span><span class="p">(</span><span class="s2">"b"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"broken"</span><span class="p">,</span> <span class="s2">"fix it"</span><span class="p">)]))</span>
 <span class="go">PASS  a: fine</span>
@@ -1008,6 +1187,11 @@ validated <code class="docutils literal notranslate"><span class="pre">audience<
 <span class="go">      -&gt; fix it</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -1116,11 +1300,6 @@ screen showed the <em>first</em> connector’s name (i2mint/enlace_auth#18).</p>
 <p>This makes <a class="reference internal" href="#enlace_connector.ConnectorSpec.title" title="enlace_connector.ConnectorSpec.title"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ConnectorSpec.title</span></code></a> the single source instead — paste the
 fragment into the platform’s <code class="docutils literal notranslate"><span class="pre">platform.toml</span></code> alongside
 <a class="reference internal" href="#enlace_connector.render_allowlist_toml" title="enlace_connector.render_allowlist_toml"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_allowlist_toml()</span></code></a>’s.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Acme Knowledge"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_display_names_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
@@ -1128,6 +1307,11 @@ fragment into the platform’s <code class="docutils literal notranslate"><span 
 <span class="go">"https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -1140,11 +1324,6 @@ of the parent table — so a <strong>new</strong> platform is configured for con
 sessions from the start instead of inheriting a default that issues no refresh
 tokens. Paste this block <em>before</em> the allowlist fragment (TOML requires a
 table’s own keys to precede its subtables).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"m:f"</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">render_oauth_server_toml</span><span class="p">(</span><span class="n">spec</span><span class="p">))</span>
@@ -1153,6 +1332,11 @@ table’s own keys to precede its subtables).</p>
 <span class="go">refresh_token_ttl_seconds = 2592000</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -1237,7 +1421,7 @@ validates tokens for exactly the key the platform allows (#12).</p>
 </ul>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>] | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>] | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1252,15 +1436,15 @@ other spelling at config load. The route is normalized by
 host, a default port, a path segment that is empty or a dot) is refused here
 rather than lowercased, because the same issuer is the connector’s runtime
 <code class="docutils literal notranslate"><span class="pre">iss</span></code>/audience origin and must be fixed at its source (#10).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">resource_url</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">route</span><span class="o">=</span><span class="s2">"/api/x_mcp/"</span><span class="p">))</span>
+<span class="go">'https://apps.thorwhalen.com/api/x_mcp/mcp'</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">resource_url</span><span class="p">(</span><span class="n">ConnectorSpec</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[],</span> <span class="n">route</span><span class="o">=</span><span class="s2">"/api/x_mcp/"</span><span class="p">))</span>
-<span class="go">'https://apps.thorwhalen.com/api/x_mcp/mcp'</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1320,7 +1504,7 @@ platform is one the connector cannot observe about itself.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – the connector being verified (optional — the AS can be checked alone).</p></li>
+<li><p><strong>spec</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – the connector being verified (optional — the AS can be checked alone).</p></li>
 <li><p><strong>issuer</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – the authorization server / platform origin.</p></li>
 <li><p><strong>checks</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.PreflightContext" title="enlace_connector.preflight.PreflightContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreflightContext</span></code></a>], <a class="reference internal" href="enlace_connector.preflight.html#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a>]]</span>) – the checks to run (defaults to <code class="xref py py-data docutils literal notranslate"><span class="pre">DFLT_CHECKS</span></code>).</p></li>
 <li><p><strong>fetch</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – <code class="docutils literal notranslate"><span class="pre">fetch(url)</span> <span class="pre">-&gt;</span> <span class="pre">parsed_json</span></code> seam (defaults to <code class="xref py py-func docutils literal notranslate"><span class="pre">fetch_json()</span></code>).</p></li>
@@ -1462,6 +1646,7 @@ platform is one the connector cannot observe about itself.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.allowlist_users"><code class="docutils literal notranslate"><span class="pre">allowlist_users()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.authorization_server_metadata"><code class="docutils literal notranslate"><span class="pre">authorization_server_metadata()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_distinct_ports"><code class="docutils literal notranslate"><span class="pre">check_distinct_ports()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_distinct_specs"><code class="docutils literal notranslate"><span class="pre">check_distinct_specs()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_jwks_uri_matches_convention"><code class="docutils literal notranslate"><span class="pre">check_jwks_uri_matches_convention()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.check_refresh_grant_supported"><code class="docutils literal notranslate"><span class="pre">check_refresh_grant_supported()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#enlace_connector.diff_unit"><code class="docutils literal notranslate"><span class="pre">diff_unit()</span></code></a></li>

@@ -1,4 +1,4 @@
-> built 2026-10-14 04:59 UTC from 051119e (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-10-20 14:31 UTC from ef9fbba (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -115,15 +115,15 @@ package stays connector-type-agnostic (it knows nothing of `ir`).
 A host may hand-maintain its units rather than install the rendered one. The spec can still describe such a unit: `app_dir` names the directory under `apps/` and `connectors/` (e.g. `"acme_mcp"`, when it is not the spec’s `name`), `environment_files` and `exec_start_pre` scope provider secrets into the process, `uvicorn_args` adds flags such as `--no-access-log`, and `service_directives` carries any other `[Service]` line (`RuntimeDirectory=`, …). Then make drift visible instead of silent:
 
 ```python
-from enlace_connector import check_distinct_ports, diff_unit
+from enlace_connector import check_distinct_specs, diff_unit
 
-check_distinct_ports(specs)          # `port` has a default: two specs that omit it collide
+check_distinct_specs(specs)          # same port (it has a default), unit name or directory: refused
 for spec in specs:
     for line in diff_unit(spec, installed_unit_text(spec)):
         print(spec.name, line)       # e.g. "[Service] Environment CONNECTOR_AUDIENCE: installed lacks it"
 ```
 
-`diff_unit` compares semantically (comments, directive order, whitespace and `Environment=` quoting do not count; the order of repeated `ExecStartPre=` lines does) and ignores `Description=`. It reads the main unit file only, not drop-ins.
+`diff_unit` compares semantically (comments, directive order, whitespace and `Environment=` quoting do not count; the order of repeated `ExecStartPre=` lines does) and ignores `Description=`. It reads `Environment=` as systemd does (quotes anywhere in a word, C escapes such as `\\` and `\x41` inside quotes too) and skips comment lines inside a backslash continuation. It reads the main unit file only, not drop-ins.
 
 ## Verify before you call it deployed
 
@@ -306,7 +306,7 @@ process that actually serves them.
 | [`ConnectorSpec`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>, icon=None, instructions=None, middleware=<factory>, server_hooks=<factory>)
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -316,37 +316,61 @@ A declarative connector definition (see the module docstring).
 
 short identifier — the enlace app name and default route stem.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### tools
 
 `"module:function"` refs exposed as MCP tools.
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### auth
 
 `"enlace"` / `"none"` / an auth dict (e.g. from `idp_resource`).
 Defaults to `"enlace"` — the platform’s own OAuth server.
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### title
 
 human-facing MCP server name (defaults to *name*).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### route
 
 enlace mount route (defaults to `"/{name}-mcp"`).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### extras
 
 PyPI requirements the connector’s own runtime venv needs (e.g. the
 package owning the tools + its embedder deps).
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### git_installs
 
 non-PyPI deps as pip specs (e.g.
 `"git+ssh://git@github.com/org/pkg"`) for private/unreleased packages.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### port
 
 the fixed local port the connector process binds; enlace reverse-
 proxies the route to `127.0.0.1:{port}`. Must be free on the box.
+
+* **Type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 #### data
 
@@ -354,10 +378,16 @@ proxies the route to `127.0.0.1:{port}`. Must be free on the box.
 large artifacts (corpus stores, model caches) shipped *separately* from
 code (rsynced), the deploy runbook lists the copy step.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
 #### env
 
 environment variables the connector’s systemd unit sets (e.g.
 `XDG_DATA_HOME` / `HF_HOME` pointing at the `data` dirs).
+
+* **Type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### allowed_users
 
@@ -368,21 +398,33 @@ it does not list (fail closed, since enlace_auth 0.1.30), so an empty
 list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
 admits every authenticated platform account, and must be written out.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### post_install
 
 shell commands run *inside the connector venv* after deps
 install (e.g. pre-warming an embedding model so the first query
 doesn’t block). `{venv}` / `{base}` placeholders are substituted.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### stateless_http
 
 run the MCP transport statelessly (recommended behind a
 multi-worker server / load balancer). Defaults to True.
 
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### version
 
 the connector’s version, written into every usage-log record
 when logging is on (see [`enlace_connector.usage`](_autosummary/enlace_connector.usage.html.md#module-enlace_connector.usage)).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### usage_outcome
 
@@ -391,11 +433,17 @@ a `"module:function"` ref to this connector’s own
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### app_dir
 
 the connector’s directory name under the platform’s `apps/`
 and `connectors/` (defaults to *name*). A host that names the app
 `<name>_mcp` sets it so the rendered paths exist (#15).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### environment_files
 
@@ -403,20 +451,32 @@ and `connectors/` (defaults to *name*). A host that names the app
 how a host scopes provider secrets into the process without writing
 them into the unit. A leading `-` makes one optional, as in systemd.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### exec_start_pre
 
 `ExecStartPre=` commands, in order (e.g. extracting the
 scoped secrets an `environment_files` entry then reads).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### uvicorn_args
 
 extra arguments appended to the `uvicorn` command line
 (e.g. `--no-access-log` for a connector that serves signed links).
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### service_directives
 
 any other `(key, value)` lines for the unit’s
 `[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 #### icon
 
@@ -424,10 +484,16 @@ the server icon clients show next to the connector (sent in the MCP
 `serverInfo`): a `src` URL or `data:` URI, or a dict of
 `mcp.types.Icon` fields (`src`, `mimeType`, `sizes`).
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### instructions
 
 the server’s model-facing description, surfaced to the
 connecting client as the MCP `instructions`.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### middleware
 
@@ -437,12 +503,18 @@ zero-argument factory returning either; they run before the usage
 logger. A host can also pass `middleware=` to
 [`make_connector_app()`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.make_connector_app); that runs first.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### server_hooks
 
 `"module:function"` refs, each called with the built
 FastMCP server before it is served — the seam for tools that are not
 importable `"module:function"` refs (closures bound to a project, a
 store, a per-caller context): `server.tool(fn)` inside the hook.
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
 
@@ -545,6 +617,7 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 | [`render_systemd_unit`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.             |
 | [`diff_unit`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not. |
 | [`check_distinct_ports`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                          |
+| [`check_distinct_specs`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.check_distinct_specs)(specs)                        | Refuse *specs* that would collide on one host: same port, unit or directory. |
 | [`render_provision_script`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.    |
 | [`render_allowlist_toml`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
 | [`allowlist_users`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
@@ -577,9 +650,6 @@ would deploy a connector that nobody can authorize, and nothing would
 error until someone tried (#8). Opening a connector to every account is
 an explicit `["*"]`.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
@@ -590,16 +660,16 @@ Traceback (most recent call last):
 ValueError: Connector 'x' has no allowed_users...
 ```
 
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### enlace_connector.deploy.check_distinct_ports(specs)
 
 Refuse *specs* that would bind the same local port.
 
 `port` has a default, so two specs that both omit it render units that
-collide on one box, and the second connector never starts (#15). Run this
-over every connector a host deploys.
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+collide on one box, and the second connector never starts (#15). Prefer
+[`check_distinct_specs()`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.check_distinct_specs), which also checks unit names and directories.
 
 ```pycon
 >>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
@@ -610,6 +680,32 @@ Traceback (most recent call last):
   ...
 ValueError: connectors share a port: 8030 (a, b)
 ```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_connector.deploy.check_distinct_specs(specs)
+
+Refuse *specs* that would collide on one host: same port, unit or directory.
+
+Run it over every connector a host deploys. Two specs collide when they bind
+the same `port` (it has a default), share a `name` (one
+`<name>-mcp.service`, one resource URL), or share a directory under
+`apps/` and `connectors/` (`app_dir`, else `name`): the second
+install would overwrite the first (#18). Every clash is listed in one error.
+
+```pycon
+>>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032, app_dir="a")])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a directory: a (a, b)
+```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.deploy.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
 
@@ -623,9 +719,6 @@ order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
 `(section, key)` pairs left out (the `Description=` prose, by default).
 Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> spec = ConnectorSpec(name="x", tools=[], port=8040)
 >>> diff_unit(spec, render_systemd_unit(spec))
@@ -633,6 +726,9 @@ Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
 >>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
 '[Service] ExecStart: '
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### enlace_connector.deploy.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
 
@@ -678,9 +774,6 @@ This makes `ConnectorSpec.title` the single source instead — paste the
 fragment into the platform’s `platform.toml` alongside
 [`render_allowlist_toml()`](_autosummary/enlace_connector.deploy.html.md#enlace_connector.deploy.render_allowlist_toml)’s.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> spec = ConnectorSpec(name="acme", tools=["m:f"], title="Acme Knowledge")
@@ -688,6 +781,9 @@ fragment into the platform’s `platform.toml` alongside
 [auth.oauth_server.resource_display_names]
 "https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.deploy.render_oauth_server_toml(spec, , issuer='https://apps.thorwhalen.com', refresh_token_ttl_seconds=2592000)
 
@@ -700,9 +796,6 @@ sessions from the start instead of inheriting a default that issues no refresh
 tokens. Paste this block *before* the allowlist fragment (TOML requires a
 table’s own keys to precede its subtables).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> spec = ConnectorSpec(name="acme", tools=["m:f"])
@@ -711,6 +804,9 @@ table’s own keys to precede its subtables).
 [auth.oauth_server]
 refresh_token_ttl_seconds = 2592000
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.deploy.render_provision_script(spec, , remote_base='/opt/tw_platform')
 
@@ -766,13 +862,13 @@ host, a default port, a path segment that is empty or a dot) is refused here
 rather than lowercased, because the same issuer is the connector’s runtime
 `iss`/audience origin and must be fixed at its source (#10).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
 'https://apps.thorwhalen.com/api/x_mcp/mcp'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/enlace_connector.html.md
@@ -839,6 +935,7 @@ in seconds instead of when a user complains a day later.
 | [`render_systemd_unit`](_autosummary/enlace_connector.html.md#enlace_connector.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.                    |
 | [`diff_unit`](_autosummary/enlace_connector.html.md#enlace_connector.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not.        |
 | [`check_distinct_ports`](_autosummary/enlace_connector.html.md#enlace_connector.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                                 |
+| [`check_distinct_specs`](_autosummary/enlace_connector.html.md#enlace_connector.check_distinct_specs)(specs)                        | Refuse *specs* that would collide on one host: same port, unit or directory.        |
 | [`render_provision_script`](_autosummary/enlace_connector.html.md#enlace_connector.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.           |
 | [`render_allowlist_toml`](_autosummary/enlace_connector.html.md#enlace_connector.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                       |
 | [`allowlist_users`](_autosummary/enlace_connector.html.md#enlace_connector.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.                 |
@@ -879,19 +976,31 @@ Truthy when the check passed, so `all(results)` reads naturally.
 
 stable slug for the check (usable as a CI job/report key).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### ok
 
 whether the checked property holds.
+
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### summary
 
 one line stating what was (or was not) observed.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### remedy
 
 what to do about it — empty when `ok`.
 
-### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>, icon=None, instructions=None, middleware=<factory>, server_hooks=<factory>)
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### *class* enlace_connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -901,37 +1010,61 @@ A declarative connector definition (see the module docstring).
 
 short identifier — the enlace app name and default route stem.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### tools
 
 `"module:function"` refs exposed as MCP tools.
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### auth
 
 `"enlace"` / `"none"` / an auth dict (e.g. from `idp_resource`).
 Defaults to `"enlace"` — the platform’s own OAuth server.
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### title
 
 human-facing MCP server name (defaults to *name*).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### route
 
 enlace mount route (defaults to `"/{name}-mcp"`).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### extras
 
 PyPI requirements the connector’s own runtime venv needs (e.g. the
 package owning the tools + its embedder deps).
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### git_installs
 
 non-PyPI deps as pip specs (e.g.
 `"git+ssh://git@github.com/org/pkg"`) for private/unreleased packages.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### port
 
 the fixed local port the connector process binds; enlace reverse-
 proxies the route to `127.0.0.1:{port}`. Must be free on the box.
+
+* **Type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 #### data
 
@@ -939,10 +1072,16 @@ proxies the route to `127.0.0.1:{port}`. Must be free on the box.
 large artifacts (corpus stores, model caches) shipped *separately* from
 code (rsynced), the deploy runbook lists the copy step.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
 #### env
 
 environment variables the connector’s systemd unit sets (e.g.
 `XDG_DATA_HOME` / `HF_HOME` pointing at the `data` dirs).
+
+* **Type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### allowed_users
 
@@ -953,21 +1092,33 @@ it does not list (fail closed, since enlace_auth 0.1.30), so an empty
 list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
 admits every authenticated platform account, and must be written out.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### post_install
 
 shell commands run *inside the connector venv* after deps
 install (e.g. pre-warming an embedding model so the first query
 doesn’t block). `{venv}` / `{base}` placeholders are substituted.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### stateless_http
 
 run the MCP transport statelessly (recommended behind a
 multi-worker server / load balancer). Defaults to True.
 
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### version
 
 the connector’s version, written into every usage-log record
 when logging is on (see [`enlace_connector.usage`](_autosummary/enlace_connector.usage.html.md#module-enlace_connector.usage)).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### usage_outcome
 
@@ -976,11 +1127,17 @@ a `"module:function"` ref to this connector’s own
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### app_dir
 
 the connector’s directory name under the platform’s `apps/`
 and `connectors/` (defaults to *name*). A host that names the app
 `<name>_mcp` sets it so the rendered paths exist (#15).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### environment_files
 
@@ -988,20 +1145,32 @@ and `connectors/` (defaults to *name*). A host that names the app
 how a host scopes provider secrets into the process without writing
 them into the unit. A leading `-` makes one optional, as in systemd.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### exec_start_pre
 
 `ExecStartPre=` commands, in order (e.g. extracting the
 scoped secrets an `environment_files` entry then reads).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### uvicorn_args
 
 extra arguments appended to the `uvicorn` command line
 (e.g. `--no-access-log` for a connector that serves signed links).
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### service_directives
 
 any other `(key, value)` lines for the unit’s
 `[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 #### icon
 
@@ -1009,10 +1178,16 @@ the server icon clients show next to the connector (sent in the MCP
 `serverInfo`): a `src` URL or `data:` URI, or a dict of
 `mcp.types.Icon` fields (`src`, `mimeType`, `sizes`).
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### instructions
 
 the server’s model-facing description, surfaced to the
 connecting client as the MCP `instructions`.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### middleware
 
@@ -1022,12 +1197,18 @@ zero-argument factory returning either; they run before the usage
 logger. A host can also pass `middleware=` to
 [`make_connector_app()`](_autosummary/enlace_connector.html.md#enlace_connector.make_connector_app); that runs first.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### server_hooks
 
 `"module:function"` refs, each called with the built
 FastMCP server before it is served — the seam for tools that are not
 importable `"module:function"` refs (closures bound to a project, a
 store, a per-caller context): `server.tool(fn)` inside the hook.
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
 
@@ -1069,15 +1250,24 @@ What a check is given: the target AS, the connector (if any), and a fetcher.
 
 the authorization server’s issuer origin (the platform origin).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### spec
 
 the connector being verified — optional, so the AS itself can be
 preflighted before any connector exists.
 
+* **Type:**
+  [`ConnectorSpec`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.ConnectorSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### fetch
 
 `fetch(url) -> parsed_json`; defaults to `fetch_json()`. Pass
 your own to test offline, to add auth headers, or to use `httpx`.
+
+* **Type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 #### *property* metadata *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]*
 
@@ -1104,9 +1294,6 @@ would deploy a connector that nobody can authorize, and nothing would
 error until someone tried (#8). Opening a connector to every account is
 an explicit `["*"]`.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
@@ -1116,6 +1303,9 @@ Traceback (most recent call last):
 ...
 ValueError: Connector 'x' has no allowed_users...
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### enlace_connector.authorization_server_metadata(issuer, , fetch=None)
 
@@ -1129,11 +1319,8 @@ Fetch the RFC 8414 discovery document advertised by *issuer*.
 Refuse *specs* that would bind the same local port.
 
 `port` has a default, so two specs that both omit it render units that
-collide on one box, and the second connector never starts (#15). Run this
-over every connector a host deploys.
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+collide on one box, and the second connector never starts (#15). Prefer
+[`check_distinct_specs()`](_autosummary/enlace_connector.html.md#enlace_connector.check_distinct_specs), which also checks unit names and directories.
 
 ```pycon
 >>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
@@ -1144,6 +1331,32 @@ Traceback (most recent call last):
   ...
 ValueError: connectors share a port: 8030 (a, b)
 ```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_connector.check_distinct_specs(specs)
+
+Refuse *specs* that would collide on one host: same port, unit or directory.
+
+Run it over every connector a host deploys. Two specs collide when they bind
+the same `port` (it has a default), share a `name` (one
+`<name>-mcp.service`, one resource URL), or share a directory under
+`apps/` and `connectors/` (`app_dir`, else `name`): the second
+install would overwrite the first (#18). Every clash is listed in one error.
+
+```pycon
+>>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032, app_dir="a")])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a directory: a (a, b)
+```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.check_jwks_uri_matches_convention(ctx)
 
@@ -1177,9 +1390,6 @@ order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
 `(section, key)` pairs left out (the `Description=` prose, by default).
 Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> spec = ConnectorSpec(name="x", tools=[], port=8040)
 >>> diff_unit(spec, render_systemd_unit(spec))
@@ -1187,6 +1397,9 @@ Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
 >>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
 '[Service] ExecStart: '
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### enlace_connector.enlace_resource(, issuer, audience, scopes=('mcp:read',), mcp_path='/mcp')
 
@@ -1213,9 +1426,6 @@ validated `audience` is `base + mcp_path`. Setting them equal causes an
 
 Render check results as a human-readable report (used by the CLI and errors).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> print(format_report([CheckResult("a", True, "fine"),
 ...                      CheckResult("b", False, "broken", "fix it")]))
@@ -1223,6 +1433,9 @@ PASS  a: fine
 FAIL  b: broken
       -> fix it
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
 
@@ -1314,9 +1527,6 @@ This makes [`ConnectorSpec.title`](_autosummary/enlace_connector.html.md#enlace_
 fragment into the platform’s `platform.toml` alongside
 [`render_allowlist_toml()`](_autosummary/enlace_connector.html.md#enlace_connector.render_allowlist_toml)’s.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> spec = ConnectorSpec(name="acme", tools=["m:f"], title="Acme Knowledge")
@@ -1324,6 +1534,9 @@ fragment into the platform’s `platform.toml` alongside
 [auth.oauth_server.resource_display_names]
 "https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.render_oauth_server_toml(spec, , issuer='https://apps.thorwhalen.com', refresh_token_ttl_seconds=2592000)
 
@@ -1336,9 +1549,6 @@ sessions from the start instead of inheriting a default that issues no refresh
 tokens. Paste this block *before* the allowlist fragment (TOML requires a
 table’s own keys to precede its subtables).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> spec = ConnectorSpec(name="acme", tools=["m:f"])
@@ -1347,6 +1557,9 @@ table’s own keys to precede its subtables).
 [auth.oauth_server]
 refresh_token_ttl_seconds = 2592000
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.render_provision_script(spec, , remote_base='/opt/tw_platform')
 
@@ -1431,13 +1644,13 @@ host, a default port, a path segment that is empty or a dot) is refused here
 rather than lowercased, because the same issuer is the connector’s runtime
 `iss`/audience origin and must be fixed at its source (#10).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
 'https://apps.thorwhalen.com/api/x_mcp/mcp'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.scaffold_app(spec, dest_dir, , port, command=None)
 
@@ -1612,17 +1825,29 @@ Truthy when the check passed, so `all(results)` reads naturally.
 
 stable slug for the check (usable as a CI job/report key).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### ok
 
 whether the checked property holds.
+
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### summary
 
 one line stating what was (or was not) observed.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### remedy
 
 what to do about it — empty when `ok`.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.preflight.DFLT_CHECKS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[Callable](https://docs.python.org/3/library/typing.html#typing.Callable)[[[PreflightContext](_autosummary/enlace_connector.preflight.html.md#enlace_connector.preflight.PreflightContext)], [CheckResult](_autosummary/enlace_connector.preflight.html.md#enlace_connector.preflight.CheckResult)], ...]* *= (<function check_refresh_grant_supported>, <function check_jwks_uri_matches_convention>)*
 
@@ -1648,15 +1873,24 @@ What a check is given: the target AS, the connector (if any), and a fetcher.
 
 the authorization server’s issuer origin (the platform origin).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### spec
 
 the connector being verified — optional, so the AS itself can be
 preflighted before any connector exists.
 
+* **Type:**
+  [`ConnectorSpec`](_autosummary/enlace_connector.connector.html.md#enlace_connector.connector.ConnectorSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### fetch
 
 `fetch(url) -> parsed_json`; defaults to [`fetch_json()`](_autosummary/enlace_connector.preflight.html.md#enlace_connector.preflight.fetch_json). Pass
 your own to test offline, to add auth headers, or to use `httpx`.
+
+* **Type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 #### *property* metadata *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]*
 
@@ -1714,9 +1948,6 @@ GET *url* and parse the response as JSON (stdlib only, no extra deps).
 
 Render check results as a human-readable report (used by the CLI and errors).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> print(format_report([CheckResult("a", True, "fine"),
 ...                      CheckResult("b", False, "broken", "fix it")]))
@@ -1724,6 +1955,9 @@ PASS  a: fine
 FAIL  b: broken
       -> fix it
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.preflight.main(argv=None)
 
@@ -1736,9 +1970,6 @@ CLI: `python -m enlace_connector.preflight <issuer>` → 0 if all checks pass.
 
 The copy-pasteable refresh-grant check, for runbooks and docs.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> print(refresh_grant_check_commands("https://p.example.com/"))
 curl -s https://p.example.com/.well-known/oauth-authorization-server \
@@ -1746,6 +1977,9 @@ curl -s https://p.example.com/.well-known/oauth-authorization-server \
 # must include 'refresh_token'; equivalently (exit code 1 on failure):
 python -m enlace_connector.preflight https://p.example.com
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.preflight.verify_deployment(spec=None, \*, issuer, checks=(<function check_refresh_grant_supported>, <function check_jwks_uri_matches_convention>), fetch=None, strict=False)
 
@@ -1933,7 +2167,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-14 04:59 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/051119e88de4ec15b476ecfd01a01afe6509c679"><code>051119e</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-20 14:31 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/ef9fbba88c184615ef74221a8582a1e6bbfe9ff9"><code>ef9fbba</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -1942,7 +2176,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/051119e88de4ec15b476ecfd01a01afe6509c679"><code>051119e88de4ec15b476ecfd01a01afe6509c679</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/ef9fbba88c184615ef74221a8582a1e6bbfe9ff9"><code>ef9fbba88c184615ef74221a8582a1e6bbfe9ff9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -1953,16 +2187,16 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/38514090314">38514090314</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/39439661244">39439661244</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>051119e88de4ec15b476ecfd01a01afe6509c679</code> (in the history of the built commit)    |
+| Event commit | <code>ef9fbba88c184615ef74221a8582a1e6bbfe9ff9</code> (in the history of the built commit)    |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.17  |
-| Sphinx   | 9.1.0   |
+| epythet  | 0.2.21  |
+| Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
 
@@ -1986,8 +2220,8 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 051119e88de4ec15b476ecfd01a01afe6509c679
-pip install "epythet==0.2.17"
+git checkout ef9fbba88c184615ef74221a8582a1e6bbfe9ff9
+pip install "epythet==0.2.21"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

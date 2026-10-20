@@ -98,17 +98,29 @@ Truthy when the check passed, so `all(results)` reads naturally.
 
 stable slug for the check (usable as a CI job/report key).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### ok
 
 whether the checked property holds.
+
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### summary
 
 one line stating what was (or was not) observed.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### remedy
 
 what to do about it — empty when `ok`.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.preflight.DFLT_CHECKS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[Callable](https://docs.python.org/3/library/typing.html#typing.Callable)[[[PreflightContext](#enlace_connector.preflight.PreflightContext)], [CheckResult](#enlace_connector.preflight.CheckResult)], ...]* *= (<function check_refresh_grant_supported>, <function check_jwks_uri_matches_convention>)*
 
@@ -134,15 +146,24 @@ What a check is given: the target AS, the connector (if any), and a fetcher.
 
 the authorization server’s issuer origin (the platform origin).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### spec
 
 the connector being verified — optional, so the AS itself can be
 preflighted before any connector exists.
 
+* **Type:**
+  [`ConnectorSpec`](enlace_connector.connector.html.md#enlace_connector.connector.ConnectorSpec) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### fetch
 
 `fetch(url) -> parsed_json`; defaults to [`fetch_json()`](#enlace_connector.preflight.fetch_json). Pass
 your own to test offline, to add auth headers, or to use `httpx`.
+
+* **Type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 #### *property* metadata *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), [Any](https://docs.python.org/3/library/typing.html#typing.Any)]*
 
@@ -200,9 +221,6 @@ GET *url* and parse the response as JSON (stdlib only, no extra deps).
 
 Render check results as a human-readable report (used by the CLI and errors).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> print(format_report([CheckResult("a", True, "fine"),
 ...                      CheckResult("b", False, "broken", "fix it")]))
@@ -210,6 +228,9 @@ PASS  a: fine
 FAIL  b: broken
       -> fix it
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.preflight.main(argv=None)
 
@@ -222,9 +243,6 @@ CLI: `python -m enlace_connector.preflight <issuer>` → 0 if all checks pass.
 
 The copy-pasteable refresh-grant check, for runbooks and docs.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> print(refresh_grant_check_commands("https://p.example.com/"))
 curl -s https://p.example.com/.well-known/oauth-authorization-server \
@@ -232,6 +250,9 @@ curl -s https://p.example.com/.well-known/oauth-authorization-server \
 # must include 'refresh_token'; equivalently (exit code 1 on failure):
 python -m enlace_connector.preflight https://p.example.com
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.preflight.verify_deployment(spec=None, \*, issuer, checks=(<function check_refresh_grant_supported>, <function check_jwks_uri_matches_convention>), fetch=None, strict=False)
 

@@ -34,6 +34,7 @@
 <link href="../_static/styles/pydata-sphinx-theme.css?digest=18bd87630a240e9c25be" rel="stylesheet" />
 
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d75fae25" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="../_static/epythet.css?v=a65a585f" />
   
@@ -523,24 +524,44 @@ testable offline:</p>
 <dt class="sig sig-object py" id="enlace_connector.preflight.CheckResult.name">
 <span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#enlace_connector.preflight.CheckResult.name" title="Link to this definition">#</a></dt>
 <dd><p>stable slug for the check (usable as a CI job/report key).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.preflight.CheckResult.ok">
 <span class="sig-name descname"><span class="pre">ok</span></span><a class="headerlink" href="#enlace_connector.preflight.CheckResult.ok" title="Link to this definition">#</a></dt>
 <dd><p>whether the checked property holds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.preflight.CheckResult.summary">
 <span class="sig-name descname"><span class="pre">summary</span></span><a class="headerlink" href="#enlace_connector.preflight.CheckResult.summary" title="Link to this definition">#</a></dt>
 <dd><p>one line stating what was (or was not) observed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="enlace_connector.preflight.CheckResult.remedy">
 <span class="sig-name descname"><span class="pre">remedy</span></span><a class="headerlink" href="#enlace_connector.preflight.CheckResult.remedy" title="Link to this definition">#</a></dt>
 <dd><p>what to do about it — empty when <code class="docutils literal notranslate"><span class="pre">ok</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -576,6 +597,11 @@ session longevity a connector inherits; <code class="docutils literal notranslat
 <dt class="sig sig-object py" id="enlace_connector.preflight.PreflightContext.issuer">
 <span class="sig-name descname"><span class="pre">issuer</span></span><a class="headerlink" href="#enlace_connector.preflight.PreflightContext.issuer" title="Link to this definition">#</a></dt>
 <dd><p>the authorization server’s issuer origin (the platform origin).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -583,6 +609,11 @@ session longevity a connector inherits; <code class="docutils literal notranslat
 <span class="sig-name descname"><span class="pre">spec</span></span><a class="headerlink" href="#enlace_connector.preflight.PreflightContext.spec" title="Link to this definition">#</a></dt>
 <dd><p>the connector being verified — optional, so the AS itself can be
 preflighted before any connector exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -590,6 +621,11 @@ preflighted before any connector exists.</p>
 <span class="sig-name descname"><span class="pre">fetch</span></span><a class="headerlink" href="#enlace_connector.preflight.PreflightContext.fetch" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">fetch(url)</span> <span class="pre">-&gt;</span> <span class="pre">parsed_json</span></code>; defaults to <a class="reference internal" href="#enlace_connector.preflight.fetch_json" title="enlace_connector.preflight.fetch_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">fetch_json()</span></code></a>. Pass
 your own to test offline, to add auth headers, or to use <code class="docutils literal notranslate"><span class="pre">httpx</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -671,11 +707,6 @@ expire into a dead end, which is invisible from the connector’s own health.</p
 <dt class="sig sig-object py" id="enlace_connector.preflight.format_report">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.preflight.</span></span><span class="sig-name descname"><span class="pre">format_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#format_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.preflight.format_report" title="Link to this definition">#</a></dt>
 <dd><p>Render check results as a human-readable report (used by the CLI and errors).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">format_report</span><span class="p">([</span><span class="n">CheckResult</span><span class="p">(</span><span class="s2">"a"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"fine"</span><span class="p">),</span>
 <span class="gp">... </span>                     <span class="n">CheckResult</span><span class="p">(</span><span class="s2">"b"</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"broken"</span><span class="p">,</span> <span class="s2">"fix it"</span><span class="p">)]))</span>
 <span class="go">PASS  a: fine</span>
@@ -683,6 +714,11 @@ expire into a dead end, which is invisible from the connector’s own health.</p
 <span class="go">      -&gt; fix it</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -700,11 +736,6 @@ expire into a dead end, which is invisible from the connector’s own health.</p
 <dt class="sig sig-object py" id="enlace_connector.preflight.refresh_grant_check_commands">
 <span class="sig-prename descclassname"><span class="pre">enlace_connector.preflight.</span></span><span class="sig-name descname"><span class="pre">refresh_grant_check_commands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">issuer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/enlace_connector/preflight.html#refresh_grant_check_commands"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#enlace_connector.preflight.refresh_grant_check_commands" title="Link to this definition">#</a></dt>
 <dd><p>The copy-pasteable refresh-grant check, for runbooks and docs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">refresh_grant_check_commands</span><span class="p">(</span><span class="s2">"https://p.example.com/"</span><span class="p">))</span>
 <span class="go">curl -s https://p.example.com/.well-known/oauth-authorization-server \</span>
 <span class="go">     | python3 -c "import json,sys; print(json.load(sys.stdin).get('grant_types_supported'))"</span>
@@ -712,6 +743,11 @@ expire into a dead end, which is invisible from the connector’s own health.</p
 <span class="go">python -m enlace_connector.preflight https://p.example.com</span>
 </pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -724,7 +760,7 @@ platform is one the connector cannot observe about itself.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span>) – the connector being verified (optional — the AS can be checked alone).</p></li>
+<li><p><strong>spec</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="enlace_connector.connector.html#enlace_connector.connector.ConnectorSpec" title="enlace_connector.connector.ConnectorSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConnectorSpec</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span>) – the connector being verified (optional — the AS can be checked alone).</p></li>
 <li><p><strong>issuer</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – the authorization server / platform origin.</p></li>
 <li><p><strong>checks</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="#enlace_connector.preflight.PreflightContext" title="enlace_connector.preflight.PreflightContext"><code class="xref py py-class docutils literal notranslate"><span class="pre">PreflightContext</span></code></a>], <a class="reference internal" href="#enlace_connector.preflight.CheckResult" title="enlace_connector.preflight.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a>]]</span>) – the checks to run (defaults to <a class="reference internal" href="#enlace_connector.preflight.DFLT_CHECKS" title="enlace_connector.preflight.DFLT_CHECKS"><code class="xref py py-data docutils literal notranslate"><span class="pre">DFLT_CHECKS</span></code></a>).</p></li>
 <li><p><strong>fetch</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span>) – <code class="docutils literal notranslate"><span class="pre">fetch(url)</span> <span class="pre">-&gt;</span> <span class="pre">parsed_json</span></code> seam (defaults to <a class="reference internal" href="#enlace_connector.preflight.fetch_json" title="enlace_connector.preflight.fetch_json"><code class="xref py py-func docutils literal notranslate"><span class="pre">fetch_json()</span></code></a>).</p></li>

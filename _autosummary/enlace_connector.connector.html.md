@@ -27,7 +27,7 @@ process that actually serves them.
 | [`ConnectorSpec`](#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=<factory>, git_installs=<factory>, port=8030, data=<factory>, env=<factory>, allowed_users=<factory>, post_install=<factory>, stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=<factory>, exec_start_pre=<factory>, uvicorn_args=<factory>, service_directives=<factory>, icon=None, instructions=None, middleware=<factory>, server_hooks=<factory>)
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -37,37 +37,61 @@ A declarative connector definition (see the module docstring).
 
 short identifier — the enlace app name and default route stem.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### tools
 
 `"module:function"` refs exposed as MCP tools.
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### auth
 
 `"enlace"` / `"none"` / an auth dict (e.g. from `idp_resource`).
 Defaults to `"enlace"` — the platform’s own OAuth server.
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### title
 
 human-facing MCP server name (defaults to *name*).
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### route
 
 enlace mount route (defaults to `"/{name}-mcp"`).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### extras
 
 PyPI requirements the connector’s own runtime venv needs (e.g. the
 package owning the tools + its embedder deps).
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### git_installs
 
 non-PyPI deps as pip specs (e.g.
 `"git+ssh://git@github.com/org/pkg"`) for private/unreleased packages.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### port
 
 the fixed local port the connector process binds; enlace reverse-
 proxies the route to `127.0.0.1:{port}`. Must be free on the box.
+
+* **Type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 #### data
 
@@ -75,10 +99,16 @@ proxies the route to `127.0.0.1:{port}`. Must be free on the box.
 large artifacts (corpus stores, model caches) shipped *separately* from
 code (rsynced), the deploy runbook lists the copy step.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
+
 #### env
 
 environment variables the connector’s systemd unit sets (e.g.
 `XDG_DATA_HOME` / `HF_HOME` pointing at the `data` dirs).
+
+* **Type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### allowed_users
 
@@ -89,21 +119,33 @@ it does not list (fail closed, since enlace_auth 0.1.30), so an empty
 list is an error, never “open”. `["*"]` (`deploy.ANY_ACCOUNT`)
 admits every authenticated platform account, and must be written out.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### post_install
 
 shell commands run *inside the connector venv* after deps
 install (e.g. pre-warming an embedding model so the first query
 doesn’t block). `{venv}` / `{base}` placeholders are substituted.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### stateless_http
 
 run the MCP transport statelessly (recommended behind a
 multi-worker server / load balancer). Defaults to True.
 
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### version
 
 the connector’s version, written into every usage-log record
 when logging is on (see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### usage_outcome
 
@@ -112,11 +154,17 @@ a `"module:function"` ref to this connector’s own
 (e.g. one that knows the search tool’s “no match” shape), used in
 place of py2mcp’s generic one when logging is on.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### app_dir
 
 the connector’s directory name under the platform’s `apps/`
 and `connectors/` (defaults to *name*). A host that names the app
 `<name>_mcp` sets it so the rendered paths exist (#15).
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### environment_files
 
@@ -124,20 +172,32 @@ and `connectors/` (defaults to *name*). A host that names the app
 how a host scopes provider secrets into the process without writing
 them into the unit. A leading `-` makes one optional, as in systemd.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### exec_start_pre
 
 `ExecStartPre=` commands, in order (e.g. extracting the
 scoped secrets an `environment_files` entry then reads).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 #### uvicorn_args
 
 extra arguments appended to the `uvicorn` command line
 (e.g. `--no-access-log` for a connector that serves signed links).
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### service_directives
 
 any other `(key, value)` lines for the unit’s
 `[Service]` section, in order (e.g. `("RuntimeDirectory", ...)`).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]
 
 #### icon
 
@@ -145,10 +205,16 @@ the server icon clients show next to the connector (sent in the MCP
 `serverInfo`): a `src` URL or `data:` URI, or a dict of
 `mcp.types.Icon` fields (`src`, `mimeType`, `sizes`).
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### instructions
 
 the server’s model-facing description, surfaced to the
 connecting client as the MCP `instructions`.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### middleware
 
@@ -158,12 +224,18 @@ zero-argument factory returning either; they run before the usage
 logger. A host can also pass `middleware=` to
 [`make_connector_app()`](#enlace_connector.connector.make_connector_app); that runs first.
 
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 #### server_hooks
 
 `"module:function"` refs, each called with the built
 FastMCP server before it is served — the seam for tools that are not
 importable `"module:function"` refs (closures bound to a project, a
 store, a per-caller context): `server.tool(fn)` inside the hook.
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### The last four take the same \`\`{base}\`\` / \`\`{venv}\`\` / \`\`{app_dir}\`\` /
 

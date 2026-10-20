@@ -38,6 +38,7 @@ Platform specifics (paths, origin) are parameters with tw_platform defaults —
 | [`render_systemd_unit`](#enlace_connector.deploy.render_systemd_unit)(spec, \*[, remote_base, ...])  | Render the systemd unit that runs the connector in its own venv.             |
 | [`diff_unit`](#enlace_connector.deploy.diff_unit)(spec, installed, \*[, remote_base, ...]) | How the *installed* unit text differs from what *spec* renders; `[]` if not. |
 | [`check_distinct_ports`](#enlace_connector.deploy.check_distinct_ports)(specs)                        | Refuse *specs* that would bind the same local port.                          |
+| [`check_distinct_specs`](#enlace_connector.deploy.check_distinct_specs)(specs)                        | Refuse *specs* that would collide on one host: same port, unit or directory. |
 | [`render_provision_script`](#enlace_connector.deploy.render_provision_script)(spec, \*[, remote_base])   | Render the idempotent, run-as-root provisioning script for the connector.    |
 | [`render_allowlist_toml`](#enlace_connector.deploy.render_allowlist_toml)(spec, \*[, issuer])          | Render the `[auth.oauth_server.resource_allowlist]` fragment.                |
 | [`allowlist_users`](#enlace_connector.deploy.allowlist_users)(spec)                              | `spec.allowed_users`, refused when it cannot mean what it seems to.          |
@@ -70,9 +71,6 @@ would deploy a connector that nobody can authorize, and nothing would
 error until someone tried (#8). Opening a connector to every account is
 an explicit `["*"]`.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> allowlist_users(ConnectorSpec(name="x", tools=["m:f"], allowed_users=["*"]))
@@ -83,16 +81,16 @@ Traceback (most recent call last):
 ValueError: Connector 'x' has no allowed_users...
 ```
 
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
 ### enlace_connector.deploy.check_distinct_ports(specs)
 
 Refuse *specs* that would bind the same local port.
 
 `port` has a default, so two specs that both omit it render units that
-collide on one box, and the second connector never starts (#15). Run this
-over every connector a host deploys.
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+collide on one box, and the second connector never starts (#15). Prefer
+[`check_distinct_specs()`](#enlace_connector.deploy.check_distinct_specs), which also checks unit names and directories.
 
 ```pycon
 >>> check_distinct_ports([ConnectorSpec(name="a", tools=[], port=8031),
@@ -103,6 +101,32 @@ Traceback (most recent call last):
   ...
 ValueError: connectors share a port: 8030 (a, b)
 ```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### enlace_connector.deploy.check_distinct_specs(specs)
+
+Refuse *specs* that would collide on one host: same port, unit or directory.
+
+Run it over every connector a host deploys. Two specs collide when they bind
+the same `port` (it has a default), share a `name` (one
+`<name>-mcp.service`, one resource URL), or share a directory under
+`apps/` and `connectors/` (`app_dir`, else `name`): the second
+install would overwrite the first (#18). Every clash is listed in one error.
+
+```pycon
+>>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032)])
+>>> check_distinct_specs([ConnectorSpec(name="a", tools=[], port=8031),
+...                       ConnectorSpec(name="b", tools=[], port=8032, app_dir="a")])
+Traceback (most recent call last):
+  ...
+ValueError: connectors share a directory: a (a, b)
+```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.deploy.diff_unit(spec, installed, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', ignore=frozenset({('Unit', 'Description')}))
 
@@ -116,9 +140,6 @@ order of repeated directives (`ExecStartPre=`) does. *ignore* is a set of
 `(section, key)` pairs left out (the `Description=` prose, by default).
 Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> spec = ConnectorSpec(name="x", tools=[], port=8040)
 >>> diff_unit(spec, render_systemd_unit(spec))
@@ -126,6 +147,9 @@ Drop-ins (`<unit>.d/*.conf`) are not read: pass the main unit file.
 >>> diff_unit(spec, render_systemd_unit(spec).replace("8040", "8041"))[0][:21]
 '[Service] ExecStart: '
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### enlace_connector.deploy.generate_deploy_bundle(spec, dest, , remote_base='/opt/tw_platform', issuer='https://apps.thorwhalen.com', server_py=None, refresh_token_ttl_seconds=2592000)
 
@@ -171,9 +195,6 @@ This makes `ConnectorSpec.title` the single source instead — paste the
 fragment into the platform’s `platform.toml` alongside
 [`render_allowlist_toml()`](#enlace_connector.deploy.render_allowlist_toml)’s.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> spec = ConnectorSpec(name="acme", tools=["m:f"], title="Acme Knowledge")
@@ -181,6 +202,9 @@ fragment into the platform’s `platform.toml` alongside
 [auth.oauth_server.resource_display_names]
 "https://apps.thorwhalen.com/acme-mcp/mcp" = "Acme Knowledge"
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.deploy.render_oauth_server_toml(spec, , issuer='https://apps.thorwhalen.com', refresh_token_ttl_seconds=2592000)
 
@@ -193,9 +217,6 @@ sessions from the start instead of inheriting a default that issues no refresh
 tokens. Paste this block *before* the allowlist fragment (TOML requires a
 table’s own keys to precede its subtables).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> from enlace_connector import ConnectorSpec
 >>> spec = ConnectorSpec(name="acme", tools=["m:f"])
@@ -204,6 +225,9 @@ table’s own keys to precede its subtables).
 [auth.oauth_server]
 refresh_token_ttl_seconds = 2592000
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### enlace_connector.deploy.render_provision_script(spec, , remote_base='/opt/tw_platform')
 
@@ -259,10 +283,10 @@ host, a default port, a path segment that is empty or a dot) is refused here
 rather than lowercased, because the same issuer is the connector’s runtime
 `iss`/audience origin and must be fixed at its source (#10).
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> resource_url(ConnectorSpec(name="x", tools=[], route="/api/x_mcp/"))
 'https://apps.thorwhalen.com/api/x_mcp/mcp'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

@@ -111,15 +111,15 @@ package stays connector-type-agnostic (it knows nothing of `ir`).
 A host may hand-maintain its units rather than install the rendered one. The spec can still describe such a unit: `app_dir` names the directory under `apps/` and `connectors/` (e.g. `"acme_mcp"`, when it is not the spec’s `name`), `environment_files` and `exec_start_pre` scope provider secrets into the process, `uvicorn_args` adds flags such as `--no-access-log`, and `service_directives` carries any other `[Service]` line (`RuntimeDirectory=`, …). Then make drift visible instead of silent:
 
 ```python
-from enlace_connector import check_distinct_ports, diff_unit
+from enlace_connector import check_distinct_specs, diff_unit
 
-check_distinct_ports(specs)          # `port` has a default: two specs that omit it collide
+check_distinct_specs(specs)          # same port (it has a default), unit name or directory: refused
 for spec in specs:
     for line in diff_unit(spec, installed_unit_text(spec)):
         print(spec.name, line)       # e.g. "[Service] Environment CONNECTOR_AUDIENCE: installed lacks it"
 ```
 
-`diff_unit` compares semantically (comments, directive order, whitespace and `Environment=` quoting do not count; the order of repeated `ExecStartPre=` lines does) and ignores `Description=`. It reads the main unit file only, not drop-ins.
+`diff_unit` compares semantically (comments, directive order, whitespace and `Environment=` quoting do not count; the order of repeated `ExecStartPre=` lines does) and ignores `Description=`. It reads `Environment=` as systemd does (quotes anywhere in a word, C escapes such as `\\` and `\x41` inside quotes too) and skips comment lines inside a backslash continuation. It reads the main unit file only, not drop-ins.
 
 ## Verify before you call it deployed
 
