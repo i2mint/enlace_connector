@@ -727,14 +727,55 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">Tools are given as ``"module:function"`` reference strings (py2mcp's form), so the</span>
 <span class="sd">spec is import-light and serializable — the heavy tool modules load only in the</span>
 <span class="sd">process that actually serves them.</span>
+
+<span class="sd">Serving order</span>
+<span class="sd">-------------</span>
+
+<span class="sd">This is the one place the order is written down; every other docstring points here.</span>
+<span class="sd">:func:`make_connector_app` builds a connector in these steps:</span>
+
+<span class="sd">1. **Server.** The FastMCP server is built from the spec's ``tools``, ``icon`` and</span>
+<span class="sd">   ``instructions``, with the middleware stack of step 3.</span>
+<span class="sd">2. **Server hooks.** Each ``server_hooks`` ref is called as ``hook(server)``, in</span>
+<span class="sd">   order. A hook may add tools, and it may **return** middleware (one, or a</span>
+<span class="sd">   list or tuple of them): that middleware is the builder's own (an</span>
+<span class="sd">   authorization gate bound to a project) and goes to the front of the stack. Any</span>
+<span class="sd">   other return value (``None``, the tool ``server.tool`` gave back) adds none; a</span>
+<span class="sd">   list or tuple holding anything but middleware is refused.</span>
+<span class="sd">3. **Middleware**, outermost (runs first on a call) to innermost:</span>
+
+<span class="sd">   a. what the server hooks returned, in hook order (authorization);</span>
+<span class="sd">   b. the host's ``middleware=`` argument to :func:`make_connector_app`;</span>
+<span class="sd">   c. the spec's ``middleware`` refs, in order (e.g. a metering gate);</span>
+<span class="sd">   d. the usage logger, when the host switched it on (:mod:`.usage`).</span>
+
+<span class="sd">   So a call is authorized before it is metered, and metered before it is logged</span>
+<span class="sd">   as usage: a refused call is never counted or logged. Middleware a hook adds</span>
+<span class="sd">   itself with ``server.add_middleware`` lands after all of these.</span>
+<span class="sd">4. **ASGI app.** ``server.http_app(...)`` gives the Starlette app; its lifespan</span>
+<span class="sd">   runs FastMCP's session manager.</span>
+<span class="sd">5. **App wrappers.** Each ``app_wrappers`` ref is called as</span>
+<span class="sd">   ``wrapper(app, server) -&gt; app``, in order, each on the previous one's result</span>
+<span class="sd">   (an extra mount, CORS, ...). A wrapper with startup/shutdown work of its own</span>
+<span class="sd">   chains it onto the app's lifespan with :func:`chain_lifespan`, never in place</span>
+<span class="sd">   of it: replacing it stops the session manager and the MCP endpoint fails.</span>
+<span class="sd">   A route a wrapper mounts is **not** behind the connector's OAuth (that guards</span>
+<span class="sd">   the MCP route only) nor its middleware (that sees MCP calls only): it does its</span>
+<span class="sd">   own authorization, e.g. by checking a signature on a signed download link.</span>
+
+<span class="sd">:func:`make_stdio_server` runs steps 1 and 2 only: there is no stack (the</span>
+<span class="sd">middleware is the hosted path's gating and metering) and no ASGI app, so what a</span>
+<span class="sd">hook returns is ignored there.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">asynccontextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_auth</span>
 
@@ -742,6 +783,7 @@ window.runMermaid = runMermaid;</script>
     <span class="s2">"ConnectorSpec"</span><span class="p">,</span>
     <span class="s2">"make_stdio_server"</span><span class="p">,</span>
     <span class="s2">"make_connector_app"</span><span class="p">,</span>
+    <span class="s2">"chain_lifespan"</span><span class="p">,</span>
     <span class="s2">"spec_instructions"</span><span class="p">,</span>
     <span class="s2">"spec_version"</span><span class="p">,</span>
 <span class="p">]</span>
@@ -821,13 +863,20 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            lives in one place and cannot drift from a copy in the spec.</span>
 <span class="sd">        middleware: ``"module:attr"`` refs to extra FastMCP middleware, in order</span>
 <span class="sd">            (e.g. a metering gate). Each names a middleware, a list of them, or a</span>
-<span class="sd">            zero-argument factory returning either; they run before the usage</span>
-<span class="sd">            logger. A host can also pass ``middleware=`` to</span>
-<span class="sd">            :func:`make_connector_app`; that runs first.</span>
+<span class="sd">            zero-argument factory returning either. Where they sit among the</span>
+<span class="sd">            other middleware: "Serving order" in this module's docstring.</span>
 <span class="sd">        server_hooks: ``"module:function"`` refs, each called with the built</span>
 <span class="sd">            FastMCP server before it is served — the seam for tools that are not</span>
 <span class="sd">            importable ``"module:function"`` refs (closures bound to a project, a</span>
 <span class="sd">            store, a per-caller context): ``server.tool(fn)`` inside the hook.</span>
+<span class="sd">            A hook may return middleware it owns (an authorization gate), which</span>
+<span class="sd">            runs before every other middleware ("Serving order").</span>
+<span class="sd">        app_wrappers: ``"module:function"`` refs, each called as</span>
+<span class="sd">            ``wrapper(app, server) -&gt; app`` on the hosted ASGI app, in order —</span>
+<span class="sd">            the seam for an extra route next to the MCP endpoint (a mount for</span>
+<span class="sd">            signed downloads) and its own startup/shutdown work, which goes</span>
+<span class="sd">            through :func:`chain_lifespan`. Hosted path only. A mounted route</span>
+<span class="sd">            is outside the connector's OAuth and middleware ("Serving order").</span>
 
 <span class="sd">        The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /</span>
 <span class="sd">        ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.</span>
@@ -860,6 +909,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">instructions</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">middleware</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
     <span class="n">server_hooks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">app_wrappers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">dir_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -898,8 +948,10 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Use for ``server.run()`` in Claude Desktop / Claude Code while developing the</span>
 <span class="sd">    tools; the hosted path uses :func:`make_connector_app`. The spec's ``icon``,</span>
-<span class="sd">    ``instructions`` and ``server_hooks`` apply; its ``middleware`` does not (it</span>
-<span class="sd">    is the hosted path's metering and gating).</span>
+<span class="sd">    ``instructions`` and ``server_hooks`` apply; its ``middleware``, the</span>
+<span class="sd">    middleware its hooks return, and its ``app_wrappers`` do not (they are the</span>
+<span class="sd">    hosted path's gating, metering and routes; see "Serving order" in the module</span>
+<span class="sd">    docstring).</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">_build_server</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span></div>
 
@@ -981,6 +1033,20 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_as_middleware_list</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""*obj* (a middleware, or a list/tuple of them) as a list, else ``TypeError``."""</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">fastmcp.server.middleware</span><span class="w"> </span><span class="kn">import</span> <span class="n">Middleware</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="p">[</span><span class="n">obj</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Middleware</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2"> gave </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, not a FastMCP Middleware "</span>
+                <span class="s2">"(name a middleware, a list of them, or a zero-argument factory)"</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">items</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_spec_middleware</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""The middleware *spec* names, resolved in order (see ``ConnectorSpec.middleware``)."""</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">fastmcp.server.middleware</span><span class="w"> </span><span class="kn">import</span> <span class="n">Middleware</span>
@@ -997,19 +1063,22 @@ window.runMermaid = runMermaid;</script>
                     <span class="sa">f</span><span class="s2">"failed (</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">); name a constructed middleware or a zero-argument "</span>
                     <span class="s2">"factory that builds one"</span>
                 <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="k">else</span> <span class="p">[</span><span class="n">obj</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Middleware</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ref</span><span class="si">!r}</span><span class="s2"> gave </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, not a FastMCP Middleware "</span>
-                    <span class="s2">"(name a middleware, a list of them, or a zero-argument factory)"</span>
-                <span class="p">)</span>
-        <span class="n">out</span> <span class="o">+=</span> <span class="n">items</span>
+        <span class="n">out</span> <span class="o">+=</span> <span class="n">_as_middleware_list</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">ref</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">out</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_build_server</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">auth</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">middleware</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""The FastMCP server for *spec*: its tools, icon, instructions and hooks."""</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_server</span><span class="p">(</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">auth</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">middleware</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">hook_middleware</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""The FastMCP server for *spec*: its tools, icon, instructions and hooks</span>
+<span class="sd">    (steps 1-2 of "Serving order"). With *hook_middleware*, what the hooks return</span>
+<span class="sd">    goes to the front of the server's middleware, in hook order (step 3a);</span>
+<span class="sd">    otherwise it is ignored.</span>
+<span class="sd">    """</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">py2mcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">mk_mcp_from_refs</span>
 
     <span class="n">optional</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1021,9 +1090,92 @@ window.runMermaid = runMermaid;</script>
     <span class="n">server</span> <span class="o">=</span> <span class="n">mk_mcp_from_refs</span><span class="p">(</span>
         <span class="n">spec</span><span class="o">.</span><span class="n">tools</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">server_name</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="n">auth</span><span class="p">,</span> <span class="n">middleware</span><span class="o">=</span><span class="n">middleware</span><span class="p">,</span> <span class="o">**</span><span class="n">optional</span>
     <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">fastmcp.server.middleware</span><span class="w"> </span><span class="kn">import</span> <span class="n">Middleware</span>
+
+    <span class="n">returned</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">server_hooks</span><span class="p">:</span>
-        <span class="n">_resolve_ref</span><span class="p">(</span><span class="n">ref</span><span class="p">)(</span><span class="n">server</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">_resolve_ref</span><span class="p">(</span><span class="n">ref</span><span class="p">)(</span><span class="n">server</span><span class="p">)</span>
+        <span class="c1"># A middleware, or a list/tuple of them, is the builder's own; any other</span>
+        <span class="c1"># return (None, the tool ``server.tool`` gave back) is ignored, as before.</span>
+        <span class="k">if</span> <span class="n">hook_middleware</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">Middleware</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">returned</span> <span class="o">+=</span> <span class="n">_as_middleware_list</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="sa">f</span><span class="s2">"server hook </span><span class="si">{</span><span class="n">ref</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">returned</span><span class="p">:</span>
+        <span class="n">server</span><span class="o">.</span><span class="n">middleware</span><span class="p">[:</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">returned</span>  <span class="c1"># the builder's own gate runs first</span>
     <span class="k">return</span> <span class="n">server</span>
+
+
+<div class="viewcode-block" id="chain_lifespan">
+<a class="viewcode-back" href="../../_autosummary/enlace_connector.connector.html#enlace_connector.chain_lifespan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">chain_lifespan</span><span class="p">(</span><span class="n">app</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">extra_lifespan</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Run *extra_lifespan* inside *app*'s own lifespan, and return *app*.</span>
+
+<span class="sd">    *app* is a Starlette app (what ``server.http_app(...)`` returns); its own</span>
+<span class="sd">    lifespan runs FastMCP's session manager, so an app wrapper that needs</span>
+<span class="sd">    startup/shutdown work must add to it, not replace it (see "Serving order" in</span>
+<span class="sd">    the module docstring). *extra_lifespan* is a Starlette lifespan: a callable</span>
+<span class="sd">    taking the app and returning an async context manager (an</span>
+<span class="sd">    ``@asynccontextmanager`` function), or an async generator function taking the</span>
+<span class="sd">    app, as Starlette's ``lifespan=`` accepts. It starts after the app's own</span>
+<span class="sd">    lifespan and stops before it, so the MCP endpoint is up for as long as the</span>
+<span class="sd">    extra work is. If either yields a state mapping, the two are merged (the</span>
+<span class="sd">    extra one wins on a shared key) into the request ``scope["state"]``; that</span>
+<span class="sd">    needs an ASGI server with lifespan state (uvicorn has it).</span>
+
+<span class="sd">    &gt;&gt;&gt; from contextlib import asynccontextmanager</span>
+<span class="sd">    &gt;&gt;&gt; from starlette.applications import Starlette</span>
+<span class="sd">    &gt;&gt;&gt; @asynccontextmanager</span>
+<span class="sd">    ... async def downloads(app):</span>
+<span class="sd">    ...     yield {"signer": "ready"}</span>
+<span class="sd">    &gt;&gt;&gt; app = chain_lifespan(Starlette(), downloads)</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isasyncgenfunction</span><span class="p">(</span><span class="n">extra_lifespan</span><span class="p">):</span>
+        <span class="n">extra_lifespan</span> <span class="o">=</span> <span class="n">asynccontextmanager</span><span class="p">(</span><span class="n">extra_lifespan</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">extra_lifespan</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"extra_lifespan must be a lifespan (app -&gt; async context manager), "</span>
+            <span class="sa">f</span><span class="s2">"not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">extra_lifespan</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">router</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">"router"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">inner</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">router</span><span class="p">,</span> <span class="s2">"lifespan_context"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inner</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"chain_lifespan needs a Starlette app (with .router.lifespan_context), "</span>
+            <span class="sa">f</span><span class="s2">"not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">app</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">; chain onto the app http_app() returned "</span>
+            <span class="s2">"before wrapping it in anything else"</span>
+        <span class="p">)</span>
+
+    <span class="nd">@asynccontextmanager</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">chained</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+        <span class="k">async</span> <span class="k">with</span> <span class="n">inner</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">as</span> <span class="n">inner_state</span><span class="p">:</span>
+            <span class="k">async</span> <span class="k">with</span> <span class="n">extra_lifespan</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">as</span> <span class="n">extra_state</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="p">(</span><span class="n">inner_state</span><span class="p">,</span> <span class="n">extra_state</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                            <span class="s2">"a lifespan yields None or a state mapping, not "</span>
+                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="p">)</span>
+                <span class="k">if</span> <span class="n">inner_state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">extra_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="p">{</span><span class="o">**</span><span class="p">(</span><span class="n">inner_state</span> <span class="ow">or</span> <span class="p">{}),</span> <span class="o">**</span><span class="p">(</span><span class="n">extra_state</span> <span class="ow">or</span> <span class="p">{})}</span>
+
+    <span class="n">router</span><span class="o">.</span><span class="n">lifespan_context</span> <span class="o">=</span> <span class="n">chained</span>
+    <span class="k">return</span> <span class="n">app</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_wrap_app</span><span class="p">(</span><span class="n">app</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">server</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">spec</span><span class="p">:</span> <span class="n">ConnectorSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""*app* passed through the spec's ``app_wrappers``, in order (step 5)."""</span>
+    <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">app_wrappers</span><span class="p">:</span>
+        <span class="n">wrapped</span> <span class="o">=</span> <span class="n">_resolve_ref</span><span class="p">(</span><span class="n">ref</span><span class="p">)(</span><span class="n">app</span><span class="p">,</span> <span class="n">server</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">wrapped</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"app wrapper </span><span class="si">{</span><span class="n">ref</span><span class="si">!r}</span><span class="s2"> returned </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">wrapped</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, not an ASGI "</span>
+                <span class="s2">"app; a wrapper is fn(app, server) -&gt; app and must return the app "</span>
+                <span class="s2">"(the one it was given, or one that wraps it)"</span>
+            <span class="p">)</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="n">wrapped</span>
+    <span class="k">return</span> <span class="n">app</span>
 
 
 <div class="viewcode-block" id="make_connector_app">
@@ -1042,16 +1194,18 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    ``auth="enlace"`` provide *issuer* (the platform origin) and *audience* (this</span>
 <span class="sd">    connector's public URL); if *audience* is omitted it is derived from *issuer* +</span>
 <span class="sd">    the spec's route. Returns an ASGI app to run under any ASGI server (or mount in</span>
-<span class="sd">    enlace). The spec's ``icon``, ``instructions``, ``middleware`` and</span>
-<span class="sd">    ``server_hooks`` are applied, so a connector that needs them is still built</span>
-<span class="sd">    here rather than by hand (#3).</span>
+<span class="sd">    enlace). The spec's ``icon``, ``instructions``, ``middleware``,</span>
+<span class="sd">    ``server_hooks`` and ``app_wrappers`` are applied, so a connector that needs</span>
+<span class="sd">    them is still built here rather than by hand (#3, #22). The order they are</span>
+<span class="sd">    applied in is "Serving order" in the module docstring.</span>
 
 <span class="sd">    Per-call usage logging is attached when the host's *settings* (``os.environ``</span>
 <span class="sd">    by default) set ``CONNECTOR_USAGE_LOG_DIR`` — see :mod:`enlace_connector.usage`;</span>
 <span class="sd">    it is off otherwise; the spec's ``version`` and ``usage_outcome`` feed it. Any</span>
-<span class="sd">    extra *middleware* (one or an ordered iterable) runs before it, so a gate (e.g.</span>
-<span class="sd">    ``enlace_metering``) refuses a call before it is logged as usage. Do not add a</span>
-<span class="sd">    second ``usage_middleware(...)`` there: every call would be recorded twice.</span>
+<span class="sd">    extra *middleware* (one or an ordered iterable) runs before the spec's and the</span>
+<span class="sd">    logger, so a gate (e.g. ``enlace_metering``) refuses a call before it is logged</span>
+<span class="sd">    as usage. Do not add a second ``usage_middleware(...)`` there: every call would</span>
+<span class="sd">    be recorded twice.</span>
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="n">audience</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">issuer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">audience</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">default_audience</span><span class="p">(</span><span class="n">issuer</span><span class="p">)</span>
@@ -1070,9 +1224,15 @@ window.runMermaid = runMermaid;</script>
     <span class="n">extra</span> <span class="o">=</span> <span class="n">normalize_middleware</span><span class="p">(</span><span class="n">middleware</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="n">extra</span> <span class="o">+</span> <span class="n">_spec_middleware</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span> <span class="o">+</span> <span class="n">usage_middleware</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">settings</span><span class="o">=</span><span class="n">settings</span><span class="p">)</span>
     <span class="c1"># py2mcp's mk_http_app, opened up so the spec's server_hooks can reach the</span>
-    <span class="c1"># server between building it and serving it.</span>
-    <span class="n">server</span> <span class="o">=</span> <span class="n">_build_server</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">auth</span><span class="o">=</span><span class="n">mk_auth_provider</span><span class="p">(</span><span class="n">auth</span><span class="p">),</span> <span class="n">middleware</span><span class="o">=</span><span class="n">stack</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">server</span><span class="o">.</span><span class="n">http_app</span><span class="p">(</span><span class="n">transport</span><span class="o">=</span><span class="n">DFLT_TRANSPORT</span><span class="p">,</span> <span class="n">stateless_http</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">stateless_http</span><span class="p">)</span></div>
+    <span class="c1"># server between building it and serving it, and its app_wrappers the app.</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">_build_server</span><span class="p">(</span>
+        <span class="n">spec</span><span class="p">,</span>
+        <span class="n">auth</span><span class="o">=</span><span class="n">mk_auth_provider</span><span class="p">(</span><span class="n">auth</span><span class="p">),</span>
+        <span class="n">middleware</span><span class="o">=</span><span class="n">stack</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">hook_middleware</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">http_app</span><span class="p">(</span><span class="n">transport</span><span class="o">=</span><span class="n">DFLT_TRANSPORT</span><span class="p">,</span> <span class="n">stateless_http</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">stateless_http</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_wrap_app</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">server</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span></div>
 
 </pre></div>
 

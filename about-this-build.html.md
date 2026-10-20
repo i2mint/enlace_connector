@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-10-20 14:43 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/c4ad50d6632391d3258dae925258ddfea438557c"><code>c4ad50d</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-20 15:22 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/6b4e981a9f524866827c7836c9a927a97fd0dde9"><code>6b4e981</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11,7 +11,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/c4ad50d6632391d3258dae925258ddfea438557c"><code>c4ad50d6632391d3258dae925258ddfea438557c</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/6b4e981a9f524866827c7836c9a927a97fd0dde9"><code>6b4e981a9f524866827c7836c9a927a97fd0dde9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/39441519558">39441519558</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/39447365089">39447365089</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>c4ad50d6632391d3258dae925258ddfea438557c</code> (in the history of the built commit)    |
+| Event commit | <code>6b4e981a9f524866827c7836c9a927a97fd0dde9</code> (in the history of the built commit)    |
 
 ## Tools
 
@@ -55,7 +55,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout c4ad50d6632391d3258dae925258ddfea438557c
+git checkout 6b4e981a9f524866827c7836c9a927a97fd0dde9
 pip install "epythet==0.2.21"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -480,6 +480,32 @@ package stays connector-type-agnostic (it knows nothing of <code class="docutils
 <p><code class="docutils literal notranslate"><span class="pre">diff_unit</span></code> compares semantically (comments, directive order, whitespace and <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> quoting do not count; the order of repeated <code class="docutils literal notranslate"><span class="pre">ExecStartPre=</span></code> lines does) and ignores <code class="docutils literal notranslate"><span class="pre">Description=</span></code>. It reads <code class="docutils literal notranslate"><span class="pre">Environment=</span></code> as systemd does (quotes anywhere in a word, C escapes such as <code class="docutils literal notranslate"><span class="pre">\\</span></code> and <code class="docutils literal notranslate"><span class="pre">\x41</span></code> inside quotes too) and skips comment lines inside a backslash continuation. It reads the main unit file only, not drop-ins.</p>
 </section>
 </section>
+<section id="extra-routes-lifespans-and-an-authorization-gate">
+<h2>Extra routes, lifespans and an authorization gate<a class="headerlink" href="#extra-routes-lifespans-and-an-authorization-gate" title="Link to this heading">#</a></h2>
+<p>A connector bound to a project often needs more than tools: an extra route next to the MCP endpoint (signed downloads), startup/shutdown work of its own, and an authorization gate that must run before metering. The spec carries all three, so <code class="docutils literal notranslate"><span class="pre">make_connector_app</span></code> (and the rendered <code class="docutils literal notranslate"><span class="pre">server.py</span></code>) still builds it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">asynccontextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enlace_connector</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectorSpec</span><span class="p">,</span> <span class="n">chain_lifespan</span>
+
+<span class="c1"># acme/serve.py</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">authz</span><span class="p">(</span><span class="n">server</span><span class="p">):</span>                       <span class="c1"># a server hook may return middleware it owns</span>
+    <span class="k">return</span> <span class="n">ProjectGate</span><span class="p">(</span><span class="n">project</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">)</span>   <span class="c1"># it runs before every other middleware</span>
+
+<span class="nd">@asynccontextmanager</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">signer</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+    <span class="k">yield</span> <span class="p">{</span><span class="s2">"signer"</span><span class="p">:</span> <span class="n">make_signer</span><span class="p">()}</span>      <span class="c1"># merged into request.state</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">downloads</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">server</span><span class="p">):</span>              <span class="c1"># an app wrapper: fn(app, server) -&gt; app</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s2">"/downloads"</span><span class="p">,</span> <span class="n">downloads_app</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">chain_lifespan</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="n">signer</span><span class="p">)</span>   <span class="c1"># add to the app's lifespan, never replace it</span>
+
+<span class="n">spec</span> <span class="o">=</span> <span class="n">ConnectorSpec</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">"acme"</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="s2">"acme.mcp:search"</span><span class="p">],</span> <span class="n">middleware</span><span class="o">=</span><span class="p">[</span><span class="s2">"acme.meter:gate"</span><span class="p">],</span>
+    <span class="n">server_hooks</span><span class="o">=</span><span class="p">[</span><span class="s2">"acme.serve:authz"</span><span class="p">],</span> <span class="n">app_wrappers</span><span class="o">=</span><span class="p">[</span><span class="s2">"acme.serve:downloads"</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The app’s own lifespan runs FastMCP’s session manager, so a wrapper that replaced it would leave the MCP endpoint dead; <code class="docutils literal notranslate"><span class="pre">chain_lifespan</span></code> starts the extra work after it and stops it before. A mounted route is outside the connector’s OAuth and middleware, so it authorizes its own requests (a signature on the download link, say). The full order (hooks, then middleware outermost to innermost: hook-returned authorization, the host’s <code class="docutils literal notranslate"><span class="pre">middleware=</span></code>, the spec’s <code class="docutils literal notranslate"><span class="pre">middleware</span></code>, the usage logger; then the wrappers) is written down once, under “Serving order” in the <code class="docutils literal notranslate"><span class="pre">enlace_connector.connector</span></code> module docstring.</p>
+</section>
 <section id="verify-before-you-call-it-deployed">
 <h2>Verify before you call it deployed<a class="headerlink" href="#verify-before-you-call-it-deployed" title="Link to this heading">#</a></h2>
 <p>A connector can be perfectly healthy and completely dead to its users. If the
@@ -540,8 +566,8 @@ sample get it with no change. See <code class="docutils literal notranslate"><sp
 <h2>Status<a class="headerlink" href="#status" title="Link to this heading">#</a></h2>
 <p>The connector factory, auth, <strong>scaffolding, and full deploy-bundle generation</strong> are
 stable and tested; <code class="docutils literal notranslate"><span class="pre">auth=&quot;enlace&quot;</span></code> is live in production. A spec carries what used to
-force a hand-written <code class="docutils literal notranslate"><span class="pre">server.py</span></code>: <code class="docutils literal notranslate"><span class="pre">icon</span></code>, <code class="docutils literal notranslate"><span class="pre">instructions</span></code>, <code class="docutils literal notranslate"><span class="pre">middleware</span></code> and <code class="docutils literal notranslate"><span class="pre">server_hooks</span></code>
-(tools that are not <code class="docutils literal notranslate"><span class="pre">module:function</span></code> refs). <code class="docutils literal notranslate"><span class="pre">instructions</span></code> and <code class="docutils literal notranslate"><span class="pre">version</span></code> may be
+force a hand-written <code class="docutils literal notranslate"><span class="pre">server.py</span></code>: <code class="docutils literal notranslate"><span class="pre">icon</span></code>, <code class="docutils literal notranslate"><span class="pre">instructions</span></code>, <code class="docutils literal notranslate"><span class="pre">middleware</span></code>, <code class="docutils literal notranslate"><span class="pre">server_hooks</span></code>
+(tools that are not <code class="docutils literal notranslate"><span class="pre">module:function</span></code> refs, and an authorization gate) and <code class="docutils literal notranslate"><span class="pre">app_wrappers</span></code> (extra routes, lifespans). <code class="docutils literal notranslate"><span class="pre">instructions</span></code> and <code class="docutils literal notranslate"><span class="pre">version</span></code> may be
 <code class="docutils literal notranslate"><span class="pre">&quot;module:ATTR&quot;</span></code> refs (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;mypkg.prompts:INSTRUCTIONS&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mypkg:__version__&quot;</span></code>), and
 <code class="docutils literal notranslate"><span class="pre">version_dist=&quot;mypkg&quot;</span></code> reads the installed distribution’s version, so neither is a
 frozen copy that drifts from the package. Building the connector app directly is still
@@ -555,7 +581,7 @@ possible — see the <code class="docutils literal notranslate"><span class="pre
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 14:43 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/c4ad50d6632391d3258dae925258ddfea438557c">c4ad50d</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-10-20 15:22 UTC from <a href="https://github.com/i2mint/enlace_connector/commit/6b4e981a9f524866827c7836c9a927a97fd0dde9">6b4e981</a> (main) · enlace_connector 0.0.1 · <a href="about-this-build.html">about this build</a></p>
 
                 </article>
               
@@ -601,6 +627,7 @@ possible — see the <code class="docutils literal notranslate"><span class="pre
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hosts-that-keep-their-own-unit-files">Hosts that keep their own unit files</a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#extra-routes-lifespans-and-an-authorization-gate">Extra routes, lifespans and an authorization gate</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#verify-before-you-call-it-deployed">Verify before you call it deployed</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cost-llm-note">Cost / LLM note</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#status">Status</a></li>

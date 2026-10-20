@@ -16,11 +16,49 @@ Tools are given as `"module:function"` reference strings (py2mcp’s form), so t
 spec is import-light and serializable — the heavy tool modules load only in the
 process that actually serves them.
 
+## Serving order
+
+This is the one place the order is written down; every other docstring points here.
+[`make_connector_app()`](#enlace_connector.connector.make_connector_app) builds a connector in these steps:
+
+1. **Server.** The FastMCP server is built from the spec’s `tools`, `icon` and
+   `instructions`, with the middleware stack of step 3.
+2. **Server hooks.** Each `server_hooks` ref is called as `hook(server)`, in
+   order. A hook may add tools, and it may **return** middleware (one, or a
+   list or tuple of them): that middleware is the builder’s own (an
+   authorization gate bound to a project) and goes to the front of the stack. Any
+   other return value (`None`, the tool `server.tool` gave back) adds none; a
+   list or tuple holding anything but middleware is refused.
+3. **Middleware**, outermost (runs first on a call) to innermost:
+   1. what the server hooks returned, in hook order (authorization);
+   2. the host’s `middleware=` argument to [`make_connector_app()`](#enlace_connector.connector.make_connector_app);
+   3. the spec’s `middleware` refs, in order (e.g. a metering gate);
+   4. the usage logger, when the host switched it on ([`usage`](enlace_connector.usage.html.md#module-enlace_connector.usage)).
+
+   So a call is authorized before it is metered, and metered before it is logged
+   as usage: a refused call is never counted or logged. Middleware a hook adds
+   itself with `server.add_middleware` lands after all of these.
+4. **ASGI app.** `server.http_app(...)` gives the Starlette app; its lifespan
+   runs FastMCP’s session manager.
+5. **App wrappers.** Each `app_wrappers` ref is called as
+   `wrapper(app, server) -> app`, in order, each on the previous one’s result
+   (an extra mount, CORS, …). A wrapper with startup/shutdown work of its own
+   chains it onto the app’s lifespan with [`chain_lifespan()`](#enlace_connector.connector.chain_lifespan), never in place
+   of it: replacing it stops the session manager and the MCP endpoint fails.
+   A route a wrapper mounts is **not** behind the connector’s OAuth (that guards
+   the MCP route only) nor its middleware (that sees MCP calls only): it does its
+   own authorization, e.g. by checking a signature on a signed download link.
+
+[`make_stdio_server()`](#enlace_connector.connector.make_stdio_server) runs steps 1 and 2 only: there is no stack (the
+middleware is the hosted path’s gating and metering) and no ASGI app, so what a
+hook returns is ignored there.
+
 ### Functions
 
 | [`make_stdio_server`](#enlace_connector.connector.make_stdio_server)(spec)                     | Build a FastMCP server for *spec*, for local stdio serving (no auth).                                                    |
 |----------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | [`make_connector_app`](#enlace_connector.connector.make_connector_app)(spec, \*[, issuer, ...]) | Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).                                                    |
+| [`chain_lifespan`](#enlace_connector.connector.chain_lifespan)(app, extra_lifespan)         | Run *extra_lifespan* inside *app*'s own lifespan, and return *app*.                                                      |
 | [`spec_instructions`](#enlace_connector.connector.spec_instructions)(spec)                     | *spec*'s instructions, a `"module:ATTR"` ref resolved to its text.                                                       |
 | [`spec_version`](#enlace_connector.connector.spec_version)(spec)                          | *spec*'s version: `version` (a `"module:ATTR"` ref resolved), else the installed version of `version_dist`, else `None`. |
 
@@ -29,7 +67,7 @@ process that actually serves them.
 | [`ConnectorSpec`](#enlace_connector.connector.ConnectorSpec)(name, tools[, auth, title, ...])   | A declarative connector definition (see the module docstring).   |
 |---------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
 
-### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, version_dist=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list())
+### *class* enlace_connector.connector.ConnectorSpec(name, tools, auth='enlace', title=None, route=None, extras=list(), git_installs=list(), port=8030, data=list(), env=dict(), allowed_users=list(), post_install=list(), stateless_http=True, version=None, version_dist=None, usage_outcome=None, app_dir=None, environment_files=list(), exec_start_pre=list(), uvicorn_args=list(), service_directives=list(), icon=None, instructions=None, middleware=list(), server_hooks=list(), app_wrappers=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -236,9 +274,8 @@ lives in one place and cannot drift from a copy in the spec.
 
 `"module:attr"` refs to extra FastMCP middleware, in order
 (e.g. a metering gate). Each names a middleware, a list of them, or a
-zero-argument factory returning either; they run before the usage
-logger. A host can also pass `middleware=` to
-[`make_connector_app()`](#enlace_connector.connector.make_connector_app); that runs first.
+zero-argument factory returning either. Where they sit among the
+other middleware: “Serving order” in this module’s docstring.
 
 * **Type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -249,6 +286,20 @@ logger. A host can also pass `middleware=` to
 FastMCP server before it is served — the seam for tools that are not
 importable `"module:function"` refs (closures bound to a project, a
 store, a per-caller context): `server.tool(fn)` inside the hook.
+A hook may return middleware it owns (an authorization gate), which
+runs before every other middleware (“Serving order”).
+
+* **Type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### app_wrappers
+
+`"module:function"` refs, each called as
+`wrapper(app, server) -> app` on the hosted ASGI app, in order —
+the seam for an extra route next to the MCP endpoint (a mount for
+signed downloads) and its own startup/shutdown work, which goes
+through [`chain_lifespan()`](#enlace_connector.connector.chain_lifespan). Hosted path only. A mounted route
+is outside the connector’s OAuth and middleware (“Serving order”).
 
 * **Type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
@@ -283,6 +334,34 @@ this, so a stray slash cannot make two of them disagree (#10).
 * **Type:**
   The route, spelled one way
 
+### enlace_connector.connector.chain_lifespan(app, extra_lifespan)
+
+Run *extra_lifespan* inside *app*’s own lifespan, and return *app*.
+
+*app* is a Starlette app (what `server.http_app(...)` returns); its own
+lifespan runs FastMCP’s session manager, so an app wrapper that needs
+startup/shutdown work must add to it, not replace it (see “Serving order” in
+the module docstring). *extra_lifespan* is a Starlette lifespan: a callable
+taking the app and returning an async context manager (an
+`@asynccontextmanager` function), or an async generator function taking the
+app, as Starlette’s `lifespan=` accepts. It starts after the app’s own
+lifespan and stops before it, so the MCP endpoint is up for as long as the
+extra work is. If either yields a state mapping, the two are merged (the
+extra one wins on a shared key) into the request `scope["state"]`; that
+needs an ASGI server with lifespan state (uvicorn has it).
+
+```pycon
+>>> from contextlib import asynccontextmanager
+>>> from starlette.applications import Starlette
+>>> @asynccontextmanager
+... async def downloads(app):
+...     yield {"signer": "ready"}
+>>> app = chain_lifespan(Starlette(), downloads)
+```
+
+* **Return type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 ### enlace_connector.connector.make_connector_app(spec, , issuer=None, audience=None, settings=None, middleware=None)
 
 Build the Streamable-HTTP ASGI app for *spec* (the hosted connector).
@@ -291,16 +370,18 @@ Resolves the spec’s `auth` into a py2mcp resource-server config. For
 `auth="enlace"` provide *issuer* (the platform origin) and *audience* (this
 connector’s public URL); if *audience* is omitted it is derived from *issuer* +
 the spec’s route. Returns an ASGI app to run under any ASGI server (or mount in
-enlace). The spec’s `icon`, `instructions`, `middleware` and
-`server_hooks` are applied, so a connector that needs them is still built
-here rather than by hand (#3).
+enlace). The spec’s `icon`, `instructions`, `middleware`,
+`server_hooks` and `app_wrappers` are applied, so a connector that needs
+them is still built here rather than by hand (#3, #22). The order they are
+applied in is “Serving order” in the module docstring.
 
 Per-call usage logging is attached when the host’s *settings* (`os.environ`
 by default) set `CONNECTOR_USAGE_LOG_DIR` — see [`enlace_connector.usage`](enlace_connector.usage.html.md#module-enlace_connector.usage);
 it is off otherwise; the spec’s `version` and `usage_outcome` feed it. Any
-extra *middleware* (one or an ordered iterable) runs before it, so a gate (e.g.
-`enlace_metering`) refuses a call before it is logged as usage. Do not add a
-second `usage_middleware(...)` there: every call would be recorded twice.
+extra *middleware* (one or an ordered iterable) runs before the spec’s and the
+logger, so a gate (e.g. `enlace_metering`) refuses a call before it is logged
+as usage. Do not add a second `usage_middleware(...)` there: every call would
+be recorded twice.
 
 ### enlace_connector.connector.make_stdio_server(spec)
 
@@ -308,8 +389,10 @@ Build a FastMCP server for *spec*, for local stdio serving (no auth).
 
 Use for `server.run()` in Claude Desktop / Claude Code while developing the
 tools; the hosted path uses [`make_connector_app()`](#enlace_connector.connector.make_connector_app). The spec’s `icon`,
-`instructions` and `server_hooks` apply; its `middleware` does not (it
-is the hosted path’s metering and gating).
+`instructions` and `server_hooks` apply; its `middleware`, the
+middleware its hooks return, and its `app_wrappers` do not (they are the
+hosted path’s gating, metering and routes; see “Serving order” in the module
+docstring).
 
 ### enlace_connector.connector.spec_instructions(spec)
 

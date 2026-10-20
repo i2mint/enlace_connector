@@ -10,6 +10,7 @@
    
       make_connector_app
       make_stdio_server
+      chain_lifespan
       resolve_auth
       enlace_resource
       idp_resource

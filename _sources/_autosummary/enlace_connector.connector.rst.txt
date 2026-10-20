@@ -10,6 +10,7 @@ enlace\_connector.connector
    
       make_stdio_server
       make_connector_app
+      chain_lifespan
       spec_instructions
       spec_version
    

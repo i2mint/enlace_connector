@@ -121,6 +121,34 @@ for spec in specs:
 
 `diff_unit` compares semantically (comments, directive order, whitespace and `Environment=` quoting do not count; the order of repeated `ExecStartPre=` lines does) and ignores `Description=`. It reads `Environment=` as systemd does (quotes anywhere in a word, C escapes such as `\\` and `\x41` inside quotes too) and skips comment lines inside a backslash continuation. It reads the main unit file only, not drop-ins.
 
+## Extra routes, lifespans and an authorization gate
+
+A connector bound to a project often needs more than tools: an extra route next to the MCP endpoint (signed downloads), startup/shutdown work of its own, and an authorization gate that must run before metering. The spec carries all three, so `make_connector_app` (and the rendered `server.py`) still builds it:
+
+```python
+from contextlib import asynccontextmanager
+from enlace_connector import ConnectorSpec, chain_lifespan
+
+# acme/serve.py
+def authz(server):                       # a server hook may return middleware it owns
+    return ProjectGate(project="acme")   # it runs before every other middleware
+
+@asynccontextmanager
+async def signer(app):
+    yield {"signer": make_signer()}      # merged into request.state
+
+def downloads(app, server):              # an app wrapper: fn(app, server) -> app
+    app.mount("/downloads", downloads_app)
+    return chain_lifespan(app, signer)   # add to the app's lifespan, never replace it
+
+spec = ConnectorSpec(
+    name="acme", tools=["acme.mcp:search"], middleware=["acme.meter:gate"],
+    server_hooks=["acme.serve:authz"], app_wrappers=["acme.serve:downloads"],
+)
+```
+
+The app’s own lifespan runs FastMCP’s session manager, so a wrapper that replaced it would leave the MCP endpoint dead; `chain_lifespan` starts the extra work after it and stops it before. A mounted route is outside the connector’s OAuth and middleware, so it authorizes its own requests (a signature on the download link, say). The full order (hooks, then middleware outermost to innermost: hook-returned authorization, the host’s `middleware=`, the spec’s `middleware`, the usage logger; then the wrappers) is written down once, under “Serving order” in the `enlace_connector.connector` module docstring.
+
 ## Verify before you call it deployed
 
 A connector can be perfectly healthy and completely dead to its users. If the
@@ -189,8 +217,8 @@ sample get it with no change. See `ir`’s `ir_10` note.
 
 The connector factory, auth, **scaffolding, and full deploy-bundle generation** are
 stable and tested; `auth="enlace"` is live in production. A spec carries what used to
-force a hand-written `server.py`: `icon`, `instructions`, `middleware` and `server_hooks`
-(tools that are not `module:function` refs). `instructions` and `version` may be
+force a hand-written `server.py`: `icon`, `instructions`, `middleware`, `server_hooks`
+(tools that are not `module:function` refs, and an authorization gate) and `app_wrappers` (extra routes, lifespans). `instructions` and `version` may be
 `"module:ATTR"` refs (e.g. `"mypkg.prompts:INSTRUCTIONS"`, `"mypkg:__version__"`), and
 `version_dist="mypkg"` reads the installed distribution’s version, so neither is a
 frozen copy that drifts from the package. Building the connector app directly is still
