@@ -51,7 +51,13 @@ from .auth import (
     idp_resource,
     resolve_auth,
 )
-from .connector import ConnectorSpec, make_connector_app, make_stdio_server
+from .connector import (
+    ConnectorSpec,
+    make_connector_app,
+    make_stdio_server,
+    spec_instructions,
+    spec_version,
+)
 from .deploy import (
     ANY_ACCOUNT,
     DFLT_REFRESH_TOKEN_TTL_SECONDS,
@@ -119,4 +125,6 @@ __all__ = [
     "CheckResult",
     "PreflightContext",
     "PreflightError",
+    "spec_instructions",
+    "spec_version",
 ]

@@ -17,12 +17,26 @@ process that actually serves them.
 
 from __future__ import annotations
 
+import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from .auth import resolve_auth
 
-__all__ = ["ConnectorSpec", "make_stdio_server", "make_connector_app"]
+__all__ = [
+    "ConnectorSpec",
+    "make_stdio_server",
+    "make_connector_app",
+    "spec_instructions",
+    "spec_version",
+]
+
+logger = logging.getLogger(__name__)
+
+#: A ``"module:ATTR"`` reference: dotted identifiers on both sides, nothing else.
+#: Prose (instructions) and version strings (``"1.2.0"``) never look like this.
+REF_RE = re.compile(r"[A-Za-z_]\w*(\.[A-Za-z_]\w*)*:[A-Za-z_]\w*(\.[A-Za-z_]\w*)*")
 
 
 @dataclass
@@ -59,7 +73,12 @@ class ConnectorSpec:
         stateless_http: run the MCP transport statelessly (recommended behind a
             multi-worker server / load balancer). Defaults to True.
         version: the connector's version, written into every usage-log record
-            when logging is on (see :mod:`enlace_connector.usage`).
+            when logging is on (see :mod:`enlace_connector.usage`). A
+            ``"module:ATTR"`` ref (e.g. ``"mypkg:__version__"``) is imported where
+            the connector is served, so the version is never a frozen copy.
+        version_dist: the installed distribution whose version is the
+            connector's (``importlib.metadata.version``), used when *version* is
+            not set — the seam for packages without a ``__version__``.
         usage_outcome: a ``"module:function"`` ref to this connector's own
             ``(tool_name, result) -> label | mapping`` usage-outcome classifier
             (e.g. one that knows the search tool's "no match" shape), used in
@@ -80,7 +99,10 @@ class ConnectorSpec:
             ``serverInfo``): a ``src`` URL or ``data:`` URI, or a dict of
             ``mcp.types.Icon`` fields (``src``, ``mimeType``, ``sizes``).
         instructions: the server's model-facing description, surfaced to the
-            connecting client as the MCP ``instructions``.
+            connecting client as the MCP ``instructions``. A ``"module:ATTR"``
+            ref (dotted identifiers, no spaces) names a string in the connector's
+            package instead, imported where the connector is served, so the text
+            lives in one place and cannot drift from a copy in the spec.
         middleware: ``"module:attr"`` refs to extra FastMCP middleware, in order
             (e.g. a metering gate). Each names a middleware, a list of them, or a
             zero-argument factory returning either; they run before the usage
@@ -111,6 +133,7 @@ class ConnectorSpec:
     post_install: list[str] = field(default_factory=list)
     stateless_http: bool = True
     version: str | None = None
+    version_dist: str | None = None
     usage_outcome: str | None = None
     app_dir: str | None = None
     environment_files: list[str] = field(default_factory=list)
@@ -165,6 +188,70 @@ def _resolve_ref(ref: str) -> Any:
     return import_object(ref)
 
 
+def _deref_str(value: Any, *, field_name: str) -> Any:
+    """*value*, or the string a ``"module:ATTR"`` *value* names (see :data:`REF_RE`).
+
+    A non-str *value* (a ``version=2`` given as a number) is returned as it is.
+    """
+    if not isinstance(value, str) or not REF_RE.fullmatch(value):
+        return value
+    try:
+        obj = _resolve_ref(value)
+    except (ImportError, AttributeError) as exc:
+        raise ValueError(
+            f"{field_name}={value!r} reads as a 'module:ATTR' reference and does not "
+            f"import ({exc}); a literal {field_name} must not be one 'word:word' token"
+        ) from exc
+    if not isinstance(obj, str):
+        raise TypeError(
+            f"{field_name}={value!r} names a {type(obj).__name__}, not a str"
+        )
+    return obj
+
+
+def spec_instructions(spec: ConnectorSpec) -> str | None:
+    """*spec*'s instructions, a ``"module:ATTR"`` ref resolved to its text.
+
+    >>> spec_instructions(ConnectorSpec(name="x", tools=[], instructions="Use me."))
+    'Use me.'
+    >>> spec_instructions(ConnectorSpec(name="x", tools=[],
+    ...                                 instructions="string:ascii_lowercase"))[:3]
+    'abc'
+    """
+    return _deref_str(spec.instructions, field_name="instructions")
+
+
+def spec_version(spec: ConnectorSpec) -> str | None:
+    """*spec*'s version: ``version`` (a ``"module:ATTR"`` ref resolved), else the
+    installed version of ``version_dist``, else ``None``. The version is only a
+    label in the usage log, so a ref that does not import is kept as written and
+    an uninstalled ``version_dist`` gives ``None``, each with a warning, rather
+    than stopping the connector at boot.
+
+    >>> spec_version(ConnectorSpec(name="x", tools=[], version="1.2.0"))
+    '1.2.0'
+    >>> spec_version(ConnectorSpec(name="x", tools=[], version_dist="pytest")) > "0"
+    True
+    """
+    if spec.version:
+        try:
+            return _deref_str(spec.version, field_name="version")
+        except ValueError as exc:  # only a label: keep it as written, say so
+            logger.warning("%s; using it as the literal version", exc)
+            return spec.version
+    if spec.version_dist:
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            return version(spec.version_dist)
+        except PackageNotFoundError:  # a missing label must not stop the connector
+            logger.warning(
+                "version_dist=%r is not installed; the version is unknown",
+                spec.version_dist,
+            )
+    return None
+
+
 def _spec_middleware(spec: ConnectorSpec) -> list:
     """The middleware *spec* names, resolved in order (see ``ConnectorSpec.middleware``)."""
     from fastmcp.server.middleware import Middleware
@@ -199,8 +286,9 @@ def _build_server(spec: ConnectorSpec, *, auth: Any = None, middleware: Any = No
     optional: dict[str, Any] = {}
     if spec.icon:  # the renderer's rule too: an empty icon is no icon
         optional["icons"] = spec.icon
-    if spec.instructions:
-        optional["instructions"] = spec.instructions
+    instructions = spec_instructions(spec)
+    if instructions:
+        optional["instructions"] = instructions
     server = mk_mcp_from_refs(
         spec.tools, name=spec.server_name, auth=auth, middleware=middleware, **optional
     )

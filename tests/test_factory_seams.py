@@ -169,3 +169,85 @@ def test_two_bundles_share_no_identifier(tmp_path):
         assert mine.title in text and mine.icon in text  # the bundle names itself...
         leaked = [i for i in identifiers(other) if i in text]
         assert not leaked, f"{mine.name}'s bundle names {other.name}'s {leaked}"
+
+
+# --- instructions and version by reference (#3) -----------------------------
+
+from enlace_connector import spec_instructions, spec_version  # noqa: E402
+from enlace_connector.usage import usage_middleware  # noqa: E402
+
+
+@pytest.fixture
+def text_module(monkeypatch):
+    mod = types.ModuleType("_ec_text")
+    mod.INSTRUCTIONS = "Search the corpus."
+    mod.__version__ = "3.1.4"
+    mod.NOT_TEXT = 7
+    monkeypatch.setitem(sys.modules, "_ec_text", mod)
+    return mod
+
+
+def test_instructions_by_reference_reach_the_server(text_module):
+    spec = ConnectorSpec(name="x", tools=TOOLS, instructions="_ec_text:INSTRUCTIONS")
+    assert spec_instructions(spec) == "Search the corpus."
+    assert make_stdio_server(spec).instructions == "Search the corpus."
+    text_module.INSTRUCTIONS = "Edited in the package."  # read where it is served
+    assert make_stdio_server(spec).instructions == "Edited in the package."
+
+
+@pytest.mark.parametrize(
+    "prose", ["Use me.", "Note: search first", "see a:b c", "1.2:3", "x : y"]
+)
+def test_prose_is_never_taken_for_a_reference(prose):
+    assert spec_instructions(ConnectorSpec(name="x", tools=[], instructions=prose)) == prose
+
+
+def test_a_reference_to_something_else_than_text_is_refused(text_module):
+    spec = ConnectorSpec(name="x", tools=[], instructions="_ec_text:NOT_TEXT")
+    with pytest.raises(TypeError, match="names a int, not a str"):
+        spec_instructions(spec)
+
+
+def test_version_by_reference_and_by_distribution(text_module):
+    assert spec_version(ConnectorSpec(name="x", tools=[], version="2.0")) == "2.0"
+    assert spec_version(ConnectorSpec(name="x", tools=[], version="_ec_text:__version__")) == "3.1.4"
+    from importlib.metadata import version
+
+    assert spec_version(ConnectorSpec(name="x", tools=[], version_dist="pytest")) == version("pytest")
+    both = ConnectorSpec(name="x", tools=[], version="2.0", version_dist="pytest")
+    assert spec_version(both) == "2.0"  # an explicit version wins
+    assert spec_version(ConnectorSpec(name="x", tools=[])) is None
+
+
+def test_the_usage_log_records_the_resolved_version(text_module):
+    spec = ConnectorSpec(name="x", tools=[], version="_ec_text:__version__")
+    [logger] = usage_middleware(spec, sink=lambda record: None)
+    assert logger.version == "3.1.4"
+
+
+def test_rendered_server_keeps_references_and_usage_fields(text_module, monkeypatch):
+    spec = ConnectorSpec(
+        name="x", tools=TOOLS, auth="none", instructions="_ec_text:INSTRUCTIONS",
+        version="_ec_text:__version__", version_dist="pytest", usage_outcome="m:classify",
+    )
+    src = render_server_py(spec)
+    for line in ("instructions='_ec_text:INSTRUCTIONS'", "version='_ec_text:__version__'",
+                 "version_dist='pytest'", "usage_outcome='m:classify'"):
+        assert line in src
+    plain = render_server_py(ConnectorSpec(name="x", tools=TOOLS))
+    assert not any(f in plain for f in ("version=", "version_dist=", "usage_outcome="))
+
+
+def test_a_version_that_cannot_be_resolved_degrades_to_a_label(caplog):
+    assert spec_version(ConnectorSpec(name="x", tools=[], version=2)) == 2
+    assert spec_version(ConnectorSpec(name="x", tools=[], version="v1:beta")) == "v1:beta"
+    assert spec_version(
+        ConnectorSpec(name="x", tools=[], version_dist="no-such-dist-xyz")
+    ) is None
+    assert "not installed" in caplog.text
+
+
+def test_instructions_that_read_as_a_broken_reference_are_refused():
+    spec = ConnectorSpec(name="x", tools=[], instructions="Note:x")
+    with pytest.raises(ValueError, match="does not import"):
+        spec_instructions(spec)

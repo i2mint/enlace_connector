@@ -51,7 +51,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from .connector import ConnectorSpec
+from .connector import ConnectorSpec, spec_version
 
 __all__ = [
     "usage_middleware",
@@ -157,7 +157,7 @@ def usage_middleware(
 
     kwargs: dict[str, Any] = {
         "name": spec.name,
-        "version": version if version is not None else spec.version,
+        "version": version if version is not None else spec_version(spec),
         "include_args": _flag(
             env.get(USAGE_LOG_ARGS), key=USAGE_LOG_ARGS, default=True
         ),
