@@ -51,6 +51,12 @@ from .auth import (
     idp_resource,
     resolve_auth,
 )
+from .sampling import (
+    SamplingUnavailable,
+    client_supports_sampling,
+    llm_tool,
+    sampling_llm,
+)
 from .connector import (
     ConnectorSpec,
     make_connector_app,
@@ -127,4 +133,8 @@ __all__ = [
     "PreflightError",
     "spec_instructions",
     "spec_version",
+    "llm_tool",
+    "sampling_llm",
+    "client_supports_sampling",
+    "SamplingUnavailable",
 ]

@@ -153,11 +153,31 @@ the grant), so a **new** platform doesn't inherit a stranding default.
 
 ## Cost / LLM note
 
-A connector over `ir`'s core search is **offline and free** — no LLM, no tokens.
-An *agentic* connector (query reformulation, LLM-selection, synopsis) needs an LLM;
-that LLM is an injected callable and can ride the **client's Claude subscription** via
-MCP sampling (where the client supports it) instead of a metered key — see `ir`'s
-`ir_10` note and issue #1 here.
+A connector over `ir`'s core search is **offline and free**: no LLM, no tokens.
+An *agentic* connector (query reformulation, LLM selection, synopsis) needs an LLM,
+which is an injected `prompt -> str` callable. `llm_tool` wraps such a tool so it
+brings its own, per request:
+
+```python
+from enlace_connector import llm_tool
+
+@llm_tool(fallback="mypkg.llm:chat")      # optional: a prompt -> str to use instead
+def search(query: str, limit: int = 5, *, llm=None) -> list[dict]:
+    ...                                    # llm is None: run the offline search
+```
+
+The LLM is the **client's model via MCP sampling** when the client advertises it
+(`ctx.sample`, so no metered key), else the `fallback` (a key-backed callable, or
+`coact.resolve_llm()` on a developer machine), else `None` and the tool runs offline.
+A sampling request that fails mid-call reruns the tool on the fallback, so the
+connector never hard-fails for want of an LLM. Reference the wrapped function in the
+spec's `tools` as usual.
+
+**Client support, checked 2026-10:** Claude's MCP client (claude.ai, Desktop, mobile,
+Cowork, Claude Code) lists sampling among the MCP features it does not yet support
+([Build an MCP server for Claude](https://claude.com/docs/connectors/building/index)),
+so under Claude a wrapped tool runs on its fallback or offline today. Clients that do
+sample get it with no change. See `ir`'s `ir_10` note.
 
 ## Status
 
