@@ -84,6 +84,12 @@ from .preflight import (
     format_report,
     verify_deployment,
 )
+from .sampling import (
+    SamplingUnavailable,
+    client_supports_sampling,
+    llm_tool,
+    sampling_llm,
+)
 from .scaffold import render_app_toml, render_server_py, scaffold_app
 from .usage import usage_middleware
 
@@ -127,4 +133,8 @@ __all__ = [
     "PreflightError",
     "spec_instructions",
     "spec_version",
+    "llm_tool",
+    "sampling_llm",
+    "client_supports_sampling",
+    "SamplingUnavailable",
 ]
