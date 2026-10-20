@@ -144,7 +144,7 @@ spec = ConnectorSpec(
 )
 ```
 
-The app's own lifespan runs FastMCP's session manager, so a wrapper that replaced it would leave the MCP endpoint dead; `chain_lifespan` starts the extra work after it and stops it before. The full order (hooks, then middleware outermost to innermost: hook-returned authorization, the host's `middleware=`, the spec's `middleware`, the usage logger; then the wrappers) is written down once, under "Serving order" in the `enlace_connector.connector` module docstring.
+The app's own lifespan runs FastMCP's session manager, so a wrapper that replaced it would leave the MCP endpoint dead; `chain_lifespan` starts the extra work after it and stops it before. A mounted route is outside the connector's OAuth and middleware, so it authorizes its own requests (a signature on the download link, say). The full order (hooks, then middleware outermost to innermost: hook-returned authorization, the host's `middleware=`, the spec's `middleware`, the usage logger; then the wrappers) is written down once, under "Serving order" in the `enlace_connector.connector` module docstring.
 
 ## Verify before you call it deployed
 

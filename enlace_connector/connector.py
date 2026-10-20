@@ -24,8 +24,10 @@ This is the one place the order is written down; every other docstring points he
    ``instructions``, with the middleware stack of step 3.
 2. **Server hooks.** Each ``server_hooks`` ref is called as ``hook(server)``, in
    order. A hook may add tools, and it may **return** middleware (one, or a
-   list): that middleware is the builder's own (an authorization gate bound to a
-   project) and goes to the front of the stack. Returning ``None`` adds none.
+   list or tuple of them): that middleware is the builder's own (an
+   authorization gate bound to a project) and goes to the front of the stack. Any
+   other return value (``None``, the tool ``server.tool`` gave back) adds none; a
+   list or tuple holding anything but middleware is refused.
 3. **Middleware**, outermost (runs first on a call) to innermost:
 
    a. what the server hooks returned, in hook order (authorization);
@@ -43,6 +45,9 @@ This is the one place the order is written down; every other docstring points he
    (an extra mount, CORS, ...). A wrapper with startup/shutdown work of its own
    chains it onto the app's lifespan with :func:`chain_lifespan`, never in place
    of it: replacing it stops the session manager and the MCP endpoint fails.
+   A route a wrapper mounts is **not** behind the connector's OAuth (that guards
+   the MCP route only) nor its middleware (that sees MCP calls only): it does its
+   own authorization, e.g. by checking a signature on a signed download link.
 
 :func:`make_stdio_server` runs steps 1 and 2 only: there is no stack (the
 middleware is the hosted path's gating and metering) and no ASGI app, so what a
@@ -51,6 +56,7 @@ hook returns is ignored there.
 
 from __future__ import annotations
 
+import inspect
 import logging
 import re
 from contextlib import asynccontextmanager
@@ -153,7 +159,8 @@ class ConnectorSpec:
             ``wrapper(app, server) -> app`` on the hosted ASGI app, in order —
             the seam for an extra route next to the MCP endpoint (a mount for
             signed downloads) and its own startup/shutdown work, which goes
-            through :func:`chain_lifespan`. Hosted path only.
+            through :func:`chain_lifespan`. Hosted path only. A mounted route
+            is outside the connector's OAuth and middleware ("Serving order").
 
         The last four take the same ``{base}`` / ``{venv}`` / ``{app_dir}`` /
         ``{remote_base}`` / ``{name}`` / ``{port}`` placeholders as *env*.
@@ -354,12 +361,16 @@ def _build_server(
     server = mk_mcp_from_refs(
         spec.tools, name=spec.server_name, auth=auth, middleware=middleware, **optional
     )
+    from fastmcp.server.middleware import Middleware
+
     returned: list = []
     for ref in spec.server_hooks:
         obj = _resolve_ref(ref)(server)
-        if obj is not None:
+        # A middleware, or a list/tuple of them, is the builder's own; any other
+        # return (None, the tool ``server.tool`` gave back) is ignored, as before.
+        if hook_middleware and isinstance(obj, (Middleware, list, tuple)):
             returned += _as_middleware_list(obj, source=f"server hook {ref!r}")
-    if hook_middleware and returned:
+    if returned:
         server.middleware[:0] = returned  # the builder's own gate runs first
     return server
 
@@ -372,10 +383,12 @@ def chain_lifespan(app: Any, extra_lifespan: Callable[[Any], Any]) -> Any:
     startup/shutdown work must add to it, not replace it (see "Serving order" in
     the module docstring). *extra_lifespan* is a Starlette lifespan: a callable
     taking the app and returning an async context manager (an
-    ``@asynccontextmanager`` function). It starts after the app's own lifespan
-    and stops before it, so the MCP endpoint is up for as long as the extra work
-    is. If both yield a state mapping, they are merged (the extra one wins on a
-    shared key) into the request ``scope["state"]``.
+    ``@asynccontextmanager`` function), or an async generator function taking the
+    app, as Starlette's ``lifespan=`` accepts. It starts after the app's own
+    lifespan and stops before it, so the MCP endpoint is up for as long as the
+    extra work is. If either yields a state mapping, the two are merged (the
+    extra one wins on a shared key) into the request ``scope["state"]``; that
+    needs an ASGI server with lifespan state (uvicorn has it).
 
     >>> from contextlib import asynccontextmanager
     >>> from starlette.applications import Starlette
@@ -384,6 +397,13 @@ def chain_lifespan(app: Any, extra_lifespan: Callable[[Any], Any]) -> Any:
     ...     yield {"signer": "ready"}
     >>> app = chain_lifespan(Starlette(), downloads)
     """
+    if inspect.isasyncgenfunction(extra_lifespan):
+        extra_lifespan = asynccontextmanager(extra_lifespan)
+    if not callable(extra_lifespan):
+        raise TypeError(
+            f"extra_lifespan must be a lifespan (app -> async context manager), "
+            f"not {type(extra_lifespan).__name__}"
+        )
     router = getattr(app, "router", None)
     inner = getattr(router, "lifespan_context", None)
     if inner is None:
@@ -397,6 +417,12 @@ def chain_lifespan(app: Any, extra_lifespan: Callable[[Any], Any]) -> Any:
     async def chained(a):
         async with inner(a) as inner_state:
             async with extra_lifespan(a) as extra_state:
+                for state in (inner_state, extra_state):
+                    if state is not None and not isinstance(state, Mapping):
+                        raise TypeError(
+                            "a lifespan yields None or a state mapping, not "
+                            f"{type(state).__name__}"
+                        )
                 if inner_state is None and extra_state is None:
                     yield None
                 else:

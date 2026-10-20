@@ -75,7 +75,8 @@ def wrap_module(monkeypatch):
     mod.meter = _Log("meter", mod.calls)
     mod.add_downloads = add_downloads
     mod.forgets_to_return = lambda app, server: None
-    mod.returns_junk = lambda server: 42
+    mod.returns_junk = lambda server: [42]
+    mod.returns_tool = lambda server: server.tool(lambda: "hi", name="hi")
     monkeypatch.setitem(sys.modules, "_ec_wrap", mod)
     return mod
 
@@ -166,10 +167,41 @@ def test_stdio_ignores_returned_middleware(wrap_module):
     assert not any(isinstance(m, _Log) for m in server.middleware)
 
 
-def test_a_hook_returning_something_else_is_refused(wrap_module):
+def test_a_hook_returning_a_list_of_something_else_is_refused(wrap_module):
     spec = _project_spec(server_hooks=["_ec_wrap:returns_junk"])
     with pytest.raises(TypeError, match="server hook '_ec_wrap:returns_junk' gave int"):
         make_connector_app(spec, settings={})
+
+
+def test_a_hook_returning_a_tool_still_works(wrap_module):
+    """Before #22 a hook's return was ignored; ``return server.tool(fn)`` still is."""
+    spec = _project_spec(server_hooks=["_ec_wrap:returns_tool"], app_wrappers=[])
+    with TestClient(make_connector_app(spec, settings={})) as client:
+        _call_basename(client)
+        tools = {t["name"] for t in _rpc(client, "tools/list")["result"]["tools"]}
+    assert wrap_module.calls == ["meter"] and "hi" in tools
+
+
+def test_a_refused_call_is_not_logged_as_usage(wrap_module, tmp_path):
+    usage = tmp_path / "usage"
+    settings = {"CONNECTOR_USAGE_LOG_DIR": str(usage)}
+
+    def tool_calls():
+        return [
+            r for f in usage.glob("*.jsonl") for r in map(json.loads, f.read_text().splitlines())
+            if r["event"] == "tool_call"
+        ]
+
+    with TestClient(make_connector_app(_project_spec(), settings=settings)) as client:
+        _call_basename(client)
+    [allowed] = tool_calls()
+    assert allowed["tool"] == "basename" and wrap_module.calls == ["authz", "meter"]
+
+    wrap_module.deny = True
+    with TestClient(make_connector_app(_project_spec(), settings=settings)) as client:
+        assert _call_basename(client)["result"]["isError"] is True
+    assert tool_calls() == [allowed]  # authz refused it: neither metered nor logged
+    assert wrap_module.calls == ["authz", "meter", "authz"]
 
 
 def test_a_wrapper_must_return_the_app(wrap_module):
@@ -179,22 +211,26 @@ def test_a_wrapper_must_return_the_app(wrap_module):
 
 
 def test_wrappers_apply_in_order_each_on_the_previous_result(wrap_module):
+    from starlette.middleware.cors import CORSMiddleware
+
     seen = []
 
     def first(app, server):
-        seen.append(("first", app))
-        return chain_lifespan(app, _noop_lifespan)
+        seen.append(app)
+        return CORSMiddleware(chain_lifespan(app, _noop_lifespan), allow_origins=["*"])
 
     def second(app, server):
-        seen.append(("second", app, server))
+        seen.append((app, server))
         return app
 
     wrap_module.first, wrap_module.second = first, second
     spec = _project_spec(app_wrappers=["_ec_wrap:first", "_ec_wrap:second"])
     app = make_connector_app(spec, settings={})
-    [(_, a1), (_, a2, server)] = seen
-    assert a1 is a2 is app
+    [built, (given, server)] = seen
+    assert isinstance(given, CORSMiddleware) and given.app is built and app is given
     assert server.name == "proj"
+    with TestClient(app) as client:  # the lifespan passes through the middleware
+        assert _call_basename(client)["result"]["content"][0]["text"] == "b.txt"
 
 
 @asynccontextmanager
@@ -225,6 +261,22 @@ def test_chain_lifespan_nests_inside_the_apps_own_and_merges_state():
     with TestClient(app) as client:
         assert client.get("/").text == "1 2 extra"
     assert events == ["own up", "extra up", "extra down", "own down"]
+
+
+def test_chain_lifespan_takes_an_async_generator_and_runs_each_cycle(wrap_module):
+    events = []
+
+    async def counter(app):
+        events.append("up")
+        yield
+        events.append("down")
+
+    wrap_module.counted = lambda app, server: chain_lifespan(app, counter)
+    app = make_connector_app(_project_spec(app_wrappers=["_ec_wrap:counted"]), settings={})
+    for _ in range(2):  # FastMCP rebuilds its session manager each lifespan cycle
+        with TestClient(app) as client:
+            assert _call_basename(client)["result"]["content"][0]["text"] == "b.txt"
+    assert events == ["up", "down", "up", "down"]
 
 
 def test_chain_lifespan_refuses_what_is_not_a_starlette_app():
