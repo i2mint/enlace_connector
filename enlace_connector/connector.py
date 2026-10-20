@@ -17,6 +17,7 @@ process that actually serves them.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping
@@ -30,6 +31,8 @@ __all__ = [
     "spec_instructions",
     "spec_version",
 ]
+
+logger = logging.getLogger(__name__)
 
 #: A ``"module:ATTR"`` reference: dotted identifiers on both sides, nothing else.
 #: Prose (instructions) and version strings (``"1.2.0"``) never look like this.
@@ -185,11 +188,20 @@ def _resolve_ref(ref: str) -> Any:
     return import_object(ref)
 
 
-def _deref_str(value: str | None, *, field_name: str) -> str | None:
-    """*value*, or the string a ``"module:ATTR"`` *value* names (see :data:`REF_RE`)."""
-    if not value or not REF_RE.fullmatch(value):
+def _deref_str(value: Any, *, field_name: str) -> Any:
+    """*value*, or the string a ``"module:ATTR"`` *value* names (see :data:`REF_RE`).
+
+    A non-str *value* (a ``version=2`` given as a number) is returned as it is.
+    """
+    if not isinstance(value, str) or not REF_RE.fullmatch(value):
         return value
-    obj = _resolve_ref(value)
+    try:
+        obj = _resolve_ref(value)
+    except (ImportError, AttributeError) as exc:
+        raise ValueError(
+            f"{field_name}={value!r} reads as a 'module:ATTR' reference and does not "
+            f"import ({exc}); a literal {field_name} must not be one 'word:word' token"
+        ) from exc
     if not isinstance(obj, str):
         raise TypeError(
             f"{field_name}={value!r} names a {type(obj).__name__}, not a str"
@@ -211,7 +223,10 @@ def spec_instructions(spec: ConnectorSpec) -> str | None:
 
 def spec_version(spec: ConnectorSpec) -> str | None:
     """*spec*'s version: ``version`` (a ``"module:ATTR"`` ref resolved), else the
-    installed version of ``version_dist``, else ``None``.
+    installed version of ``version_dist``, else ``None``. The version is only a
+    label in the usage log, so a ref that does not import is kept as written and
+    an uninstalled ``version_dist`` gives ``None``, each with a warning, rather
+    than stopping the connector at boot.
 
     >>> spec_version(ConnectorSpec(name="x", tools=[], version="1.2.0"))
     '1.2.0'
@@ -219,11 +234,21 @@ def spec_version(spec: ConnectorSpec) -> str | None:
     True
     """
     if spec.version:
-        return _deref_str(spec.version, field_name="version")
+        try:
+            return _deref_str(spec.version, field_name="version")
+        except ValueError as exc:  # only a label: keep it as written, say so
+            logger.warning("%s; using it as the literal version", exc)
+            return spec.version
     if spec.version_dist:
-        from importlib.metadata import version
+        from importlib.metadata import PackageNotFoundError, version
 
-        return version(spec.version_dist)
+        try:
+            return version(spec.version_dist)
+        except PackageNotFoundError:  # a missing label must not stop the connector
+            logger.warning(
+                "version_dist=%r is not installed; the version is unknown",
+                spec.version_dist,
+            )
     return None
 
 

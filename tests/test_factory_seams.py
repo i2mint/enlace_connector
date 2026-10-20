@@ -236,3 +236,18 @@ def test_rendered_server_keeps_references_and_usage_fields(text_module, monkeypa
         assert line in src
     plain = render_server_py(ConnectorSpec(name="x", tools=TOOLS))
     assert not any(f in plain for f in ("version=", "version_dist=", "usage_outcome="))
+
+
+def test_a_version_that_cannot_be_resolved_degrades_to_a_label(caplog):
+    assert spec_version(ConnectorSpec(name="x", tools=[], version=2)) == 2
+    assert spec_version(ConnectorSpec(name="x", tools=[], version="v1:beta")) == "v1:beta"
+    assert spec_version(
+        ConnectorSpec(name="x", tools=[], version_dist="no-such-dist-xyz")
+    ) is None
+    assert "not installed" in caplog.text
+
+
+def test_instructions_that_read_as_a_broken_reference_are_refused():
+    spec = ConnectorSpec(name="x", tools=[], instructions="Note:x")
+    with pytest.raises(ValueError, match="does not import"):
+        spec_instructions(spec)
