@@ -15,11 +15,17 @@ shape regardless of who issues the token — so picking an AS is just config:
 - :func:`idp_resource` — an external managed IdP (Auth0, WorkOS, …): pass its
   ``jwks_uri`` / ``issuer`` explicitly.
 - ``None`` / ``"none"`` — unauthenticated (local stdio, or an internal pilot).
+
+A deployed connector's unit carries the issuer and its own public URL as
+:data:`ISSUER_ENV` and :data:`AUDIENCE_ENV` (``deploy.render_systemd_unit`` writes
+both); :func:`auth_from_env` turns them into the resource-server config, so a
+connector served by another app's factory needs no reader of its own.
 """
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+import os
+from typing import Any, Iterable, Mapping, Optional
 
 __all__ = [
     "ENLACE_OAUTH_PATH",
@@ -27,7 +33,16 @@ __all__ = [
     "enlace_resource",
     "idp_resource",
     "resolve_auth",
+    "auth_from_env",
+    "ISSUER_ENV",
+    "AUDIENCE_ENV",
 ]
+
+#: The environment variable naming the OAuth issuer (the platform origin).
+ISSUER_ENV = "CONNECTOR_ISSUER"
+#: The environment variable naming this connector's public base URL, which
+#: :func:`enlace_resource` turns into the token audience (``base + mcp_path``).
+AUDIENCE_ENV = "CONNECTOR_AUDIENCE"
 
 #: Path under the platform origin where ``enlace_auth`` serves its OAuth 2.1
 #: authorization-server endpoints (authorize / token / register / jwks). The
@@ -136,3 +151,46 @@ def resolve_auth(
             "audience=...) and pass that dict as auth."
         )
     raise ValueError(f"Unrecognized auth spec: {auth!r}")
+
+
+def auth_from_env(
+    settings: Optional[Mapping[str, str]] = None,
+    *,
+    mcp_path: str = "/mcp",
+    scopes: Iterable[str] = DFLT_SCOPES,
+) -> dict[str, Any] | None:
+    """:func:`enlace_resource` from :data:`ISSUER_ENV` and :data:`AUDIENCE_ENV`.
+
+    *settings* defaults to ``os.environ`` (what a systemd unit's ``Environment=``
+    lines populate). Neither set (or both empty): ``None``, an unauthenticated
+    connector, as for local serving. One without the other raises: a
+    half-configured connector must not start unauthenticated, nor guess the
+    missing half.
+
+    >>> auth_from_env({}) is None
+    True
+    >>> cfg = auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com",
+    ...                      "CONNECTOR_AUDIENCE": "https://apps.example.com/x-mcp"})
+    >>> cfg["audience"], cfg["jwks_uri"]
+    ('https://apps.example.com/x-mcp/mcp', 'https://apps.example.com/auth/oauth/jwks')
+    >>> auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com"})
+    Traceback (most recent call last):
+      ...
+    ValueError: CONNECTOR_ISSUER is set but CONNECTOR_AUDIENCE is not: set both (the platform origin and this connector's public URL), or neither for no auth.
+    """
+    env = os.environ if settings is None else settings
+    issuer = (env.get(ISSUER_ENV) or "").strip()
+    audience = (env.get(AUDIENCE_ENV) or "").strip()
+    if not issuer and not audience:
+        return None
+    if not (issuer and audience):
+        have, missing = (
+            (ISSUER_ENV, AUDIENCE_ENV) if issuer else (AUDIENCE_ENV, ISSUER_ENV)
+        )
+        raise ValueError(
+            f"{have} is set but {missing} is not: set both (the platform origin and "
+            "this connector's public URL), or neither for no auth."
+        )
+    return enlace_resource(
+        issuer=issuer, audience=audience, scopes=scopes, mcp_path=mcp_path
+    )

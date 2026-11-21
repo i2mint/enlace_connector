@@ -47,6 +47,7 @@ from __future__ import annotations
 from .auth import (
     DFLT_SCOPES,
     ENLACE_OAUTH_PATH,
+    auth_from_env,
     enlace_resource,
     idp_resource,
     resolve_auth,
@@ -103,6 +104,7 @@ __all__ = [
     "chain_lifespan",
     "resolve_auth",
     "enlace_resource",
+    "auth_from_env",
     "idp_resource",
     "ENLACE_OAUTH_PATH",
     "DFLT_SCOPES",
