@@ -95,17 +95,34 @@ def test_auth_from_env_reads_os_environ_by_default(monkeypatch):
     assert A.auth_from_env()["issuer"] == ORIGIN
 
 
-def test_the_rendered_unit_sets_exactly_the_names_auth_from_env_reads():
-    """One pair of names: what deploy writes is what auth_from_env reads."""
+@pytest.mark.parametrize("route", [None, "/api/a%2Fb", '/q"uote'])
+def test_the_rendered_unit_sets_exactly_the_names_auth_from_env_reads(route):
+    """One pair of names: what deploy writes is what auth_from_env reads, with
+    systemd's own quoting, escapes and ``%%`` undone by the unit parser."""
     from enlace_connector import ConnectorSpec
-    from enlace_connector.deploy import render_systemd_unit
+    from enlace_connector.deploy import _environment, _parse_unit, render_systemd_unit
 
-    unit = render_systemd_unit(ConnectorSpec(name="x", tools=[]), issuer=ORIGIN)
-    settings = {}
-    for line in unit.splitlines():
-        if line.startswith("Environment="):
-            key, _, value = line[len("Environment=") :].partition("=")
-            settings[key.strip('"')] = value.strip('"')
-    cfg = A.auth_from_env(settings)
-    assert cfg is not None and cfg["issuer"] == ORIGIN
-    assert cfg["base_url"] == ConnectorSpec(name="x", tools=[]).default_audience(ORIGIN)
+    spec = ConnectorSpec(name="x", tools=[], route=route)
+    unit = render_systemd_unit(spec, issuer=ORIGIN)
+    settings = _environment(_parse_unit(unit)[("Service", "Environment")])
+    cfg = A.auth_from_env(settings, required=True)
+    assert cfg["issuer"] == ORIGIN
+    assert cfg["base_url"] == spec.default_audience(ORIGIN)
+
+
+def test_required_refuses_to_start_with_neither_name_set():
+    with pytest.raises(ValueError, match="requires auth"):
+        A.auth_from_env({"CONNECTOR_ISUER": ORIGIN}, required=True)  # a typo
+
+
+def test_an_audience_that_already_names_the_mcp_endpoint_is_refused():
+    with pytest.raises(ValueError, match="base URL"):
+        A.auth_from_env({A.ISSUER_ENV: ORIGIN, A.AUDIENCE_ENV: f"{BASE}/mcp/"})
+
+
+def test_the_scaffold_reads_the_same_names():
+    from enlace_connector import ConnectorSpec
+    from enlace_connector.scaffold import render_server_py
+
+    src = render_server_py(ConnectorSpec(name="x", tools=[]))
+    assert repr(A.ISSUER_ENV) in src and repr(A.AUDIENCE_ENV) in src

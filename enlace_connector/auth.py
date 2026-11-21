@@ -158,6 +158,7 @@ def auth_from_env(
     *,
     mcp_path: str = "/mcp",
     scopes: Iterable[str] = DFLT_SCOPES,
+    required: bool = False,
 ) -> dict[str, Any] | None:
     """:func:`enlace_resource` from :data:`ISSUER_ENV` and :data:`AUDIENCE_ENV`.
 
@@ -165,7 +166,17 @@ def auth_from_env(
     lines populate). Neither set (or both empty): ``None``, an unauthenticated
     connector, as for local serving. One without the other raises: a
     half-configured connector must not start unauthenticated, nor guess the
-    missing half.
+    missing half. A deployed connector passes ``required=True``, so that both
+    names missing (a typo in each, an absent ``EnvironmentFile=``) refuses to
+    start instead of serving with no auth.
+
+    Unlike a scaffolded ``server.py`` (which knows its spec, so it defaults the
+    issuer and derives the audience from the route), this never defaults
+    either: a factory with no spec knows no route.
+
+    :data:`AUDIENCE_ENV` is the connector's **base** URL; the token audience is
+    ``base + mcp_path``. A value that already ends in *mcp_path* is refused,
+    since every token would then be rejected as for ``.../mcp/mcp``.
 
     >>> auth_from_env({}) is None
     True
@@ -182,6 +193,12 @@ def auth_from_env(
     issuer = (env.get(ISSUER_ENV) or "").strip()
     audience = (env.get(AUDIENCE_ENV) or "").strip()
     if not issuer and not audience:
+        if required:
+            raise ValueError(
+                f"Neither {ISSUER_ENV} nor {AUDIENCE_ENV} is set, and this connector "
+                "requires auth: set both (check their spelling and the unit's "
+                "EnvironmentFile=)."
+            )
         return None
     if not (issuer and audience):
         have, missing = (
@@ -190,6 +207,11 @@ def auth_from_env(
         raise ValueError(
             f"{have} is set but {missing} is not: set both (the platform origin and "
             "this connector's public URL), or neither for no auth."
+        )
+    if mcp_path and audience.rstrip("/").endswith(mcp_path.rstrip("/")):
+        raise ValueError(
+            f"{AUDIENCE_ENV}={audience!r} ends in {mcp_path!r}: it is this "
+            f"connector's base URL, and {mcp_path!r} is appended to it."
         )
     return enlace_resource(
         issuer=issuer, audience=audience, scopes=scopes, mcp_path=mcp_path

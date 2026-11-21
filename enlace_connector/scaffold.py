@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .auth import AUDIENCE_ENV, ISSUER_ENV
 from .connector import ConnectorSpec
 
 __all__ = ["render_app_toml", "render_server_py", "scaffold_app"]
@@ -92,8 +93,8 @@ def render_server_py(spec: ConnectorSpec) -> str:
     return (
         f'"""Auto-generated enlace connector app for {spec.name!r}.\n\n'
         "Built from a ConnectorSpec by enlace_connector. The platform origin (the\n"
-        "OAuth issuer) is read from $CONNECTOR_ISSUER; this connector's public URL\n"
-        "(the token audience) from $CONNECTOR_AUDIENCE, which the rendered unit sets,\n"
+        f"OAuth issuer) is read from ${ISSUER_ENV}; this connector's public URL\n"
+        f"(the token audience) from ${AUDIENCE_ENV}, which the rendered unit sets,\n"
         'else it is derived from the issuer and the route.\n"""\n\n'
         "import os\n\n"
         "from enlace_connector import ConnectorSpec, make_connector_app\n\n"
@@ -106,9 +107,9 @@ def render_server_py(spec: ConnectorSpec) -> str:
         f"    stateless_http={spec.stateless_http!r},\n"
         + _optional_spec_fields(spec)
         + ")\n\n"
-        f"_issuer = os.environ.get('CONNECTOR_ISSUER', {DFLT_PLATFORM_ORIGIN!r})\n"
+        f"_issuer = os.environ.get({ISSUER_ENV!r}, {DFLT_PLATFORM_ORIGIN!r})\n"
         "app = make_connector_app(\n"
-        "    SPEC, issuer=_issuer, audience=os.environ.get('CONNECTOR_AUDIENCE') or None\n"
+        f"    SPEC, issuer=_issuer, audience=os.environ.get({AUDIENCE_ENV!r}) or None\n"
         ")\n"
     )
 
