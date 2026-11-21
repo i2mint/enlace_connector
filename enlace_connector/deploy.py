@@ -31,6 +31,7 @@ import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from .auth import AUDIENCE_ENV, ISSUER_ENV
 from .connector import ConnectorSpec
 from .preflight import DFLT_REFRESH_TOKEN_TTL_SECONDS, refresh_grant_check_commands
 
@@ -319,10 +320,10 @@ def render_systemd_unit(
                 f"{p[key]!r}: a connector path cannot contain '%' or whitespace "
                 "(check the spec name and remote_base)"
             )
-    env = {"CONNECTOR_ISSUER": issuer, **spec.env}
+    env = {ISSUER_ENV: issuer, **spec.env}
     # From the issuer the unit actually sets, so a spec.env override of it keeps
     # iss and aud from one origin; an explicit spec.env audience still wins.
-    env.setdefault("CONNECTOR_AUDIENCE", spec.default_audience(env["CONNECTOR_ISSUER"]))
+    env.setdefault(AUDIENCE_ENV, spec.default_audience(env[ISSUER_ENV]))
     env_lines = "\n".join(
         _systemd_environment_line(k, _subst(str(v), p)) for k, v in env.items()
     )
