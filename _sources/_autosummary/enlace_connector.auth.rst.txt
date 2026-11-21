@@ -8,6 +8,8 @@ enlace\_connector.auth
 
    .. autosummary::
    
+      ISSUER_ENV
+      AUDIENCE_ENV
       ENLACE_OAUTH_PATH
       DFLT_SCOPES
    
@@ -18,4 +20,5 @@ enlace\_connector.auth
       enlace_resource
       idp_resource
       resolve_auth
+      auth_from_env
    

@@ -1,4 +1,4 @@
-> built 2026-10-20 15:22 UTC from 6b4e981 (main) · enlace_connector 0.0.1. Details: build_info.json
+> built 2026-11-21 23:26 UTC from 6e3ca3a (main) · enlace_connector 0.0.1. Details: build_info.json
 
 # index.html.md
 
@@ -56,6 +56,8 @@ authorization server issued. Who that AS is is just config:
 
 The resource-server validation is identical regardless — picking an AS doesn’t change
 the connector, only where the token comes from.
+
+A connector built by a factory that cannot take `auth=` (a uvicorn `--factory`) reads the pair its unit already carries: `auth = enlace_connector.auth_from_env()` returns the `enlace_resource` config from `CONNECTOR_ISSUER` (the platform origin) and `CONNECTOR_AUDIENCE` (this connector’s public URL), `None` when neither is set, and refuses to start when only one is.
 
 ## Usage logging is a switch, not code
 
@@ -257,18 +259,31 @@ shape regardless of who issues the token — so picking an AS is just config:
   `jwks_uri` / `issuer` explicitly.
 - `None` / `"none"` — unauthenticated (local stdio, or an internal pilot).
 
+A deployed connector’s unit carries the issuer and its own public URL as
+[`ISSUER_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.ISSUER_ENV) and [`AUDIENCE_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.AUDIENCE_ENV) (`deploy.render_systemd_unit` writes
+both); [`auth_from_env()`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.auth_from_env) turns them into the resource-server config, so a
+connector served by another app’s factory needs no reader of its own.
+
 ### Module Attributes
 
-| [`ENLACE_OAUTH_PATH`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.ENLACE_OAUTH_PATH)   | Path under the platform origin where `enlace_auth` serves its OAuth 2.1 authorization-server endpoints (authorize / token / register / jwks).   |
-|----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`DFLT_SCOPES`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.DFLT_SCOPES)         | Default OAuth scopes a connector requires (read-only retrieval).                                                                                |
+| [`ISSUER_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.ISSUER_ENV)        | The environment variable naming the OAuth issuer (the platform origin).                                                                                                                       |
+|--------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`AUDIENCE_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.AUDIENCE_ENV)      | The environment variable naming this connector's public base URL, which [`enlace_resource()`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.enlace_resource) turns into the token audience (`base + mcp_path`). |
+| [`ENLACE_OAUTH_PATH`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.ENLACE_OAUTH_PATH) | Path under the platform origin where `enlace_auth` serves its OAuth 2.1 authorization-server endpoints (authorize / token / register / jwks).                                                 |
+| [`DFLT_SCOPES`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.DFLT_SCOPES)       | Default OAuth scopes a connector requires (read-only retrieval).                                                                                                                              |
 
 ### Functions
 
-| [`enlace_resource`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.enlace_resource)(\*, issuer, audience[, ...])   | Resource-server config validating tokens from the platform's `enlace_auth` AS.   |
-|-------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| [`idp_resource`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.idp_resource)(\*, jwks_uri, issuer, audience)   | Resource-server config validating tokens from an external managed IdP.           |
-| [`resolve_auth`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.resolve_auth)(auth, \*[, issuer, audience])     | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).          |
+| [`enlace_resource`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.enlace_resource)(\*, issuer, audience[, ...])     | Resource-server config validating tokens from the platform's `enlace_auth` AS.                                                                                                                         |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`idp_resource`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.idp_resource)(\*, jwks_uri, issuer, audience)     | Resource-server config validating tokens from an external managed IdP.                                                                                                                                 |
+| [`resolve_auth`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.resolve_auth)(auth, \*[, issuer, audience])       | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).                                                                                                                                |
+| [`auth_from_env`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.auth_from_env)([settings, mcp_path, scopes, ...]) | [`enlace_resource()`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.enlace_resource) from [`ISSUER_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.ISSUER_ENV) and [`AUDIENCE_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.AUDIENCE_ENV). |
+
+### enlace_connector.auth.AUDIENCE_ENV *= 'CONNECTOR_AUDIENCE'*
+
+The environment variable naming this connector’s public base URL, which
+[`enlace_resource()`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.enlace_resource) turns into the token audience (`base + mcp_path`).
 
 ### enlace_connector.auth.DFLT_SCOPES *= ('mcp:read',)*
 
@@ -281,6 +296,46 @@ authorization-server endpoints (authorize / token / register / jwks). The
 AS *issuer* is the bare platform origin; discovery lives at the standard
 `{issuer}/.well-known/oauth-authorization-server`. This constant is the
 single source of truth shared with `enlace_auth` so the two never drift.
+
+### enlace_connector.auth.ISSUER_ENV *= 'CONNECTOR_ISSUER'*
+
+The environment variable naming the OAuth issuer (the platform origin).
+
+### enlace_connector.auth.auth_from_env(settings=None, , mcp_path='/mcp', scopes=('mcp:read',), required=False)
+
+[`enlace_resource()`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.enlace_resource) from [`ISSUER_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.ISSUER_ENV) and [`AUDIENCE_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.AUDIENCE_ENV).
+
+*settings* defaults to `os.environ` (what a systemd unit’s `Environment=`
+lines populate). Neither set (or both empty): `None`, an unauthenticated
+connector, as for local serving. One without the other raises: a
+half-configured connector must not start unauthenticated, nor guess the
+missing half. A deployed connector passes `required=True`, so that both
+names missing (a typo in each, an absent `EnvironmentFile=`) refuses to
+start instead of serving with no auth.
+
+Unlike a scaffolded `server.py` (which knows its spec, so it defaults the
+issuer and derives the audience from the route), this never defaults
+either: a factory with no spec knows no route.
+
+[`AUDIENCE_ENV`](_autosummary/enlace_connector.auth.html.md#enlace_connector.auth.AUDIENCE_ENV) is the connector’s **base** URL; the token audience is
+`base + mcp_path`. A value that already ends in *mcp_path* is refused,
+since every token would then be rejected as for `.../mcp/mcp`.
+
+```pycon
+>>> auth_from_env({}) is None
+True
+>>> cfg = auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com",
+...                      "CONNECTOR_AUDIENCE": "https://apps.example.com/x-mcp"})
+>>> cfg["audience"], cfg["jwks_uri"]
+('https://apps.example.com/x-mcp/mcp', 'https://apps.example.com/auth/oauth/jwks')
+>>> auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com"})
+Traceback (most recent call last):
+  ...
+ValueError: CONNECTOR_ISSUER is set but CONNECTOR_AUDIENCE is not: set both (the platform origin and this connector's public URL), or neither for no auth.
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.auth.enlace_resource(, issuer, audience, scopes=('mcp:read',), mcp_path='/mcp')
 
@@ -1117,6 +1172,7 @@ in seconds instead of when a user complains a day later.
 | [`chain_lifespan`](_autosummary/enlace_connector.html.md#enlace_connector.chain_lifespan)(app, extra_lifespan)                | Run *extra_lifespan* inside *app*'s own lifespan, and return *app*.                                                      |
 | [`resolve_auth`](_autosummary/enlace_connector.html.md#enlace_connector.resolve_auth)(auth, \*[, issuer, audience])         | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).                                                  |
 | [`enlace_resource`](_autosummary/enlace_connector.html.md#enlace_connector.enlace_resource)(\*, issuer, audience[, ...])       | Resource-server config validating tokens from the platform's `enlace_auth` AS.                                           |
+| [`auth_from_env`](_autosummary/enlace_connector.html.md#enlace_connector.auth_from_env)([settings, mcp_path, scopes, ...])   | [`enlace_resource()`](_autosummary/enlace_connector.html.md#enlace_connector.enlace_resource) from `ISSUER_ENV` and `AUDIENCE_ENV`.                 |
 | [`idp_resource`](_autosummary/enlace_connector.html.md#enlace_connector.idp_resource)(\*, jwks_uri, issuer, audience)       | Resource-server config validating tokens from an external managed IdP.                                                   |
 | [`scaffold_app`](_autosummary/enlace_connector.html.md#enlace_connector.scaffold_app)(spec, dest_dir, \*, port[, command])  | Write `app.toml` and `server.py` for *spec* into *dest_dir*.                                                             |
 | [`generate_deploy_bundle`](_autosummary/enlace_connector.html.md#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                                                                    |
@@ -1533,6 +1589,42 @@ ValueError: Connector 'x' has no allowed_users...
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_connector.auth_from_env(settings=None, , mcp_path='/mcp', scopes=('mcp:read',), required=False)
+
+[`enlace_resource()`](_autosummary/enlace_connector.html.md#enlace_connector.enlace_resource) from `ISSUER_ENV` and `AUDIENCE_ENV`.
+
+*settings* defaults to `os.environ` (what a systemd unit’s `Environment=`
+lines populate). Neither set (or both empty): `None`, an unauthenticated
+connector, as for local serving. One without the other raises: a
+half-configured connector must not start unauthenticated, nor guess the
+missing half. A deployed connector passes `required=True`, so that both
+names missing (a typo in each, an absent `EnvironmentFile=`) refuses to
+start instead of serving with no auth.
+
+Unlike a scaffolded `server.py` (which knows its spec, so it defaults the
+issuer and derives the audience from the route), this never defaults
+either: a factory with no spec knows no route.
+
+`AUDIENCE_ENV` is the connector’s **base** URL; the token audience is
+`base + mcp_path`. A value that already ends in *mcp_path* is refused,
+since every token would then be rejected as for `.../mcp/mcp`.
+
+```pycon
+>>> auth_from_env({}) is None
+True
+>>> cfg = auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com",
+...                      "CONNECTOR_AUDIENCE": "https://apps.example.com/x-mcp"})
+>>> cfg["audience"], cfg["jwks_uri"]
+('https://apps.example.com/x-mcp/mcp', 'https://apps.example.com/auth/oauth/jwks')
+>>> auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com"})
+Traceback (most recent call last):
+  ...
+ValueError: CONNECTOR_ISSUER is set but CONNECTOR_AUDIENCE is not: set both (the platform origin and this connector's public URL), or neither for no auth.
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.authorization_server_metadata(issuer, , fetch=None)
 
@@ -2652,7 +2744,7 @@ The usage-logging middleware for *spec*, or `[]` when it is switched off.
 
 # About this build
 
-This documentation was built on **2026-10-20 15:22 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/6b4e981a9f524866827c7836c9a927a97fd0dde9"><code>6b4e981</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-21 23:26 UTC** from commit <a href="https://github.com/i2mint/enlace_connector/commit/6e3ca3a53db923a3da8a87f06adaed8c74d9b5a0"><code>6e3ca3a</code></a> on branch <code>main</code>, for **enlace_connector 0.0.1** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -2661,7 +2753,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                                |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/6b4e981a9f524866827c7836c9a927a97fd0dde9"><code>6b4e981a9f524866827c7836c9a927a97fd0dde9</code></a> |
+| Commit              | <a href="https://github.com/i2mint/enlace_connector/commit/6e3ca3a53db923a3da8a87f06adaed8c74d9b5a0"><code>6e3ca3a53db923a3da8a87f06adaed8c74d9b5a0</code></a> |
 | Branch              | <code>main</code>                                                                                                                                              |
 | Tags at this commit | none                                                                                                                                                           |
 | Working tree        | clean                                                                                                                                                          |
@@ -2672,18 +2764,18 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                               |
 |--------------|-----------------------------------------------------------------------------------------------|
 | Repository   | <code>i2mint/enlace_connector</code>                                                          |
-| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/39447365089">39447365089</a> |
+| Run          | <a href="https://github.com/i2mint/enlace_connector/actions/runs/44961683274">44961683274</a> |
 | Ref          | <code>refs/heads/main</code>                                                                  |
-| Event commit | <code>6b4e981a9f524866827c7836c9a927a97fd0dde9</code> (in the history of the built commit)    |
+| Event commit | <code>6e3ca3a53db923a3da8a87f06adaed8c74d9b5a0</code> (in the history of the built commit)    |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.21  |
+| epythet  | 0.2.23  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.15 |
+| Python   | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -2705,8 +2797,8 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ```bash
 git clone https://github.com/i2mint/enlace_connector && cd enlace_connector
-git checkout 6b4e981a9f524866827c7836c9a927a97fd0dde9
-pip install "epythet==0.2.21"
+git checkout 6e3ca3a53db923a3da8a87f06adaed8c74d9b5a0
+pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

@@ -53,6 +53,8 @@ authorization server issued. Who that AS is is just config:
 The resource-server validation is identical regardless — picking an AS doesn’t change
 the connector, only where the token comes from.
 
+A connector built by a factory that cannot take `auth=` (a uvicorn `--factory`) reads the pair its unit already carries: `auth = enlace_connector.auth_from_env()` returns the `enlace_resource` config from `CONNECTOR_ISSUER` (the platform origin) and `CONNECTOR_AUDIENCE` (this connector’s public URL), `None` when neither is set, and refuses to start when only one is.
+
 ## Usage logging is a switch, not code
 
 A deployed connector otherwise leaves only the web server’s access log. With

@@ -13,6 +13,7 @@
       chain_lifespan
       resolve_auth
       enlace_resource
+      auth_from_env
       idp_resource
       scaffold_app
       generate_deploy_bundle

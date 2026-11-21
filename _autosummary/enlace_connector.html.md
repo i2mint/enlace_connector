@@ -55,6 +55,7 @@ in seconds instead of when a user complains a day later.
 | [`chain_lifespan`](#enlace_connector.chain_lifespan)(app, extra_lifespan)                | Run *extra_lifespan* inside *app*'s own lifespan, and return *app*.                                                      |
 | [`resolve_auth`](#enlace_connector.resolve_auth)(auth, \*[, issuer, audience])         | Normalize an `auth` spec to a py2mcp auth dict (or `None` for no auth).                                                  |
 | [`enlace_resource`](#enlace_connector.enlace_resource)(\*, issuer, audience[, ...])       | Resource-server config validating tokens from the platform's `enlace_auth` AS.                                           |
+| [`auth_from_env`](#enlace_connector.auth_from_env)([settings, mcp_path, scopes, ...])   | [`enlace_resource()`](#enlace_connector.enlace_resource) from `ISSUER_ENV` and `AUDIENCE_ENV`.                 |
 | [`idp_resource`](#enlace_connector.idp_resource)(\*, jwks_uri, issuer, audience)       | Resource-server config validating tokens from an external managed IdP.                                                   |
 | [`scaffold_app`](#enlace_connector.scaffold_app)(spec, dest_dir, \*, port[, command])  | Write `app.toml` and `server.py` for *spec* into *dest_dir*.                                                             |
 | [`generate_deploy_bundle`](#enlace_connector.generate_deploy_bundle)(spec, dest, \*[, ...])      | Write the full deploy bundle for *spec* under *dest*.                                                                    |
@@ -471,6 +472,42 @@ ValueError: Connector 'x' has no allowed_users...
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+### enlace_connector.auth_from_env(settings=None, , mcp_path='/mcp', scopes=('mcp:read',), required=False)
+
+[`enlace_resource()`](#enlace_connector.enlace_resource) from `ISSUER_ENV` and `AUDIENCE_ENV`.
+
+*settings* defaults to `os.environ` (what a systemd unit’s `Environment=`
+lines populate). Neither set (or both empty): `None`, an unauthenticated
+connector, as for local serving. One without the other raises: a
+half-configured connector must not start unauthenticated, nor guess the
+missing half. A deployed connector passes `required=True`, so that both
+names missing (a typo in each, an absent `EnvironmentFile=`) refuses to
+start instead of serving with no auth.
+
+Unlike a scaffolded `server.py` (which knows its spec, so it defaults the
+issuer and derives the audience from the route), this never defaults
+either: a factory with no spec knows no route.
+
+`AUDIENCE_ENV` is the connector’s **base** URL; the token audience is
+`base + mcp_path`. A value that already ends in *mcp_path* is refused,
+since every token would then be rejected as for `.../mcp/mcp`.
+
+```pycon
+>>> auth_from_env({}) is None
+True
+>>> cfg = auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com",
+...                      "CONNECTOR_AUDIENCE": "https://apps.example.com/x-mcp"})
+>>> cfg["audience"], cfg["jwks_uri"]
+('https://apps.example.com/x-mcp/mcp', 'https://apps.example.com/auth/oauth/jwks')
+>>> auth_from_env({"CONNECTOR_ISSUER": "https://apps.example.com"})
+Traceback (most recent call last):
+  ...
+ValueError: CONNECTOR_ISSUER is set but CONNECTOR_AUDIENCE is not: set both (the platform origin and this connector's public URL), or neither for no auth.
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### enlace_connector.authorization_server_metadata(issuer, , fetch=None)
 
